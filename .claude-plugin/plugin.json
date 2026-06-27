@@ -39,6 +39,5 @@
     "./agents/system-steward.md",
     "./agents/tech-writer.md",
     "./agents/ux-designer.md"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }
