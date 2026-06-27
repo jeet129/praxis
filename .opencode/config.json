@@ -1,0 +1,8 @@
+{
+  "skillsPath": "skills",
+  "agentsPath": "agents",
+  "workflowsPath": "workflows",
+  "governancePath": "governance/governance.yaml",
+  "memoryRoot": ".project",
+  "frontDoorSkill": "using-praxis"
+}

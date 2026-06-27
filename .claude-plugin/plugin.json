@@ -1,0 +1,18 @@
+{
+  "name": "praxis",
+  "version": "1.0.0",
+  "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 79 SKILLs, 16 role agents, 5 workflows, governance gates, project memory taxonomy. Covers discovery, architecture, implementation, release, ops, data plane, ML / agentic-AI plane, and self-improvement.",
+  "license": "MIT",
+  "homepage": "",
+  "keywords": [
+    "skills",
+    "agents",
+    "delivery",
+    "architecture",
+    "governance",
+    "mlops",
+    "agentic-ai",
+    "rag",
+    "responsible-ai"
+  ]
+}

@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*~
+
+# Per-project memory tree (not part of the library; created per install target)
+.project/
+
+# Python (in case anyone runs validator scripts in a venv)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Node (for slash-command tooling if anyone adds it)
+node_modules/
+
+# Build / distribution
+dist/
+build/
+*.plugin
+
+# Logs + local outputs
+*.log
+.cache/
+tmp/

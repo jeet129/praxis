@@ -1,0 +1,299 @@
+# Workflow: production-release
+# Activated in Wave 3. Takes a verified-in-staging commit and walks it through
+# the production_go_live gate to a live production deployment.
+#
+# Triggered by parent workflows (greenfield-api-service, brownfield-enhancement,
+# greenfield-saas) at the cadence the team chooses:
+#   - Per-slice (continuous deployment) — every closed slice triggers this.
+#   - Per-milestone — accumulated slices ship together.
+#   - Manual — Platform/SRE initiates when ready.
+#
+# Inputs:
+#   - candidate_commit: the green-in-staging main commit
+#   - candidate_image_digest: the signed image SHA from cicd-pipeline
+#   - active_slices: slices included in this release
+#   - environments: { staging, production }
+#   - strategy: release strategy (rolling | canary | blue-green | progressive)
+#
+# Outputs:
+#   - production_deployment_id
+#   - release_record_path
+#   - production_status: deployed | rolled_back
+
+name: production-release
+version: 1
+description: |
+  Production release flow. Assembles production_go_live evidence, gates on
+  approval per governance.yaml, executes the deployment strategy with explicit
+  rollback armed, runs post-deploy verification, and records the release.
+
+entry_criteria:
+  - candidate_commit_green_in_staging
+  - candidate_image_signed_and_attested
+  - all_slices_in_release_acceptance_signed
+
+# ==================================================================
+# PHASE 1 — Pre-release readiness check
+# ==================================================================
+steps:
+  - id: capacity_check
+    type: skill_invocation
+    skill: capacity-resource-estimation
+    owner: platform-sre
+    inputs:
+      release_changes: from(parent.active_slices)
+      current_sizing: from(.project/operational/capacity-sizing-*.md)
+    outputs:
+      - capacity_verdict   # sufficient | needs_adjustment
+      - recommended_adjustments
+
+  - id: capacity_adjustments_applied
+    type: decision_node
+    predicate: capacity_verdict == sufficient OR capacity_adjustments_applied == true
+    branches:
+      true: [dr_readiness_check]
+      false: [apply_capacity_adjustments]
+
+  - id: apply_capacity_adjustments
+    type: skill_invocation
+    skill: iac
+    owner: platform-sre
+    inputs:
+      adjustments: from(capacity_check.recommended_adjustments)
+    outputs: [adjustments_applied]
+    notes: |
+      Capacity adjustments often surface as scaling autoscaler bounds, node-pool
+      resizes, or RDS instance class changes. Routed back through IaC plan + apply.
+
+  - id: dr_readiness_check
+    type: decision_node
+    predicate: dr_drill_recent_pass(within_cadence_days=90)
+    branches:
+      true: [observability_readiness_check]
+      false: [escalate_dr_overdue]
+    notes: |
+      Reliability-DR (Wave 4) skill owns the DR drill cadence. Wave 3 enforces
+      the recency check; if no drill within the cadence window, the release
+      pauses for the team to address.
+
+  - id: escalate_dr_overdue
+    type: escalation
+    route_to: principal
+    reason: "DR drill not within cadence; release paused"
+
+  - id: observability_readiness_check
+    type: skill_invocation
+    skill: observability
+    owner: platform-sre
+    inputs:
+      release_changes: from(parent.active_slices)
+    outputs:
+      - slo_live   # whether SLOs are defined and dashboarded
+      - alerts_armed   # whether alerts are configured
+      - dashboards_provisioned
+
+  - id: rollback_plan_ready
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    inputs:
+      release_changes: from(parent.active_slices)
+      strategy: from(parent.strategy)
+    outputs:
+      - rollback_runbook_path
+      - rollback_trigger_conditions
+
+# ==================================================================
+# PHASE 2 — Assemble the production_go_live evidence package
+# ==================================================================
+  - id: assemble_evidence
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    action: assemble_production_go_live_evidence
+    inputs:
+      release_changes: from(parent.active_slices)
+      capacity_verdict: from(capacity_check.capacity_verdict)
+      dr_status: from(dr_readiness_check)
+      observability_status: from(observability_readiness_check)
+      rollback_plan: from(rollback_plan_ready.rollback_runbook_path)
+      signed_image: from(parent.candidate_image_digest)
+    outputs:
+      - evidence_pack_path
+    notes: |
+      Per deploy-release skill's evidence-package specification (7-item checklist):
+        1. All pre-prod gates cleared (review, security, QA, staging)
+        2. DR drill recent pass
+        3. Capacity sizing verified
+        4. Observability wired (SLOs, dashboards, alerts)
+        5. Rollback plan documented and trigger conditions explicit
+        6. Chaos engineering pass recent (Wave 4 — skipped here)
+        7. Compliance evidence (Wave 4 — skipped if no regime applies)
+
+# ==================================================================
+# PHASE 3 — Governance gate: production_go_live
+# ==================================================================
+  - id: production_go_live_gate
+    type: gate
+    name: production_go_live
+    approver: governance.production_go_live.approver
+    evidence_required: from(assemble_evidence.evidence_pack_path)
+    notes: |
+      Per governance.yaml. Solo mode: principal approves. Team mode: per the
+      configured matrix (typically engineering_manager + security_lead, with
+      cto as escalation).
+
+# ==================================================================
+# PHASE 4 — Execute the deployment
+# ==================================================================
+  - id: production_deploy
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    inputs:
+      image_digest: from(parent.candidate_image_digest)
+      environment: production
+      strategy: from(parent.strategy)   # rolling | canary | blue-green | progressive
+    outputs:
+      - production_deployment_id
+      - rollout_state   # progressing | succeeded | failed
+    notes: |
+      Strategy-specific behavior per deploy-release:
+        - rolling: replace pods N at a time; full rollout in minutes
+        - canary: 5% → 10% → 25% → 50% → 100% with soak periods
+        - blue-green: deploy to green; verify; switch traffic
+        - progressive (canary + feature flags): deploy dark; flip flags by cohort
+
+# ==================================================================
+# PHASE 5 — Post-deploy verification
+# ==================================================================
+  - id: post_deploy_verification
+    type: parallel
+    branches:
+      - id: production_smoke
+        type: skill_invocation
+        skill: testing-strategy
+        owner: qa-engineer
+        inputs:
+          environment: production
+          deployment: from(production_deploy.production_deployment_id)
+          smoke_suite: from(release_changes.smoke_tests)
+        outputs: [smoke_status]
+        notes: |
+          Smoke suite specifically curated for prod-safe verification — fast,
+          read-only or idempotent operations, non-destructive.
+
+      - id: slo_observation
+        type: skill_invocation
+        skill: observability
+        owner: platform-sre
+        inputs:
+          environment: production
+          deployment: from(production_deploy.production_deployment_id)
+          soak_window: 30m
+        outputs:
+          - error_budget_consumption
+          - p99_latency
+          - error_rate
+          - business_metrics_anomaly
+
+  - id: production_verified_check
+    type: decision_node
+    predicate: |
+      smoke_status == pass AND
+      error_budget_consumption < threshold AND
+      p99_latency < nfr.p99_target AND
+      error_rate < nfr.error_rate_target AND
+      business_metrics_anomaly == none
+    branches:
+      true: [record_release]
+      false: [production_rollback]
+
+# ==================================================================
+# PHASE 6 — Rollback path (if verification fails)
+# ==================================================================
+  - id: production_rollback
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    action: rollback
+    inputs:
+      environment: production
+      deployment: from(production_deploy.production_deployment_id)
+      strategy: from(parent.strategy)
+      previous_image_digest: from(.project/operational/releases/last-stable.md)
+      reason: from(production_verified_check.failure_reason)
+    outputs: [rollback_status, rollback_duration]
+    notes: |
+      Per deploy-release skill's rollback discipline. Strategy-specific:
+        - rolling: re-deploy previous image SHA via rolling pattern
+        - canary: revert traffic shift; previous version remains live
+        - blue-green: switch traffic back to blue (seconds)
+        - progressive: flip feature flag off; no re-deploy needed
+      Postmortem triggered automatically (incident-runbook, Wave 4).
+
+# ==================================================================
+# PHASE 7 — Record the release
+# ==================================================================
+  - id: record_release
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    action: record_release
+    inputs:
+      production_deployment: from(production_deploy.production_deployment_id)
+      release_version: from(semantic_version_bump)
+      changelog_entry: from(parent.active_slices.changelog_summary)
+      evidence_pack: from(assemble_evidence.evidence_pack_path)
+    outputs:
+      - release_record_path   # .project/operational/releases/release-vX.Y.Z.md
+      - tag_created   # signed git tag
+    notes: |
+      Release record persists per the deploy-release skill's release-record format.
+      Tag is signed (matches the immutable image SHA).
+
+  - id: notify_release
+    type: notification
+    targets: [team_channel, status_page]
+    payload:
+      release_version: from(record_release.release_version)
+      changelog: from(parent.active_slices.changelog_summary)
+      deployment_id: from(production_deploy.production_deployment_id)
+
+# ==================================================================
+# Exit
+# ==================================================================
+exit_criteria:
+  - production_verified_check.passed == true
+  - record_release.completed == true
+
+failure_paths:
+  rollback:
+    - production_rollback (executed above)
+    - record_failed_release_to_episodic
+    - trigger_postmortem   # incident-runbook (Wave 4)
+
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+notes: |
+  This workflow is activated in Wave 3 when Platform/SRE and the deployment plane
+  are in place. Parent workflows (greenfield-api-service, brownfield-enhancement,
+  greenfield-saas) trigger this on their chosen cadence.
+
+  Wave 4 will add:
+    - chaos-engineering pass-recency check as an evidence requirement
+    - performance-testing soak result as an evidence requirement
+    - reliability-dr drill verification
+    - compliance-privacy evidence for regulated regimes
+    - incident-runbook integration for rollback → postmortem flow
+    - distributed-systems-patterns operational sanity checks
+
+  The evidence-required list in governance.yaml's production_go_live gate already
+  references several Wave-4 items (chaos_engineering_pass_recent, etc.) so the
+  gate's full set is satisfied once Wave 4 lands. In Wave 3, those items are
+  noted as deferred and the gate enforces the Wave-3-feasible subset:
+  pre-prod gates cleared + DR drill + capacity verified + observability live +
+  rollback plan documented.

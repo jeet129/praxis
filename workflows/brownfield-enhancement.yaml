@@ -1,0 +1,217 @@
+# Workflow: brownfield-enhancement
+# Modify an existing codebase to add or change behavior.
+# Differs from greenfield-api-service in the brownfield preconditions:
+# codebase-comprehension runs first, impact-analysis precedes implementation.
+
+name: brownfield-enhancement
+version: 1
+description: |
+  Add or change behavior in an existing system. Comprehension runs first so the
+  team grounds work in `.repo-intel/`. Impact analysis runs before any modification
+  so the blast radius is named. Implementation matches existing conventions per the
+  G/B brownfield branch.
+
+entry_criteria:
+  - mode == brownfield
+  - target_repo_identified == true
+  - principal_intent_captured == true
+  - source_repo_accessible == true
+
+# ------------------------------------------------------------------
+# PHASE PRE — Codebase comprehension (brownfield-only)
+# ------------------------------------------------------------------
+steps:
+  - id: codebase_comprehension
+    type: agent_invocation
+    agent: solution-architect   # SA runs this; could be Tech Writer/Maintainer in Wave 7
+    skill: codebase-comprehension
+    inputs:
+      target_repo: from(principal_intent.target_repo)
+    outputs:
+      - .repo-intel/architecture-map.md
+      - .repo-intel/dependency-graph.md
+      - .repo-intel/service-map.md
+      - .repo-intel/ownership-map.md
+      - .repo-intel/hotspot-analysis.md
+      - .repo-intel/conventions.md
+      - .repo-intel/test-coverage-gaps.md
+    on_failure: escalate
+
+# ------------------------------------------------------------------
+# PHASE A — Discovery & Requirements (scoped to the enhancement)
+# ------------------------------------------------------------------
+  - id: enhancement_scoping
+    type: agent_invocation
+    agent: product-manager
+    skill: product-discovery
+    inputs:
+      principal_intent: from(principal_intent)
+      existing_opportunity: from(.project/semantic/opportunity.md, if_exists)
+      repo_intel: from(codebase_comprehension.outputs)
+    outputs: [scoped_opportunity, mvp_scope_hypothesis]
+    notes: |
+      Brownfield discovery is scoped to the specific enhancement; the broader
+      vision is read from existing semantic/ memory if present. Re-validation of
+      the existing vision is required only when the new feature contradicts it.
+
+  - id: requirements_elicitation
+    type: agent_invocation
+    agent: product-manager
+    skill: requirements-elicitation
+    inputs:
+      scoped_opportunity: from(enhancement_scoping.scoped_opportunity)
+      repo_intel: from(codebase_comprehension.outputs)
+    outputs: [requirements_brief, user_stories, assumptions_register, open_questions, scope_boundary, changes_existing_behavior_flags]
+
+  - id: nfr_definition
+    type: agent_invocation
+    agent: product-manager
+    skill: nfr-definition
+    inputs:
+      requirements_brief: from(requirements_elicitation.requirements_brief)
+      existing_nfr_register: from(.project/semantic/nfr-register.md, if_exists)
+      operational_history: from(.project/operational/, if_exists)
+    outputs: [nfr_register]
+    notes: |
+      Brownfield NFR work reads existing SLOs, runbooks, and operational history
+      from `.project/operational/` and `.repo-intel/`. Targets are often
+      "measured current behavior + a target delta" — calling out the delta is
+      essential.
+
+  - id: requirements_freeze_gate
+    type: gate
+    name: requirements_freeze
+    approver: governance.requirements_freeze.approver
+    evidence:
+      - requirements_brief
+      - user_stories
+      - scope_boundary
+      - nfr_register
+      - changes_existing_behavior_flags
+
+# ------------------------------------------------------------------
+# PHASE B — Architecture & Design (matches existing pattern by default)
+# ------------------------------------------------------------------
+  - id: architecture_evaluation
+    type: agent_invocation
+    agent: solution-architect
+    skill: architecture-pattern-selection
+    inputs:
+      requirements_brief: from(requirements_elicitation.requirements_brief)
+      nfr_register: from(nfr_definition.nfr_register)
+      existing_architecture: from(codebase_comprehension.outputs.architecture_map)
+      conventions: from(codebase_comprehension.outputs.conventions)
+      mode: brownfield
+    outputs: [architecture_decision, divergence_decision, architecture_adr, c4_diagrams_delta]
+    notes: |
+      Brownfield's existing architecture is the strong default. The SA decides
+      whether the enhancement fits the existing pattern or warrants divergence.
+      Divergence is the exception and requires an explicit ADR.
+
+  - id: architecture_challenger_review
+    type: agent_invocation
+    agent: architecture-challenger
+    inputs:
+      architecture_decision: from(architecture_evaluation.architecture_decision)
+      divergence_decision: from(architecture_evaluation.divergence_decision)
+      nfr_register: from(nfr_definition.nfr_register)
+      sub_personas: from(planner.selected_challenger_sub_personas)
+    outputs: [challenge_report]
+    notes: |
+      Brownfield challenges focus on the enhancement's interaction with the
+      existing system: integration assumptions, shared state, cross-cutting
+      concerns the new behavior touches.
+
+  - id: nfr_check
+    type: decision_node
+    predicate: nfr_satisfied(architecture_decision, nfr_register)
+    branches:
+      true: [impact_analysis]
+      false: [architecture_evaluation, with_nfr_violations_as_input]
+
+# ------------------------------------------------------------------
+# IMPACT ANALYSIS — brownfield-specific gate
+# ------------------------------------------------------------------
+  - id: impact_analysis
+    type: agent_invocation
+    agent: solution-architect
+    skill: impact-analysis   # Wave 1 skill (in Phase H of the catalog)
+    inputs:
+      proposed_changes: from(architecture_evaluation.architecture_decision)
+      repo_intel: from(codebase_comprehension.outputs)
+    outputs: [affected_services, affected_apis, affected_db_tables, affected_tests, affected_deployments, risk_score, rollback_complexity]
+
+  - id: project_phasing
+    type: agent_invocation
+    agent: solution-architect
+    skill: project-phasing
+    inputs:
+      architecture_decision: from(architecture_evaluation.architecture_decision)
+      user_stories: from(requirements_elicitation.user_stories)
+      impact_analysis: from(impact_analysis.outputs)
+    outputs: [phased_roadmap, dependency_graph, milestones]
+    notes: |
+      Brownfield phasing prefers smaller slices than greenfield — the smallest
+      meaningful change that exercises the new behavior end-to-end against the
+      existing system. The "walking skeleton" concept is replaced by "smallest
+      meaningful change."
+
+  - id: architecture_sign_off_gate
+    type: gate
+    name: architecture_sign_off
+    approver: governance.architecture_sign_off.approver
+    evidence:
+      - architecture_decision
+      - divergence_decision
+      - architecture_adr
+      - c4_diagrams_delta
+      - challenge_report
+      - impact_analysis
+      - phased_roadmap
+
+# ------------------------------------------------------------------
+# PHASE C — Implementation (per slice, with brownfield-mode skills)
+# ------------------------------------------------------------------
+  - id: implementation_loop
+    type: per_slice
+    source: from(project_phasing.phased_roadmap)
+    sub_workflow: implementation-slice
+    until: project_phasing.roadmap_complete == true
+    sub_workflow_overrides:
+      mode: brownfield
+      # All G/B skills take their brownfield branch:
+      # - secure-coding audits + emits fix diffs in existing patterns
+      # - api-design versions and extends existing contracts
+      # - data-modeling writes migrations (expand-contract for zero-downtime)
+      # - code review consults .repo-intel/conventions.md as the operative bar
+
+exit_criteria:
+  - all_phases_complete
+  - implementation_loop.all_slices_closed == true
+
+failure_paths:
+  rollback:
+    - revert_repo_changes_for_current_slice
+    - restore_from_pre_change_state
+    - close_slice_with_failure_status
+    - notify_principal_via_governance
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+notes: |
+  This workflow differs from greenfield-api-service in:
+
+  1. codebase-comprehension runs first and produces .repo-intel/ that every
+     downstream step consumes.
+  2. Discovery is scoped to the enhancement; existing semantic/ memory is read,
+     not overwritten.
+  3. NFR work reads existing SLOs and operational history; targets are framed
+     as deltas against current behavior.
+  4. The architecture-evaluation step explicitly decides whether to fit the
+     existing pattern or diverge; divergence requires an ADR.
+  5. impact-analysis runs after architecture and before phasing.
+  6. Phasing prefers smaller slices; walking-skeleton is replaced with smallest
+     meaningful change.
+  7. All G/B skills take their brownfield branch during implementation.

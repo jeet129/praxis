@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "praxis",
+  "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery covering the full lifecycle: discovery, architecture, UX, implementation, release, ops, data, ML / agentic AI, and self-improvement.",
+  "owner": {
+    "name": "Jitesh",
+    "url": "https://github.com/REPLACE_WITH_YOUR_GITHUB_USERNAME"
+  },
+  "plugins": [
+    {
+      "name": "praxis",
+      "source": {
+        "source": "github",
+        "repo": "REPLACE_WITH_YOUR_GITHUB_USERNAME/praxis"
+      },
+      "description": "79 SKILLs \u00b7 16 role agents \u00b7 5 workflows \u00b7 7 active governance gates \u00b7 7 slash commands \u00b7 SessionStart hook \u00b7 skill validator. Activates per project flags (G/B mode, has_data_plane, has_ml, has_agentic_ai, compliance regimes).",
+      "license": "MIT",
+      "homepage": "https://github.com/REPLACE_WITH_YOUR_GITHUB_USERNAME/praxis",
+      "keywords": [
+        "skills",
+        "agents",
+        "delivery",
+        "architecture",
+        "governance",
+        "mlops",
+        "agentic-ai",
+        "rag",
+        "responsible-ai",
+        "compliance"
+      ]
+    }
+  ]
+}
