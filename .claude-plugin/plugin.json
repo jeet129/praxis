@@ -1,7 +1,7 @@
 {
   "name": "praxis",
   "version": "1.0.0",
-  "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 79 SKILLs, 16 role agents, 5 workflows, governance gates, project memory taxonomy. Covers discovery, architecture, implementation, release, ops, data plane, ML / agentic-AI plane, and self-improvement.",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 79 SKILLs, 16 role agents, 5 workflows, governance gates, project memory taxonomy. Covers discovery, architecture, implementation, release, ops, data plane, ML / agentic-AI plane, and self-improvement.",
   "license": "MIT",
   "homepage": "https://github.com/jeet129/praxis",
   "keywords": [
@@ -19,5 +19,26 @@
   "author": {
     "name": "Jitesh",
     "email": "jitesh921@gmail.com"
-  }
+  },
+  "commands": "./.claude/commands",
+  "skills": "./skills",
+  "agents": [
+    "./agents/architecture-challenger.md",
+    "./agents/backend-developer.md",
+    "./agents/code-reviewer.md",
+    "./agents/data-engineer.md",
+    "./agents/delivery-lead.md",
+    "./agents/frontend-developer.md",
+    "./agents/lead-developer.md",
+    "./agents/ml-ai-engineer.md",
+    "./agents/platform-sre.md",
+    "./agents/product-manager.md",
+    "./agents/qa-engineer.md",
+    "./agents/security-reviewer.md",
+    "./agents/solution-architect.md",
+    "./agents/system-steward.md",
+    "./agents/tech-writer.md",
+    "./agents/ux-designer.md"
+  ],
+  "hooks": "./hooks/hooks.json"
 }
