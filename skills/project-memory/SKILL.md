@@ -1,9 +1,17 @@
 ---
 name: project-memory
-description: Owns the write side of `.project/` — the persistent project memory directory structured by the six memory types (semantic / episodic / procedural / decision / operational / working). Every agent reads `.project/` on entry and writes to it via the AOP Document step. Use this skill whenever the orchestrator initializes a project, an agent completes a phase and needs to record decisions or context, an ADR is created or superseded, an incident closes and needs operational memory recorded, or a slice opens and `working/` needs to be primed. Project memory is what makes the platform portable across coding assistants — any tool that can read files can reconstruct project state.
+description: Owns the write side of `.project/` — the persistent project memory directory structured by the six memory types (semantic / episodic / procedural / decision / operational / working). Every agent reads `.project/` on entry and writes to it via the AOP Document step.
 ---
 
 # Project Memory
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Owns the write side of `.project/` — the persistent project memory directory structured by the six memory types (semantic / episodic / procedural / decision / operational / working). Every agent reads `.project/` on entry and writes to it via the AOP Document step. Use this skill whenever the orchestrator initializes a project, an agent completes a phase and needs to record decisions or context, an ADR is created or superseded, an incident closes and needs operational memory recorded, or a slice opens and `working/` needs to be primed. Project memory is what makes the platform portable across coding assistants — any tool that can read files can reconstruct project state.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

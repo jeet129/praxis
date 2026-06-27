@@ -1,9 +1,17 @@
 ---
 name: domain-discovery
-description: Lightweight domain modeling using event-storming-style techniques to find bounded contexts, the ubiquitous language, and the candidate aggregates BEFORE choosing an architecture or designing data. Establishes the shared semantic foundation that every downstream skill consumes. The Solution Architect runs this once for a new product and lightly per slice that introduces new domain concepts. Output lives in `.project/semantic/` and becomes the project's persistent semantic memory.
+description: Lightweight domain modeling using event-storming-style techniques to find bounded contexts, the ubiquitous language, and the candidate aggregates BEFORE choosing an architecture or designing data. Establishes the shared semantic foundation that every downstream skill consumes. The Solution Architect runs this once for a new product and lightly per slice that introduces new domain concepts.
 ---
 
 # Domain Discovery
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Lightweight domain modeling using event-storming-style techniques to find bounded contexts, the ubiquitous language, and the candidate aggregates BEFORE choosing an architecture or designing data. Establishes the shared semantic foundation that every downstream skill consumes. The Solution Architect runs this once for a new product and lightly per slice that introduces new domain concepts. Output lives in `.project/semantic/` and becomes the project's persistent semantic memory.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

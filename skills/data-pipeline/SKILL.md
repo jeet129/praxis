@@ -1,9 +1,17 @@
 ---
 name: data-pipeline
-description: Batch and streaming pipeline design. Ingestion, transformation, materialization, orchestration (Airflow / Dagster / Prefect / Kafka Connect), idempotency, backfills, late-arriving data, schema evolution. Per the agnostic-everywhere decision, ships with refs for the major orchestrators and processing engines. Data Engineer owns this; activates only on engagements with non-trivial data workloads. Use whenever a new pipeline is being designed, an ingestion source is added, backfills need planning, or pipeline reliability needs investigation.
+description: Batch and streaming pipeline design. Ingestion, transformation, materialization, orchestration (Airflow / Dagster / Prefect / Kafka Connect), idempotency, backfills, late-arriving data, schema evolution. Per the agnostic-everywhere decision, ships with refs for the major orchestrators and processing engines. Data Engineer owns this; activates only on engagements with non-trivial data workloads.
 ---
 
 # Data Pipeline
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Batch and streaming pipeline design. Ingestion, transformation, materialization, orchestration (Airflow / Dagster / Prefect / Kafka Connect), idempotency, backfills, late-arriving data, schema evolution. Per the agnostic-everywhere decision, ships with refs for the major orchestrators and processing engines. Data Engineer owns this; activates only on engagements with non-trivial data workloads. Use whenever a new pipeline is being designed, an ingestion source is added, backfills need planning, or pipeline reliability needs investigation.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

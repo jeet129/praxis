@@ -1,9 +1,17 @@
 ---
 name: wireframing-prototyping
-description: Translate user journeys into low/mid-fidelity wireframes and interactive prototypes. Validate the interaction model BEFORE pixel polish — the wireframe is the design's contract; the prototype is its validation. Lives downstream of `ux-journey-mapping` (which provides the friction inventory and opportunity hotspots to wireframe first) and upstream of `design-system` (which provides the tokens and components the wireframes resolve to). The UX Designer runs this. Use whenever a slice's UI is being designed before implementation begins.
+description: "Translate user journeys into low/mid-fidelity wireframes and interactive prototypes. Validate the interaction model BEFORE pixel polish — the wireframe is the design's contract; the prototype is its validation."
 ---
 
 # Wireframing & Prototyping
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Translate user journeys into low/mid-fidelity wireframes and interactive prototypes. Validate the interaction model BEFORE pixel polish — the wireframe is the design's contract; the prototype is its validation. Lives downstream of `ux-journey-mapping` (which provides the friction inventory and opportunity hotspots to wireframe first) and upstream of `design-system` (which provides the tokens and components the wireframes resolve to). The UX Designer runs this. Use whenever a slice's UI is being designed before implementation begins.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

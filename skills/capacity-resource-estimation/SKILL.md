@@ -1,9 +1,17 @@
 ---
 name: capacity-resource-estimation
-description: Translate NFR targets + expected load into resource sizing. Compute / memory / storage / IOPS / network per service; autoscaling policy with min/max bounds and scaling triggers; headroom (the buffer above expected steady-state); growth model (sizing for 12 and 24 months); environment cost envelope. Output drives `iac` provisioning, `deploy-release` resource requests/limits, `cost-finops` attribution, and `performance-testing` target setting. Platform/SRE runs this in the architecture phase and revises mid-project when usage data invalidates assumptions.
+description: Translate NFR targets + expected load into resource sizing. Compute / memory / storage / IOPS / network per service; autoscaling policy with min/max bounds and scaling triggers; headroom (the buffer above expected steady-state); growth model (sizing for 12 and 24 months); environment cost envelope.
 ---
 
 # Capacity & Resource Estimation
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Translate NFR targets + expected load into resource sizing. Compute / memory / storage / IOPS / network per service; autoscaling policy with min/max bounds and scaling triggers; headroom (the buffer above expected steady-state); growth model (sizing for 12 and 24 months); environment cost envelope. Output drives `iac` provisioning, `deploy-release` resource requests/limits, `cost-finops` attribution, and `performance-testing` target setting. Platform/SRE runs this in the architecture phase and revises mid-project when usage data invalidates assumptions.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

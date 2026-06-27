@@ -1,9 +1,17 @@
 ---
 name: ml-feature-engineering
-description: Feature design and operationalization with point-in-time correctness. Feature definitions, train/serve skew prevention, feature-store integration, leakage avoidance, materialization strategy (batch vs online vs streaming). The most-leveraged single technical activity in an ML project; the difference between models that work in notebooks and models that work in production. ML/AI Engineer owns this; Data Engineer integrates feature pipelines with the data plane. Use whenever features are being designed for a model, when investigating train-serve skew, when integrating a feature store, or when handling temporal correctness.
+description: Feature design and operationalization with point-in-time correctness. Feature definitions, train/serve skew prevention, feature-store integration, leakage avoidance, materialization strategy (batch vs online vs streaming). The most-leveraged single technical activity in an ML project; the difference between models that work in notebooks and models that work in production.
 ---
 
 # ML Feature Engineering
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Feature design and operationalization with point-in-time correctness. Feature definitions, train/serve skew prevention, feature-store integration, leakage avoidance, materialization strategy (batch vs online vs streaming). The most-leveraged single technical activity in an ML project; the difference between models that work in notebooks and models that work in production. ML/AI Engineer owns this; Data Engineer integrates feature pipelines with the data plane. Use whenever features are being designed for a model, when investigating train-serve skew, when integrating a feature store, or when handling temporal correctness.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

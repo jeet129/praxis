@@ -1,9 +1,17 @@
 ---
 name: ml-training-evaluation
-description: Reproducible training plus rigorous evaluation. Experiment tracking, data + code + config versioning, eval harness (holdout, cross-validation, slice-based metrics, calibration, error analysis), confidence intervals and statistical significance vs baseline. The model card is part of the deliverable, not a postscript. Per the Resolved Decision, ships with refs for MLflow / W&B / Vertex Experiments / SageMaker Experiments / Comet. ML/AI Engineer owns this; the trained model + model card flow to ml-serving-deployment for productionization. Use whenever a model is being trained, when evaluating against a baseline, when comparing model variants, or when assembling the responsible-AI evidence pack.
+description: Reproducible training plus rigorous evaluation. Experiment tracking, data + code + config versioning, eval harness (holdout, cross-validation, slice-based metrics, calibration, error analysis), confidence intervals and statistical significance vs baseline. The model card is part of the deliverable, not a postscript.
 ---
 
 # ML Training & Evaluation
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Reproducible training plus rigorous evaluation. Experiment tracking, data + code + config versioning, eval harness (holdout, cross-validation, slice-based metrics, calibration, error analysis), confidence intervals and statistical significance vs baseline. The model card is part of the deliverable, not a postscript. Per the Resolved Decision, ships with refs for MLflow / W&B / Vertex Experiments / SageMaker Experiments / Comet. ML/AI Engineer owns this; the trained model + model card flow to ml-serving-deployment for productionization. Use whenever a model is being trained, when evaluating against a baseline, when comparing model variants, or when assembling the responsible-AI evidence pack.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

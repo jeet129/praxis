@@ -1,9 +1,17 @@
 ---
 name: data-governance
-description: Lineage, cataloging, classification, access control, retention, PII handling at the data layer. The data-side enforcement of what `compliance-privacy` declares. Data Engineer owns; Security Reviewer audits; Tech Writer maintains the catalog as living documentation. Activated on engagements with non-trivial data workloads + compliance requirements (most regulated SaaS has both). Use whenever new data sources are being added, when data classification is being established, when responding to data-subject requests, or when an auditor asks "where does this data come from / who can see it / how long do we keep it?"
+description: Lineage, cataloging, classification, access control, retention, PII handling at the data layer. The data-side enforcement of what `compliance-privacy` declares. Data Engineer owns; Security Reviewer audits; Tech Writer maintains the catalog as living documentation. Activated on engagements with non-trivial data workloads + compliance requirements (most regulated SaaS has both).
 ---
 
 # Data Governance
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Lineage, cataloging, classification, access control, retention, PII handling at the data layer. The data-side enforcement of what `compliance-privacy` declares. Data Engineer owns; Security Reviewer audits; Tech Writer maintains the catalog as living documentation. Activated on engagements with non-trivial data workloads + compliance requirements (most regulated SaaS has both). Use whenever new data sources are being added, when data classification is being established, when responding to data-subject requests, or when an auditor asks "where does this data come from / who can see it / how long do we keep it?"
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

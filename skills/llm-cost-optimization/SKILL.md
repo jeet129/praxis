@@ -1,9 +1,17 @@
 ---
 name: llm-cost-optimization
-description: Production economics for LLM features. Model selection per task (capability-vs-cost tiering), prompt-cache + KV-cache utilization, semantic caching, batching, smaller-model routing for the common case, token budgets per request, observability of cost as a first-class signal. LLM cost is the silent project killer — features that work in development can be unaffordable at scale. ML/AI Engineer owns the design; Platform/SRE wires the cost monitoring; `cost-finops` treats LLM cost as a category. Use whenever a new LLM feature is being designed, when investigating cost growth, when setting token budgets, or when designing model-routing policy.
+description: Production economics for LLM features. Model selection per task (capability-vs-cost tiering), prompt-cache + KV-cache utilization, semantic caching, batching, smaller-model routing for the common case, token budgets per request, observability of cost as a first-class signal. LLM cost is the silent project killer — features that work in development can be unaffordable at scale.
 ---
 
 # LLM Cost Optimization
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Production economics for LLM features. Model selection per task (capability-vs-cost tiering), prompt-cache + KV-cache utilization, semantic caching, batching, smaller-model routing for the common case, token budgets per request, observability of cost as a first-class signal. LLM cost is the silent project killer — features that work in development can be unaffordable at scale. ML/AI Engineer owns the design; Platform/SRE wires the cost monitoring; `cost-finops` treats LLM cost as a category. Use whenever a new LLM feature is being designed, when investigating cost growth, when setting token budgets, or when designing model-routing policy.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

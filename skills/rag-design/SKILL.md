@@ -1,9 +1,17 @@
 ---
 name: rag-design
-description: Retrieval-Augmented Generation done right. Corpus design, chunking strategy, embedding model choice, hybrid retrieval (vector + BM25), reranking, query rewriting, citation, retrieval evaluation. Pairs with `evaluation-engineering` for measurement and with `agentic-architecture` for system integration. Most "the LLM made it up" failures are retrieval failures, not generation failures — get retrieval right and the generation problem shrinks dramatically. ML/AI Engineer owns this; Data Engineer co-designs the ingestion pipeline (per `data-pipeline`). Use whenever a feature needs the LLM to ground in specific documents, when designing the RAG corpus, when investigating low groundedness, or when choosing retrieval architecture.
+description: Retrieval-Augmented Generation done right. Corpus design, chunking strategy, embedding model choice, hybrid retrieval (vector + BM25), reranking, query rewriting, citation, retrieval evaluation. Pairs with `evaluation-engineering` for measurement and with `agentic-architecture` for system integration.
 ---
 
 # RAG Design
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Retrieval-Augmented Generation done right. Corpus design, chunking strategy, embedding model choice, hybrid retrieval (vector + BM25), reranking, query rewriting, citation, retrieval evaluation. Pairs with `evaluation-engineering` for measurement and with `agentic-architecture` for system integration. Most "the LLM made it up" failures are retrieval failures, not generation failures — get retrieval right and the generation problem shrinks dramatically. ML/AI Engineer owns this; Data Engineer co-designs the ingestion pipeline (per `data-pipeline`). Use whenever a feature needs the LLM to ground in specific documents, when designing the RAG corpus, when investigating low groundedness, or when choosing retrieval architecture.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

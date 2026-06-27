@@ -1,9 +1,17 @@
 ---
 name: nfr-definition
-description: Make non-functional requirements explicit, measurable, and gated. Produces the NFR register — target numbers per quality attribute (performance, availability, scalability, security, compliance, accessibility, observability, RTO/RPO, cost) plus the verification method for each. Without this, NFRs get discovered in production. Use whenever a project enters the architecture phase or a slice introduces new quality targets. The NFR register is consumed by every Decision Node that checks "did we meet the bar?" — `nfr_satisfied()` predicates parameterize against this register.
+description: Make non-functional requirements explicit, measurable, and gated. Produces the NFR register — target numbers per quality attribute (performance, availability, scalability, security, compliance, accessibility, observability, RTO/RPO, cost) plus the verification method for each. Without this, NFRs get discovered in production.
 ---
 
 # NFR Definition
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Make non-functional requirements explicit, measurable, and gated. Produces the NFR register — target numbers per quality attribute (performance, availability, scalability, security, compliance, accessibility, observability, RTO/RPO, cost) plus the verification method for each. Without this, NFRs get discovered in production. Use whenever a project enters the architecture phase or a slice introduces new quality targets. The NFR register is consumed by every Decision Node that checks "did we meet the bar?" — `nfr_satisfied()` predicates parameterize against this register.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

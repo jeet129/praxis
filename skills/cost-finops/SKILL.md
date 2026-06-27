@@ -1,9 +1,17 @@
 ---
 name: cost-finops
-description: Cost-aware design and continuous optimization. Right-sizing, spot / reserved / committed-use, storage tiering, tagging + showback, budget alerts, FinOps culture. Distinct from `capacity-resource-estimation` (which sets initial sizing); this skill ensures cost stays optimal as the system runs. Platform/SRE owns this; PM consults on cost vs. feature trade-offs; principal approves overruns. Use whenever provisioning happens, when cost trends concern, when running quarterly cost reviews, or when budgets need adjustment.
+description: Cost-aware design and continuous optimization. Right-sizing, spot / reserved / committed-use, storage tiering, tagging + showback, budget alerts, FinOps culture. Distinct from `capacity-resource-estimation` (which sets initial sizing); this skill ensures cost stays optimal as the system runs. Platform/SRE owns this; PM consults on cost vs. feature trade-offs; principal approves overruns.
 ---
 
 # Cost / FinOps
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Cost-aware design and continuous optimization. Right-sizing, spot / reserved / committed-use, storage tiering, tagging + showback, budget alerts, FinOps culture. Distinct from `capacity-resource-estimation` (which sets initial sizing); this skill ensures cost stays optimal as the system runs. Platform/SRE owns this; PM consults on cost vs. feature trade-offs; principal approves overruns. Use whenever provisioning happens, when cost trends concern, when running quarterly cost reviews, or when budgets need adjustment.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

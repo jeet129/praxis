@@ -1,9 +1,17 @@
 ---
 name: authn-authz
-description: Identity, authentication, authorization. OIDC / OAuth2 / SAML / MFA / session-vs-token, RBAC / ABAC / ReBAC, token lifecycle and rotation, service-to-service auth (mTLS, workload identity), object-level authorization to prevent BOLA/IDOR — the most common API-level security failure. The Solution Architect designs identity and authorization model; Backend Developer applies via the active stack pack (Spring Security / Passport / NestJS guards / Authlib / etc.); Security Reviewer audits placement. Use whenever a service introduces authenticated surface, when designing the identity model, when adding new authorization rules, or when integrating with an identity provider.
+description: Identity, authentication, authorization. OIDC / OAuth2 / SAML / MFA / session-vs-token, RBAC / ABAC / ReBAC, token lifecycle and rotation, service-to-service auth (mTLS, workload identity), object-level authorization to prevent BOLA/IDOR — the most common API-level security failure.
 ---
 
 # Authentication & Authorization
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Identity, authentication, authorization. OIDC / OAuth2 / SAML / MFA / session-vs-token, RBAC / ABAC / ReBAC, token lifecycle and rotation, service-to-service auth (mTLS, workload identity), object-level authorization to prevent BOLA/IDOR — the most common API-level security failure. The Solution Architect designs identity and authorization model; Backend Developer applies via the active stack pack (Spring Security / Passport / NestJS guards / Authlib / etc.); Security Reviewer audits placement. Use whenever a service introduces authenticated surface, when designing the identity model, when adding new authorization rules, or when integrating with an identity provider.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

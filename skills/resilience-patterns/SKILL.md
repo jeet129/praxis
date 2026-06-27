@@ -1,9 +1,17 @@
 ---
 name: resilience-patterns
-description: Single-component-failure-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, idempotency, outbox, saga. Applied during architecture (where) and implementation (how) to make services tolerant of the inevitable failures of dependencies. Distinct from `distributed-systems-patterns` (which addresses correctness across components — consensus, replication, consistency) and from `chaos-engineering` (which verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility.
+description: Single-component-failure-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, idempotency, outbox, saga. Applied during architecture (where) and implementation (how) to make services tolerant of the inevitable failures of dependencies.
 ---
 
 # Resilience Patterns
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Single-component-failure-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, idempotency, outbox, saga. Applied during architecture (where) and implementation (how) to make services tolerant of the inevitable failures of dependencies. Distinct from `distributed-systems-patterns` (which addresses correctness across components — consensus, replication, consistency) and from `chaos-engineering` (which verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

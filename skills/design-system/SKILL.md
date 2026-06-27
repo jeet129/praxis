@@ -1,9 +1,17 @@
 ---
 name: design-system
-description: Token-based design system — the shared visual contract for every FE slice. Color / typography / spacing / motion tokens; component contracts; theming (light / dark / brand); Storybook + visual regression baseline. Lives between `wireframing-prototyping` (which uses the system) and `stack-web-frontend` (which implements it). Use whenever new tokens or components are being introduced, when wireframing requires a component not yet in the system, or when establishing the design language for a new product.
+description: Token-based design system — the shared visual contract for every FE slice. Color / typography / spacing / motion tokens; component contracts; theming (light / dark / brand); Storybook + visual regression baseline. Lives between `wireframing-prototyping` (which uses the system) and `stack-web-frontend` (which implements it).
 ---
 
 # Design System
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Token-based design system — the shared visual contract for every FE slice. Color / typography / spacing / motion tokens; component contracts; theming (light / dark / brand); Storybook + visual regression baseline. Lives between `wireframing-prototyping` (which uses the system) and `stack-web-frontend` (which implements it). Use whenever new tokens or components are being introduced, when wireframing requires a component not yet in the system, or when establishing the design language for a new product.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

@@ -1,9 +1,17 @@
 ---
 name: platform-k8s
-description: Cloud-agnostic Kubernetes pack — workload manifests, resource requests/limits, probes, HPA/VPA, network policy, ingress, secrets, GitOps deployment patterns, cluster conventions. The Layer-4 reference pack that the deployment-side skills (deploy-release, iac, observability, secrets-config) consult for K8s-specific implementation. Selected as the first cloud pack per the Resolved Decision (K8s-only first, cloud-agnostic). Use whenever K8s manifests are being written, when establishing cluster-level conventions, or when integrating with the K8s-native deployment ecosystem (Helm, Kustomize, Argo CD, External Secrets Operator).
+description: Cloud-agnostic Kubernetes pack — workload manifests, resource requests/limits, probes, HPA/VPA, network policy, ingress, secrets, GitOps deployment patterns, cluster conventions. The Layer-4 reference pack that the deployment-side skills (deploy-release, iac, observability, secrets-config) consult for K8s-specific implementation.
 ---
 
 # Platform — Kubernetes
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Cloud-agnostic Kubernetes pack — workload manifests, resource requests/limits, probes, HPA/VPA, network policy, ingress, secrets, GitOps deployment patterns, cluster conventions. The Layer-4 reference pack that the deployment-side skills (deploy-release, iac, observability, secrets-config) consult for K8s-specific implementation. Selected as the first cloud pack per the Resolved Decision (K8s-only first, cloud-agnostic). Use whenever K8s manifests are being written, when establishing cluster-level conventions, or when integrating with the K8s-native deployment ecosystem (Helm, Kustomize, Argo CD, External Secrets Operator).
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

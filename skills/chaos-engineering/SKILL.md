@@ -1,9 +1,17 @@
 ---
 name: chaos-engineering
-description: Controlled failure injection in pre-prod (and progressively in prod) to validate resilience-patterns and DR plans in practice. Blast-radius scoping, hypothesis-driven experiments, GameDay cadence, findings → fix backlog. Catches the failure modes the team assumed away. Platform/SRE owns this; experiments live in `.project/operational/chaos/`. Use whenever resilience claims need verification, when running a quarterly GameDay, when adding a chaos experiment to the production_go_live evidence (for resilience-critical changes), or when investigating recurrent fragility.
+description: Controlled failure injection in pre-prod (and progressively in prod) to validate resilience-patterns and DR plans in practice. Blast-radius scoping, hypothesis-driven experiments, GameDay cadence, findings → fix backlog. Catches the failure modes the team assumed away. Platform/SRE owns this; experiments live in `.project/operational/chaos/`.
 ---
 
 # Chaos Engineering
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Controlled failure injection in pre-prod (and progressively in prod) to validate resilience-patterns and DR plans in practice. Blast-radius scoping, hypothesis-driven experiments, GameDay cadence, findings → fix backlog. Catches the failure modes the team assumed away. Platform/SRE owns this; experiments live in `.project/operational/chaos/`. Use whenever resilience claims need verification, when running a quarterly GameDay, when adding a chaos experiment to the production_go_live evidence (for resilience-critical changes), or when investigating recurrent fragility.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

@@ -1,9 +1,17 @@
 ---
 name: performance-testing
-description: Pre-prod load, soak, stress, and spike testing against the NFR register's performance targets. Validates capacity sizing, surfaces bottlenecks before production, and produces the perf-test-soak-pass evidence for the production_go_live gate. QA Engineer + Platform/SRE co-own this; SA contributes the scenarios; Backend Developer interprets results. Use whenever NFR-bearing changes are being released, when capacity sizing needs validation, when investigating perf regressions, or when establishing perf-test cadence.
+description: "Pre-prod load, soak, stress, and spike testing against the NFR register's performance targets. Validates capacity sizing, surfaces bottlenecks before production, and produces the perf-test-soak-pass evidence for the production_go_live gate. QA Engineer + Platform/SRE co-own this; SA contributes the scenarios; Backend Developer interprets results."
 ---
 
 # Performance Testing
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Pre-prod load, soak, stress, and spike testing against the NFR register's performance targets. Validates capacity sizing, surfaces bottlenecks before production, and produces the perf-test-soak-pass evidence for the production_go_live gate. QA Engineer + Platform/SRE co-own this; SA contributes the scenarios; Backend Developer interprets results. Use whenever NFR-bearing changes are being released, when capacity sizing needs validation, when investigating perf regressions, or when establishing perf-test cadence.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

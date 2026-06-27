@@ -1,9 +1,17 @@
 ---
 name: multi-tenancy
-description: SaaS tenancy model design — silo / pool / bridge — with tenant isolation, per-tenant data, noisy-neighbor controls, tenant-aware observability, tenant-context propagation, and tenant-aware billing. Solution Architect runs this once for any multi-tenant project; Backend Developer applies the tenant context across every layer. Use whenever a project is multi-tenant SaaS, when designing isolation strategy, when investigating tenant cross-talk, or when adding per-tenant features (limits, billing, observability).
+description: SaaS tenancy model design — silo / pool / bridge — with tenant isolation, per-tenant data, noisy-neighbor controls, tenant-aware observability, tenant-context propagation, and tenant-aware billing. Solution Architect runs this once for any multi-tenant project; Backend Developer applies the tenant context across every layer.
 ---
 
 # Multi-Tenancy
+
+
+<!-- praxis:description:full -->
+## Full description
+
+SaaS tenancy model design — silo / pool / bridge — with tenant isolation, per-tenant data, noisy-neighbor controls, tenant-aware observability, tenant-context propagation, and tenant-aware billing. Solution Architect runs this once for any multi-tenant project; Backend Developer applies the tenant context across every layer. Use whenever a project is multi-tenant SaaS, when designing isolation strategy, when investigating tenant cross-talk, or when adding per-tenant features (limits, billing, observability).
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

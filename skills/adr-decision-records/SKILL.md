@@ -1,9 +1,17 @@
 ---
 name: adr-decision-records
-description: Standardize how every significant architectural and engineering decision is recorded as an Architecture Decision Record (ADR) — context, options considered, decision taken, consequences, rejected alternatives. Use whenever a non-trivial decision is being made that future readers will need to understand (architecture choices, technology selections, risk acceptances, policy waivers, deprecations, supersessions). ADRs live in `.project/decision/` and are indexed by `memory-management`. The team's decision memory; every design and review skill defers to this format. Pushy trigger because undocumented decisions are the most common operational failure.
+description: Standardize how every significant architectural and engineering decision is recorded as an Architecture Decision Record (ADR) — context, options considered, decision taken, consequences, rejected alternatives.
 ---
 
 # ADR — Architecture Decision Records
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Standardize how every significant architectural and engineering decision is recorded as an Architecture Decision Record (ADR) — context, options considered, decision taken, consequences, rejected alternatives. Use whenever a non-trivial decision is being made that future readers will need to understand (architecture choices, technology selections, risk acceptances, policy waivers, deprecations, supersessions). ADRs live in `.project/decision/` and are indexed by `memory-management`. The team's decision memory; every design and review skill defers to this format. Pushy trigger because undocumented decisions are the most common operational failure.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

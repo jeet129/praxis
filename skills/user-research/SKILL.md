@@ -1,9 +1,17 @@
 ---
 name: user-research
-description: Plan and synthesize lightweight user research — interview prep, hypothesis-driven discovery sessions, structured synthesis into themes and insights — to ground requirements in real user needs rather than internal assumptions. Distinct from `product-discovery` (which frames opportunities) and `wireframing-prototyping` (which validates designs). This skill runs the research methodology cleanly; its outputs feed back into discovery (validating or invalidating problem and solution hypotheses) and into wireframing (validating interaction designs).
+description: Plan and synthesize lightweight user research — interview prep, hypothesis-driven discovery sessions, structured synthesis into themes and insights — to ground requirements in real user needs rather than internal assumptions. Distinct from `product-discovery` (which frames opportunities) and `wireframing-prototyping` (which validates designs).
 ---
 
 # User Research
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Plan and synthesize lightweight user research — interview prep, hypothesis-driven discovery sessions, structured synthesis into themes and insights — to ground requirements in real user needs rather than internal assumptions. Distinct from `product-discovery` (which frames opportunities) and `wireframing-prototyping` (which validates designs). This skill runs the research methodology cleanly; its outputs feed back into discovery (validating or invalidating problem and solution hypotheses) and into wireframing (validating interaction designs).
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

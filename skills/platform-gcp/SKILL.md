@@ -1,9 +1,17 @@
 ---
 name: platform-gcp
-description: GCP cloud-specific reference pack. Managed-service catalog (GKE / Cloud Run / Cloud SQL / Spanner / Bigtable / BigQuery / Cloud Storage / Pub/Sub / Cloud Tasks / Workflows / Cloud Functions), networking (VPC / Cloud Load Balancing / Cloud Armor / Private Service Connect), identity (Cloud IAM / Workload Identity / Secret Manager), observability (Cloud Logging / Cloud Monitoring / Cloud Trace / Error Reporting), DR patterns (multi-zone default; multi-region for global services), cost levers (Committed Use Discounts / Spot VMs / Sustained Use Discounts), GCP Architecture Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for GCP-specific implementation. Selected when GCP is the project's cloud per governance.yaml.
+description: GCP cloud-specific reference pack. Managed-service catalog (GKE / Cloud Run / Cloud SQL / Spanner / Bigtable / BigQuery / Cloud Storage / Pub/Sub / Cloud Tasks / Workflows / Cloud Functions), networking (VPC / Cloud Load Balancing / Cloud Armor / Private Service Connect), identity (Cloud IAM / Workload Identity / Secret Manager), observability (Cloud Logging / Cloud Monitoring / Cloud Trace /...
 ---
 
 # Platform — GCP
+
+
+<!-- praxis:description:full -->
+## Full description
+
+GCP cloud-specific reference pack. Managed-service catalog (GKE / Cloud Run / Cloud SQL / Spanner / Bigtable / BigQuery / Cloud Storage / Pub/Sub / Cloud Tasks / Workflows / Cloud Functions), networking (VPC / Cloud Load Balancing / Cloud Armor / Private Service Connect), identity (Cloud IAM / Workload Identity / Secret Manager), observability (Cloud Logging / Cloud Monitoring / Cloud Trace / Error Reporting), DR patterns (multi-zone default; multi-region for global services), cost levers (Committed Use Discounts / Spot VMs / Sustained Use Discounts), GCP Architecture Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for GCP-specific implementation. Selected when GCP is the project's cloud per governance.yaml.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

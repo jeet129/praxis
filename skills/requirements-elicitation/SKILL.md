@@ -1,9 +1,17 @@
 ---
 name: requirements-elicitation
-description: Convert validated product-discovery outputs into structured, testable requirements with explicit acceptance criteria, assumptions, open questions, and scope boundaries. Runs a clarifying-question loop before any design work begins — the discipline that prevents architecture and implementation from running on ambiguous foundations. Use whenever discovery has produced an opportunity brief + MVP scope hypothesis and the project is ready to enter design. Distinct from `requirements-interrogation` (which is the per-agent phase-entry KUACQ procedure) — this is the structured front-end discovery-to-requirements activity owned by the PM.
+description: Convert validated product-discovery outputs into structured, testable requirements with explicit acceptance criteria, assumptions, open questions, and scope boundaries. Runs a clarifying-question loop before any design work begins — the discipline that prevents architecture and implementation from running on ambiguous foundations.
 ---
 
 # Requirements Elicitation
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Convert validated product-discovery outputs into structured, testable requirements with explicit acceptance criteria, assumptions, open questions, and scope boundaries. Runs a clarifying-question loop before any design work begins — the discipline that prevents architecture and implementation from running on ambiguous foundations. Use whenever discovery has produced an opportunity brief + MVP scope hypothesis and the project is ready to enter design. Distinct from `requirements-interrogation` (which is the per-agent phase-entry KUACQ procedure) — this is the structured front-end discovery-to-requirements activity owned by the PM.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

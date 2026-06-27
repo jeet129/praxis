@@ -1,9 +1,17 @@
 ---
 name: evaluation-engineering
-description: The QA discipline for AI / agent systems. Golden datasets, LLM-judge methodology (with calibration), regression eval in CI, slice-based metrics, hallucination detection, faithfulness / groundedness scoring, human-in-the-loop review process. Without this, agentic systems regress silently — a "small prompt change" or model upgrade can degrade quality dramatically without anyone noticing. Distinct from `testing-strategy` (application code) and `ml-training-evaluation` (traditional ML model eval). ML/AI Engineer owns the eval design; QA Engineer integrates with the broader testing strategy; reviewers consume eval reports.
+description: "The QA discipline for AI / agent systems. Golden datasets, LLM-judge methodology (with calibration), regression eval in CI, slice-based metrics, hallucination detection, faithfulness / groundedness scoring, human-in-the-loop review process. Without this, agentic systems regress silently — a \"small prompt change\" or model upgrade can degrade quality dramatically without anyone noticing."
 ---
 
 # Evaluation Engineering
+
+
+<!-- praxis:description:full -->
+## Full description
+
+The QA discipline for AI / agent systems. Golden datasets, LLM-judge methodology (with calibration), regression eval in CI, slice-based metrics, hallucination detection, faithfulness / groundedness scoring, human-in-the-loop review process. Without this, agentic systems regress silently — a "small prompt change" or model upgrade can degrade quality dramatically without anyone noticing. Distinct from `testing-strategy` (application code) and `ml-training-evaluation` (traditional ML model eval). ML/AI Engineer owns the eval design; QA Engineer integrates with the broader testing strategy; reviewers consume eval reports.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

@@ -1,9 +1,17 @@
 ---
 name: ml-serving-deployment
-description: Model serving design. Online (low-latency) vs batch vs streaming, A/B + shadow + canary deployment, multi-armed bandits where they fit, model-registry promotion policy, rollback. Online serving consumes resilience-patterns (timeouts, fallbacks, graceful degradation) — a slow model is worse than a missing model. Per the Resolved Decision, ships with refs for SageMaker / Vertex AI / Azure ML / KServe / Triton / BentoML / Ray Serve plus a mode-axis ref for batch vs online vs streaming. ML/AI Engineer owns; Platform/SRE operates infrastructure; deploy-release coordinates production cutover.
+description: Model serving design. Online (low-latency) vs batch vs streaming, A/B + shadow + canary deployment, multi-armed bandits where they fit, model-registry promotion policy, rollback. Online serving consumes resilience-patterns (timeouts, fallbacks, graceful degradation) — a slow model is worse than a missing model.
 ---
 
 # ML Serving & Deployment
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Model serving design. Online (low-latency) vs batch vs streaming, A/B + shadow + canary deployment, multi-armed bandits where they fit, model-registry promotion policy, rollback. Online serving consumes resilience-patterns (timeouts, fallbacks, graceful degradation) — a slow model is worse than a missing model. Per the Resolved Decision, ships with refs for SageMaker / Vertex AI / Azure ML / KServe / Triton / BentoML / Ray Serve plus a mode-axis ref for batch vs online vs streaming. ML/AI Engineer owns; Platform/SRE operates infrastructure; deploy-release coordinates production cutover.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->

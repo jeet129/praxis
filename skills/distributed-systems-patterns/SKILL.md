@@ -1,9 +1,17 @@
 ---
 name: distributed-systems-patterns
-description: Cross-component correctness patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (single-component failure-handling). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed.
+description: Cross-component correctness patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly.
 ---
 
 # Distributed Systems Patterns
+
+
+<!-- praxis:description:full -->
+## Full description
+
+Cross-component correctness patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (single-component failure-handling). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed.
+
+<!-- praxis:description:end -->
 
 
 <!-- praxis:metadata:begin -->
