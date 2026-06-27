@@ -1,18 +1,9 @@
 ---
 name: legacy-modernization
-description: Replacing legacy systems without big-bang rewrites. Strangler fig pattern, anti-corruption layers, parallel-run validation, traffic-shift strategies, data-migration with cutover discipline, sunset planning. Distinct from `tech-debt-management` (incremental hygiene) — this is whole-subsystem replacement. Brownfield-only activation; never fires in greenfield.
+description: "Replacing legacy systems without big-bang rewrites. Strangler fig pattern, anti-corruption layers, parallel-run validation, traffic-shift strategies, data-migration with cutover discipline, sunset planning. Distinct from `tech-debt-management` (incremental hygiene) — this is whole-subsystem replacement. Brownfield-only activation; never fires in greenfield. Solution Architect leads; PM owns the business case; principal approves the strategic decision. Use when proposing a legacy system replacement, when scoping a strangler-fig migration, when designing the anti-corruption layer, when planning parallel-run validation, or when sequencing the cutover."
 ---
 
 # Legacy Modernization
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Replacing legacy systems without big-bang rewrites. Strangler fig pattern, anti-corruption layers, parallel-run validation, traffic-shift strategies, data-migration with cutover discipline, sunset planning. Distinct from `tech-debt-management` (incremental hygiene) — this is whole-subsystem replacement. Brownfield-only activation; never fires in greenfield. Solution Architect leads; PM owns the business case; principal approves the strategic decision. Use when proposing a legacy system replacement, when scoping a strangler-fig migration, when designing the anti-corruption layer, when planning parallel-run validation, or when sequencing the cutover.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

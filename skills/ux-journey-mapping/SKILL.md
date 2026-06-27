@@ -1,18 +1,9 @@
 ---
 name: ux-journey-mapping
-description: Map end-to-end user journeys per persona BEFORE any screen design. Actors, goals, touchpoints, emotional states, friction inventory, opportunity hotspots. Ground design decisions in actual flows rather than isolated screens. The UX Designer runs this for any product with non-trivial user flows, in close collaboration with the PM whose discovery output feeds it.
+description: "Map end-to-end user journeys per persona BEFORE any screen design. Actors, goals, touchpoints, emotional states, friction inventory, opportunity hotspots. Ground design decisions in actual flows rather than isolated screens. The UX Designer runs this for any product with non-trivial user flows, in close collaboration with the PM whose discovery output feeds it. Use whenever a new product is being designed, when a new significant user flow is being added, or when the team is debating screens before agreeing on the underlying journey."
 ---
 
 # UX Journey Mapping
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Map end-to-end user journeys per persona BEFORE any screen design. Actors, goals, touchpoints, emotional states, friction inventory, opportunity hotspots. Ground design decisions in actual flows rather than isolated screens. The UX Designer runs this for any product with non-trivial user flows, in close collaboration with the PM whose discovery output feeds it. Use whenever a new product is being designed, when a new significant user flow is being added, or when the team is debating screens before agreeing on the underlying journey.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

@@ -1,18 +1,9 @@
 ---
 name: threat-modeling
-description: "STRIDE-based attack-surface analysis applied at design time (architecture phase). Trust boundaries, data-flow diagrams, threats enumerated and prioritized, mitigations mapped to NFRs. Distinct from `secure-coding` (applied during writing/review) and from `architecture-challenger`'s `security-challenger` sub-persona (which uses this skill's outputs to attack a design)."
+description: "STRIDE-based attack-surface analysis applied at design time (architecture phase). Trust boundaries, data-flow diagrams, threats enumerated and prioritized, mitigations mapped to NFRs. Distinct from `secure-coding` (applied during writing/review) and from `architecture-challenger`'s `security-challenger` sub-persona (which uses this skill's outputs to attack a design). Solution Architect runs this once per substantial design + per slice that introduces new trust boundaries. Use whenever a system is being designed, new public surface is being added, integrations are being introduced, or compliance requires documented threat models."
 ---
 
 # Threat Modeling
-
-
-<!-- praxis:description:full -->
-## Full description
-
-STRIDE-based attack-surface analysis applied at design time (architecture phase). Trust boundaries, data-flow diagrams, threats enumerated and prioritized, mitigations mapped to NFRs. Distinct from `secure-coding` (applied during writing/review) and from `architecture-challenger`'s `security-challenger` sub-persona (which uses this skill's outputs to attack a design). Solution Architect runs this once per substantial design + per slice that introduces new trust boundaries. Use whenever a system is being designed, new public surface is being added, integrations are being introduced, or compliance requires documented threat models.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

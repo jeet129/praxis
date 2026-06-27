@@ -1,18 +1,9 @@
 ---
 name: data-warehouse-modeling
-description: Analytical modeling for warehouses. Star and snowflake schemas, slowly changing dimensions, fact-table grain choice, dbt-style modular SQL, semantic layer, marts vs core layering. Per the Resolved Decision, ships with refs for BigQuery / Snowflake / Redshift / Synapse / Databricks SQL. Distinct from `data-modeling` (which is transactional / OLTP).
+description: "Analytical modeling for warehouses. Star and snowflake schemas, slowly changing dimensions, fact-table grain choice, dbt-style modular SQL, semantic layer, marts vs core layering. Per the Resolved Decision, ships with refs for BigQuery / Snowflake / Redshift / Synapse / Databricks SQL. Distinct from `data-modeling` (which is transactional / OLTP). Data Engineer owns this; analysts and PM consume the marts. Use whenever a warehouse is being designed, when analytics tables are being added, when designing dbt project layout, or when building a semantic layer."
 ---
 
 # Data Warehouse Modeling
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Analytical modeling for warehouses. Star and snowflake schemas, slowly changing dimensions, fact-table grain choice, dbt-style modular SQL, semantic layer, marts vs core layering. Per the Resolved Decision, ships with refs for BigQuery / Snowflake / Redshift / Synapse / Databricks SQL. Distinct from `data-modeling` (which is transactional / OLTP). Data Engineer owns this; analysts and PM consume the marts. Use whenever a warehouse is being designed, when analytics tables are being added, when designing dbt project layout, or when building a semantic layer.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

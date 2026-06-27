@@ -1,18 +1,10 @@
 ---
 name: tech-debt-management
-description: "Identify, classify, log, prioritize, and pay down technical debt deliberately. Distinguishes prudent vs reckless debt (Fowler's quadrants), enforces a debt register, applies the \"boy-scout rule\" inside slices, allocates explicit debt-payoff capacity each cycle, escalates strategic debt to PM for prioritization."
+description: |-
+  Identify, classify, log, prioritize, and pay down technical debt deliberately. Distinguishes prudent vs reckless debt (Fowler's quadrants), enforces a debt register, applies the "boy-scout rule" inside slices, allocates explicit debt-payoff capacity each cycle, escalates strategic debt to PM for prioritization. Brownfield-default activation (B-mode); greenfield optional but recommended once a project is six months old. Distinct from `legacy-modernization` (whole-system replacement) — this is incremental hygiene. Lead Developer owns the register; PM owns prioritization; Solution Architect adjudicates classification on disputes. Use when starting a brownfield engagement, when shipping a quick fix that creates debt, when planning a sprint / cycle, when investigating "everything is hard now", or when proposing debt-payoff as scope.
 ---
 
 # Technical Debt Management
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Identify, classify, log, prioritize, and pay down technical debt deliberately. Distinguishes prudent vs reckless debt (Fowler's quadrants), enforces a debt register, applies the "boy-scout rule" inside slices, allocates explicit debt-payoff capacity each cycle, escalates strategic debt to PM for prioritization. Brownfield-default activation (B-mode); greenfield optional but recommended once a project is six months old. Distinct from `legacy-modernization` (whole-system replacement) — this is incremental hygiene. Lead Developer owns the register; PM owns prioritization; Solution Architect adjudicates classification on disputes. Use when starting a brownfield engagement, when shipping a quick fix that creates debt, when planning a sprint / cycle, when investigating "everything is hard now", or when proposing debt-payoff as scope.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

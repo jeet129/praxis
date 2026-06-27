@@ -1,0 +1,37 @@
+---
+description: "Quarterly library review: factory-evaluation + System Steward + steward_promotion gate."
+---
+
+Quarterly steward cadence. Run as a single 1-2 day block.
+
+Step 1 — Run `factory-evaluation` against telemetry from the past quarter:
+- Skill metrics (per SKILL): invocation rate, trigger precision/recall, time-to-output, output acceptance rate, downstream rework, reference drift, lifecycle state.
+- Agent metrics (per role agent): hand-off latency, decision quality (sampled), escalation rate, per-AOP-step time, tool-call efficiency.
+- Workflow metrics: completion rate, phase cycle time, Decision Node distribution, gate clearance time, defect leakage, rework rate.
+- Governance metrics: evidence-completeness on first submission, time-to-clear, reject + iterate rate.
+- Library health: skill count, capability balance, lifecycle distribution, memory volume per type, reference count per skill.
+
+Output: `.project/operational/factory-metrics/<quarter>.md`.
+
+Step 2 — Activate System Steward agent. Read the factory report end-to-end. Draft the quarterly steward report covering:
+- Library health snapshot (skill count in target band; capability balance; lifecycle distribution).
+- Findings from factory-evaluation.
+- Proposals (lifecycle changes, trigger tunings, reference/pattern additions, consolidations, deprecations).
+- For each proposal: evidence + risk + recommendation + rollback plan.
+- "Items NOT proposed (deliberately)" section — discipline against over-reacting to noise.
+- Cumulative library impact projection.
+
+Step 3 — Route through `steward_promotion` gate. Evidence pack (per governance.yaml):
+- Steward report.
+- Factory-evaluation reference.
+- Per-proposal evidence + rollback plan.
+- Conditional: before/after metrics, eval harness results, candidate change diff, capability balance check.
+
+I review per-proposal; approve or reject with rationale. Rejected proposals become ADRs.
+
+Step 4 — Implement approved changes. Update SKILLs / agents / workflows / governance per approvals.
+
+Common rationalizations to ignore:
+- "Nothing changed this quarter; skip." -> telemetry exists; review it. Silence isn't health.
+- "We can change skills directly without governance." -> no. Every change routes through steward_promotion. Even small ones.
+- "More skills is better." -> no. 70-90 target band. 101+ mandatory consolidation. Knowledge grows in references/patterns/examples.

@@ -1,18 +1,9 @@
 ---
 name: skill-registry
-description: "The library's orchestration backbone. Aggregates every SKILL.md's frontmatter metadata (dependencies, triggers, outputs, consumers, capability, domain, state) into a single `skill-registry.yaml` that the orchestrator consults to resolve which skills to load for a given task, what their dependencies are, and which agents consume their outputs."
+description: "The library's orchestration backbone. Aggregates every SKILL.md's frontmatter metadata (dependencies, triggers, outputs, consumers, capability, domain, state) into a single `skill-registry.yaml` that the orchestrator consults to resolve which skills to load for a given task, what their dependencies are, and which agents consume their outputs. Validation runs at promotion — broken dependencies, orphaned consumers, duplicate outputs, cycle detection, and state-transition rules all fail the build. Use whenever a new skill is added or modified, when the orchestrator needs to plan a workflow run, or when the library is being audited for overlap and health."
 ---
 
 # Skill Registry
-
-
-<!-- praxis:description:full -->
-## Full description
-
-The library's orchestration backbone. Aggregates every SKILL.md's frontmatter metadata (dependencies, triggers, outputs, consumers, capability, domain, state) into a single `skill-registry.yaml` that the orchestrator consults to resolve which skills to load for a given task, what their dependencies are, and which agents consume their outputs. Validation runs at promotion — broken dependencies, orphaned consumers, duplicate outputs, cycle detection, and state-transition rules all fail the build. Use whenever a new skill is added or modified, when the orchestrator needs to plan a workflow run, or when the library is being audited for overlap and health.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

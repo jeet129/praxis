@@ -1,18 +1,9 @@
 ---
 name: supply-chain-security
-description: Dependency hygiene and build-provenance discipline. SCA scanning, SBOM generation + attestation, pinned/locked dependencies, license checks, base-image provenance, SAST and DAST wiring, signed artifacts (cosign), SLSA-Build-L3 provenance. Platform/SRE wires the scans into cicd-pipeline; Security Reviewer audits findings; tech-debt-management tracks unpatched CVEs.
+description: "Dependency hygiene and build-provenance discipline. SCA scanning, SBOM generation + attestation, pinned/locked dependencies, license checks, base-image provenance, SAST and DAST wiring, signed artifacts (cosign), SLSA-Build-L3 provenance. Platform/SRE wires the scans into cicd-pipeline; Security Reviewer audits findings; tech-debt-management tracks unpatched CVEs. Use whenever a project's pipeline is being designed, when adding new dependencies, when investigating an SCA finding, or when establishing the dependency-policy and rotation cadence."
 ---
 
 # Supply Chain Security
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Dependency hygiene and build-provenance discipline. SCA scanning, SBOM generation + attestation, pinned/locked dependencies, license checks, base-image provenance, SAST and DAST wiring, signed artifacts (cosign), SLSA-Build-L3 provenance. Platform/SRE wires the scans into cicd-pipeline; Security Reviewer audits findings; tech-debt-management tracks unpatched CVEs. Use whenever a project's pipeline is being designed, when adding new dependencies, when investigating an SCA finding, or when establishing the dependency-policy and rotation cadence.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

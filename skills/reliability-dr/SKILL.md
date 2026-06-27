@@ -1,18 +1,9 @@
 ---
 name: reliability-dr
-description: "Reliability engineering and disaster recovery discipline. SLO design from NFRs, error budgets and burn-rate alerts, backup/restore patterns, RTO/RPO targets and verification, multi-AZ/region topology, runbook/restore drill cadence, DR readiness attestation for production_go_live evidence. Platform/SRE owns this; consumes observability's SLI definitions and feeds the production_go_live gate."
+description: "Reliability engineering and disaster recovery discipline. SLO design from NFRs, error budgets and burn-rate alerts, backup/restore patterns, RTO/RPO targets and verification, multi-AZ/region topology, runbook/restore drill cadence, DR readiness attestation for production_go_live evidence. Platform/SRE owns this; consumes observability's SLI definitions and feeds the production_go_live gate. Use whenever a project defines reliability targets, when designing backup or failover, when running DR drills, or when reliability is being audited."
 ---
 
 # Reliability & Disaster Recovery
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Reliability engineering and disaster recovery discipline. SLO design from NFRs, error budgets and burn-rate alerts, backup/restore patterns, RTO/RPO targets and verification, multi-AZ/region topology, runbook/restore drill cadence, DR readiness attestation for production_go_live evidence. Platform/SRE owns this; consumes observability's SLI definitions and feeds the production_go_live gate. Use whenever a project defines reliability targets, when designing backup or failover, when running DR drills, or when reliability is being audited.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

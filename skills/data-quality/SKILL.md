@@ -1,18 +1,9 @@
 ---
 name: data-quality
-description: Data contracts and tests as code. Schema enforcement, freshness / completeness / uniqueness / range checks, anomaly detection on key metrics, alerting on data-SLO breaches. Treat data like product — versioned, tested, with explicit consumers + producers + SLOs.
+description: "Data contracts and tests as code. Schema enforcement, freshness / completeness / uniqueness / range checks, anomaly detection on key metrics, alerting on data-SLO breaches. Treat data like product — versioned, tested, with explicit consumers + producers + SLOs. Distinct from `testing-strategy` (which tests application code); this skill tests data correctness continuously as it flows through pipelines and warehouses. Data Engineer owns this; analysts consume the contracts; alerts route through incident-runbook. Use whenever new tables are being added, when data quality issues surface in dashboards, or when establishing data-SLOs."
 ---
 
 # Data Quality
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Data contracts and tests as code. Schema enforcement, freshness / completeness / uniqueness / range checks, anomaly detection on key metrics, alerting on data-SLO breaches. Treat data like product — versioned, tested, with explicit consumers + producers + SLOs. Distinct from `testing-strategy` (which tests application code); this skill tests data correctness continuously as it flows through pipelines and warehouses. Data Engineer owns this; analysts consume the contracts; alerts route through incident-runbook. Use whenever new tables are being added, when data quality issues surface in dashboards, or when establishing data-SLOs.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

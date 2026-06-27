@@ -1,18 +1,9 @@
 ---
 name: stack-java-spring
-description: Idiomatic Spring Boot implementation pack — project layout, layering (hexagonal/clean architecture inside Spring), dependency-injection hygiene, Spring Data, Bean Validation, configuration management, build (Maven/Gradle), packaging (uber-jar + container), and test idioms (JUnit 5 + AssertJ + Testcontainers).
+description: "Idiomatic Spring Boot implementation pack — project layout, layering (hexagonal/clean architecture inside Spring), dependency-injection hygiene, Spring Data, Bean Validation, configuration management, build (Maven/Gradle), packaging (uber-jar + container), and test idioms (JUnit 5 + AssertJ + Testcontainers). Complements `engineering-standards/references/java-spring.md` (which carries the standards-side rules) with the *implementation-side* idioms a developer needs to write Spring code that conforms. Use whenever a developer is implementing on Java/Spring Boot, scaffolding a new Spring service, or evaluating Spring-specific patterns."
 ---
 
 # Stack — Java / Spring Boot
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Idiomatic Spring Boot implementation pack — project layout, layering (hexagonal/clean architecture inside Spring), dependency-injection hygiene, Spring Data, Bean Validation, configuration management, build (Maven/Gradle), packaging (uber-jar + container), and test idioms (JUnit 5 + AssertJ + Testcontainers). Complements `engineering-standards/references/java-spring.md` (which carries the standards-side rules) with the *implementation-side* idioms a developer needs to write Spring code that conforms. Use whenever a developer is implementing on Java/Spring Boot, scaffolding a new Spring service, or evaluating Spring-specific patterns.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

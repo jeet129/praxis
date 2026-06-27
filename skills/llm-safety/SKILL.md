@@ -1,18 +1,9 @@
 ---
 name: llm-safety
-description: Guardrails for LLM outputs. Input filtering, jailbreak resilience, prompt-injection defenses, PII redaction, content-policy enforcement, output validation (structured-output schemas, tool-call validation), unsafe-output classifiers, escalation on harm signals. Pairs with `responsible-ai` (this skill is LLM-specific; that one is the broader framework). ML/AI Engineer + Security Reviewer co-own.
+description: "Guardrails for LLM outputs. Input filtering, jailbreak resilience, prompt-injection defenses, PII redaction, content-policy enforcement, output validation (structured-output schemas, tool-call validation), unsafe-output classifiers, escalation on harm signals. Pairs with `responsible-ai` (this skill is LLM-specific; that one is the broader framework). ML/AI Engineer + Security Reviewer co-own. Use whenever an LLM feature is being designed, when investigating prompt-injection attempts, when establishing content policy, or when wiring safety gates into the request flow."
 ---
 
 # LLM Safety
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Guardrails for LLM outputs. Input filtering, jailbreak resilience, prompt-injection defenses, PII redaction, content-policy enforcement, output validation (structured-output schemas, tool-call validation), unsafe-output classifiers, escalation on harm signals. Pairs with `responsible-ai` (this skill is LLM-specific; that one is the broader framework). ML/AI Engineer + Security Reviewer co-own. Use whenever an LLM feature is being designed, when investigating prompt-injection attempts, when establishing content policy, or when wiring safety gates into the request flow.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

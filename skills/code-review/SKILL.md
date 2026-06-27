@@ -1,18 +1,9 @@
 ---
 name: code-review
-description: Structured pull-request review against engineering-standards, the active stack pack, security, NFR impact, and test sufficiency. Produces a severity-tagged review report (blocker / major / minor / nit) with diff-anchored locations and concrete fix suggestions. Used by the Code Reviewer agent and as a pre-merge gate. Distinct from Security Reviewer (different remit, different tool scope).
+description: "Structured pull-request review against engineering-standards, the active stack pack, security, NFR impact, and test sufficiency. Produces a severity-tagged review report (blocker / major / minor / nit) with diff-anchored locations and concrete fix suggestions. Used by the Code Reviewer agent and as a pre-merge gate. Distinct from Security Reviewer (different remit, different tool scope). Use on every PR; pushy trigger because skipping reviews is the single most common cause of accumulated tech debt."
 ---
 
 # Code Review
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Structured pull-request review against engineering-standards, the active stack pack, security, NFR impact, and test sufficiency. Produces a severity-tagged review report (blocker / major / minor / nit) with diff-anchored locations and concrete fix suggestions. Used by the Code Reviewer agent and as a pre-merge gate. Distinct from Security Reviewer (different remit, different tool scope). Use on every PR; pushy trigger because skipping reviews is the single most common cause of accumulated tech debt.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

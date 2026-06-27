@@ -1,18 +1,9 @@
 ---
 name: technical-documentation
-description: Operational and developer documentation — distinct from `architecture-documentation` (which is about the system shape). Runbooks per service / per incident class; README discipline at every level (repo / service / library / module); API reference (auto-generated + curated); developer onboarding; release notes; documentation-as-code with CI checks.
+description: "Operational and developer documentation — distinct from `architecture-documentation` (which is about the system shape). Runbooks per service / per incident class; README discipline at every level (repo / service / library / module); API reference (auto-generated + curated); developer onboarding; release notes; documentation-as-code with CI checks. Tech Writer drives; every role contributes (operators write runbooks, developers write READMEs and API ref, PM contributes release notes). Discoverability matters as much as content — docs that exist but can't be found don't exist. Use when establishing initial doc structure, when writing an incident runbook, when shipping a release (release notes), when onboarding a new joiner, when discovering documentation that no longer matches reality, or in the quarterly doc audit."
 ---
 
 # Technical Documentation
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Operational and developer documentation — distinct from `architecture-documentation` (which is about the system shape). Runbooks per service / per incident class; README discipline at every level (repo / service / library / module); API reference (auto-generated + curated); developer onboarding; release notes; documentation-as-code with CI checks. Tech Writer drives; every role contributes (operators write runbooks, developers write READMEs and API ref, PM contributes release notes). Discoverability matters as much as content — docs that exist but can't be found don't exist. Use when establishing initial doc structure, when writing an incident runbook, when shipping a release (release notes), when onboarding a new joiner, when discovering documentation that no longer matches reality, or in the quarterly doc audit.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

@@ -1,0 +1,29 @@
+---
+description: Phase B — Architecture + Challenger review. Solution Architect runs; ends at architecture_sign_off gate.
+---
+
+Start Phase B. Activate the Solution Architect agent. Run the architecture skill sequence:
+
+1. `domain-discovery` (if not already done in Phase A) — bounded contexts, ubiquitous language.
+2. `architecture-pattern-selection` — monolith vs services vs event-driven; data stores; sync vs async.
+3. `api-design` — OpenAPI spec scaffold; versioning strategy.
+4. `data-modeling` — schema + multi-tenant scoping if applicable.
+5. `resilience-patterns` — circuit breaker, retry, bulkhead per NFR availability target.
+6. `distributed-systems-patterns` (if distributed) — CAP/PACELC + idempotency + saga/outbox.
+7. `multi-tenancy` (if is_multi_tenant) — silo / pool / bridge model.
+8. `threat-modeling` — STRIDE + trust boundaries + data flows.
+9. `project-phasing` — phased roadmap.
+
+Output ADRs to `.project/decision/`; diagrams to `.project/working/architecture/`.
+
+Then spawn Architecture Challenger. Run all 5 sub-personas (scale / security / cost / operations / reliability). Produce challenge report (MANDATORY).
+
+For each Challenger finding:
+- ACCEPT → SA updates the design.
+- OVERRIDE → SA writes ADR with rationale; triggers `challenger_objection_override` gate.
+
+Prep the `architecture_sign_off` gate evidence pack: architecture decision + ADR + C4 diagrams + challenge report (MANDATORY) + phased roadmap. Show me before approving.
+
+Common rationalizations to ignore:
+- "The architecture is obvious." → the Challenger finds what the SA missed. Run it.
+- "Threat modeling at code time is enough." → STRIDE at architecture time catches what OWASP scans can't.

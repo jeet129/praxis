@@ -1,18 +1,9 @@
 ---
 name: architecture-documentation
-description: "Keep architecture documentation alive — not a snapshot that ages into archaeology. C4 model at four levels (context / container / component / code) at the right level of fidelity per level; ADR archive maintained as the immutable decision trail; system-context maps; trust boundaries; data flows; \"you-are-here\" diagrams that match the deployed reality."
+description: 'Keep architecture documentation alive — not a snapshot that ages into archaeology. C4 model at four levels (context / container / component / code) at the right level of fidelity per level; ADR archive maintained as the immutable decision trail; system-context maps; trust boundaries; data flows; "you-are-here" diagrams that match the deployed reality. Owned by Solution Architect with monthly reconciliation cadence; consumed by every new joiner, every brownfield audit, every change scoped via `impact-analysis`. Distinct from `technical-documentation` (operational + developer docs). Use when establishing initial architecture documentation, when significant architecture changes ship, when a new joiner needs to onboard, when discovering documentation drift, or in the monthly reconciliation cadence.'
 ---
 
 # Architecture Documentation
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Keep architecture documentation alive — not a snapshot that ages into archaeology. C4 model at four levels (context / container / component / code) at the right level of fidelity per level; ADR archive maintained as the immutable decision trail; system-context maps; trust boundaries; data flows; "you-are-here" diagrams that match the deployed reality. Owned by Solution Architect with monthly reconciliation cadence; consumed by every new joiner, every brownfield audit, every change scoped via `impact-analysis`. Distinct from `technical-documentation` (operational + developer docs). Use when establishing initial architecture documentation, when significant architecture changes ship, when a new joiner needs to onboard, when discovering documentation drift, or in the monthly reconciliation cadence.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

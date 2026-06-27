@@ -1,18 +1,9 @@
 ---
 name: stack-node-ts
-description: Idiomatic Node.js / TypeScript backend implementation pack — project layout, framework idioms (NestJS / Express / Fastify), strict TypeScript configuration, dependency injection, runtime validation with zod, persistence (Prisma / Drizzle), structured logging with pino, async/concurrency discipline, build (tsc / tsup), packaging (multi-stage Docker), and test idioms (vitest / supertest /...
+description: "Idiomatic Node.js / TypeScript backend implementation pack — project layout, framework idioms (NestJS / Express / Fastify), strict TypeScript configuration, dependency injection, runtime validation with zod, persistence (Prisma / Drizzle), structured logging with pino, async/concurrency discipline, build (tsc / tsup), packaging (multi-stage Docker), and test idioms (vitest / supertest / Testcontainers). Complements `engineering-standards/references/node-ts.md` (the bar) with the implementation-side idioms (the playbook). Use whenever a developer is implementing a Node/TS backend slice, scaffolding a new service, or choosing between framework patterns."
 ---
 
 # Stack — Node / TypeScript
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Idiomatic Node.js / TypeScript backend implementation pack — project layout, framework idioms (NestJS / Express / Fastify), strict TypeScript configuration, dependency injection, runtime validation with zod, persistence (Prisma / Drizzle), structured logging with pino, async/concurrency discipline, build (tsc / tsup), packaging (multi-stage Docker), and test idioms (vitest / supertest / Testcontainers). Complements `engineering-standards/references/node-ts.md` (the bar) with the implementation-side idioms (the playbook). Use whenever a developer is implementing a Node/TS backend slice, scaffolding a new service, or choosing between framework patterns.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

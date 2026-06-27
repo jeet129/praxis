@@ -1,18 +1,9 @@
 ---
 name: containerization
-description: "Production-grade container image discipline. Minimal/distroless base, multi-stage builds, non-root user, layer caching for build speed, image vulnerability scanning, reproducibility (pinned base + locked deps + provenance attestation), signing. Platform/SRE owns the project's container patterns; developers consume the Dockerfile patterns from the stack packs."
+description: "Production-grade container image discipline. Minimal/distroless base, multi-stage builds, non-root user, layer caching for build speed, image vulnerability scanning, reproducibility (pinned base + locked deps + provenance attestation), signing. Platform/SRE owns the project's container patterns; developers consume the Dockerfile patterns from the stack packs. Use whenever a Dockerfile is being written, when image base choices are being made, or when supply-chain attestation is being wired into the build."
 ---
 
 # Containerization
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Production-grade container image discipline. Minimal/distroless base, multi-stage builds, non-root user, layer caching for build speed, image vulnerability scanning, reproducibility (pinned base + locked deps + provenance attestation), signing. Platform/SRE owns the project's container patterns; developers consume the Dockerfile patterns from the stack packs. Use whenever a Dockerfile is being written, when image base choices are being made, or when supply-chain attestation is being wired into the build.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

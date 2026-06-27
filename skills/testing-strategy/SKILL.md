@@ -1,18 +1,9 @@
 ---
 name: testing-strategy
-description: "The test pyramid in practice — what to unit-test vs integration-test vs contract-test vs E2E-test vs load-test, coverage targets per layer, test data strategy, TDD where it fits, mutation testing for critical paths, and the merge-gate's coverage check. The QA Engineer agent owns this skill; every developer consumes it to know what tests their slice requires."
+description: "The test pyramid in practice — what to unit-test vs integration-test vs contract-test vs E2E-test vs load-test, coverage targets per layer, test data strategy, TDD where it fits, mutation testing for critical paths, and the merge-gate's coverage check. The QA Engineer agent owns this skill; every developer consumes it to know what tests their slice requires. Use whenever a slice is being planned (decide the test plan), when implementing (write the tests at the right layer), or at code review (verify tests exist at the right layer)."
 ---
 
 # Testing Strategy
-
-
-<!-- praxis:description:full -->
-## Full description
-
-The test pyramid in practice — what to unit-test vs integration-test vs contract-test vs E2E-test vs load-test, coverage targets per layer, test data strategy, TDD where it fits, mutation testing for critical paths, and the merge-gate's coverage check. The QA Engineer agent owns this skill; every developer consumes it to know what tests their slice requires. Use whenever a slice is being planned (decide the test plan), when implementing (write the tests at the right layer), or at code review (verify tests exist at the right layer).
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

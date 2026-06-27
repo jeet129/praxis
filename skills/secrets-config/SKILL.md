@@ -1,18 +1,9 @@
 ---
 name: secrets-config
-description: Twelve-factor configuration + secret management. No secrets in code, no secrets in config files, no secrets in commit history. Centralized secret store at runtime; injection at app startup or per-call; rotation cadence; minimum-privilege scoping; audit logging.
+description: "Twelve-factor configuration + secret management. No secrets in code, no secrets in config files, no secrets in commit history. Centralized secret store at runtime; injection at app startup or per-call; rotation cadence; minimum-privilege scoping; audit logging. Stack-pack-agnostic body with platform-specific refs (AWS Secrets Manager / Azure Key Vault / GCP Secret Manager / K8s External Secrets / HashiCorp Vault). Use whenever code needs configuration that varies by environment or contains sensitive data, when designing the secret-injection pattern, or when establishing rotation policy."
 ---
 
 # Secrets & Config
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Twelve-factor configuration + secret management. No secrets in code, no secrets in config files, no secrets in commit history. Centralized secret store at runtime; injection at app startup or per-call; rotation cadence; minimum-privilege scoping; audit logging. Stack-pack-agnostic body with platform-specific refs (AWS Secrets Manager / Azure Key Vault / GCP Secret Manager / K8s External Secrets / HashiCorp Vault). Use whenever code needs configuration that varies by environment or contains sensitive data, when designing the secret-injection pattern, or when establishing rotation policy.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

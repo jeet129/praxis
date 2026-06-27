@@ -1,18 +1,9 @@
 ---
 name: stack-web-frontend
-description: Idiomatic web frontend implementation pack — project layout, state management, data fetching, routing, rendering strategy implementation, build tooling, framework-specific test idioms. Per the agnostic-everywhere decision, ships with framework-specific references for React+Next.js, Angular, and Vue+Nuxt.
+description: "Idiomatic web frontend implementation pack — project layout, state management, data fetching, routing, rendering strategy implementation, build tooling, framework-specific test idioms. Per the agnostic-everywhere decision, ships with framework-specific references for React+Next.js, Angular, and Vue+Nuxt. Complements `frontend-architecture` (which makes the macro decisions) with the implementation-side idioms (the playbook). Frontend Developer consumes this for any UI implementation work."
 ---
 
 # Stack — Web Frontend
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Idiomatic web frontend implementation pack — project layout, state management, data fetching, routing, rendering strategy implementation, build tooling, framework-specific test idioms. Per the agnostic-everywhere decision, ships with framework-specific references for React+Next.js, Angular, and Vue+Nuxt. Complements `frontend-architecture` (which makes the macro decisions) with the implementation-side idioms (the playbook). Frontend Developer consumes this for any UI implementation work.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

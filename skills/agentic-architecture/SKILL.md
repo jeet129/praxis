@@ -1,18 +1,9 @@
 ---
 name: agentic-architecture
-description: Macro-design for LLM-powered features and agent systems. Choose between single-agent / multi-agent / planner-executor / supervisor topologies; design tool-use surfaces and tool schemas; choose memory systems (short-term / episodic / semantic / shared); place LLM calls relative to deterministic logic; decide when to use streaming / function calling / structured outputs.
+description: "Macro-design for LLM-powered features and agent systems. Choose between single-agent / multi-agent / planner-executor / supervisor topologies; design tool-use surfaces and tool schemas; choose memory systems (short-term / episodic / semantic / shared); place LLM calls relative to deterministic logic; decide when to use streaming / function calling / structured outputs. The FE of agentic AI architecture — what RAG (`rag-design`), evaluation (`evaluation-engineering`), safety (`llm-safety`), and cost (`llm-cost-optimization`) hang off of. ML/AI Engineer + SA co-design. Use whenever an LLM / agent feature is being designed, when choosing agent topology, when designing tool-use, or when deciding where deterministic logic vs LLM calls belong."
 ---
 
 # Agentic Architecture
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Macro-design for LLM-powered features and agent systems. Choose between single-agent / multi-agent / planner-executor / supervisor topologies; design tool-use surfaces and tool schemas; choose memory systems (short-term / episodic / semantic / shared); place LLM calls relative to deterministic logic; decide when to use streaming / function calling / structured outputs. The FE of agentic AI architecture — what RAG (`rag-design`), evaluation (`evaluation-engineering`), safety (`llm-safety`), and cost (`llm-cost-optimization`) hang off of. ML/AI Engineer + SA co-design. Use whenever an LLM / agent feature is being designed, when choosing agent topology, when designing tool-use, or when deciding where deterministic logic vs LLM calls belong.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

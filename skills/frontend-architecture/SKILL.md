@@ -1,18 +1,9 @@
 ---
 name: frontend-architecture
-description: Frontend macro-decisions — component model, state-management choice (local / server / global / signals), data-fetching strategy (REST / GraphQL / RSC / cache-and-mutate), rendering strategy (SSR / SSG / ISR / CSR / streaming), routing model, micro-frontends (only if justified). The FE analog of `architecture-pattern-selection`.
+description: "Frontend macro-decisions — component model, state-management choice (local / server / global / signals), data-fetching strategy (REST / GraphQL / RSC / cache-and-mutate), rendering strategy (SSR / SSG / ISR / CSR / streaming), routing model, micro-frontends (only if justified). The FE analog of `architecture-pattern-selection`. Solution Architect runs this for any web product; defaults to KISS — the simplest FE architecture that meets the NFRs. Use whenever a new web product is being designed or a slice introduces FE patterns not yet established."
 ---
 
 # Frontend Architecture
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Frontend macro-decisions — component model, state-management choice (local / server / global / signals), data-fetching strategy (REST / GraphQL / RSC / cache-and-mutate), rendering strategy (SSR / SSG / ISR / CSR / streaming), routing model, micro-frontends (only if justified). The FE analog of `architecture-pattern-selection`. Solution Architect runs this for any web product; defaults to KISS — the simplest FE architecture that meets the NFRs. Use whenever a new web product is being designed or a slice introduces FE patterns not yet established.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

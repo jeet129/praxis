@@ -1,18 +1,9 @@
 ---
 name: factory-evaluation
-description: "How the Praxis measures and evaluates ITSELF. The library's evals — skill efficacy, agent performance, workflow completion rate, gate clearance discipline, time-to-evidence per gate, defect leakage, slice cycle time, knowledge growth health. Distinct from `evaluation-engineering` (which evaluates the products you ship) — this skill evaluates the *factory that builds them*."
+description: "How the Praxis measures and evaluates ITSELF. The library's evals — skill efficacy, agent performance, workflow completion rate, gate clearance discipline, time-to-evidence per gate, defect leakage, slice cycle time, knowledge growth health. Distinct from `evaluation-engineering` (which evaluates the products you ship) — this skill evaluates the *factory that builds them*. Read by System Steward as the input for library-evolution proposals. Use when establishing baseline factory metrics, when investigating systematic regressions across projects, when proposing a skill change with evidence, when reviewing the library quarterly, or when the team feels something is degrading without knowing why."
 ---
 
 # Factory Evaluation
-
-
-<!-- praxis:description:full -->
-## Full description
-
-How the Praxis measures and evaluates ITSELF. The library's evals — skill efficacy, agent performance, workflow completion rate, gate clearance discipline, time-to-evidence per gate, defect leakage, slice cycle time, knowledge growth health. Distinct from `evaluation-engineering` (which evaluates the products you ship) — this skill evaluates the *factory that builds them*. Read by System Steward as the input for library-evolution proposals. Use when establishing baseline factory metrics, when investigating systematic regressions across projects, when proposing a skill change with evidence, when reviewing the library quarterly, or when the team feels something is degrading without knowing why.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

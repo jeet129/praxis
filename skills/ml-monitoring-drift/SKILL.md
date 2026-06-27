@@ -1,18 +1,9 @@
 ---
 name: ml-monitoring-drift
-description: Production model monitoring. Input-feature distribution drift, prediction drift, performance metrics (with label-arrival lag handled), data-quality regressions, train-serve skew detection, alerting tied to business SLOs, retraining triggers. ML observability is a superset of service observability — pair with `observability` skill; service-level metrics PLUS model-specific drift signals.
+description: "Production model monitoring. Input-feature distribution drift, prediction drift, performance metrics (with label-arrival lag handled), data-quality regressions, train-serve skew detection, alerting tied to business SLOs, retraining triggers. ML observability is a superset of service observability — pair with `observability` skill; service-level metrics PLUS model-specific drift signals. ML/AI Engineer owns the monitoring design; Platform/SRE wires the collectors; incident-runbook handles model incidents like any other incident. Use whenever a model has been deployed and needs production monitoring, when a drift alert fires, when retraining cadence is being designed, or when investigating model performance regression."
 ---
 
 # ML Monitoring & Drift
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Production model monitoring. Input-feature distribution drift, prediction drift, performance metrics (with label-arrival lag handled), data-quality regressions, train-serve skew detection, alerting tied to business SLOs, retraining triggers. ML observability is a superset of service observability — pair with `observability` skill; service-level metrics PLUS model-specific drift signals. ML/AI Engineer owns the monitoring design; Platform/SRE wires the collectors; incident-runbook handles model incidents like any other incident. Use whenever a model has been deployed and needs production monitoring, when a drift alert fires, when retraining cadence is being designed, or when investigating model performance regression.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

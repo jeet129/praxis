@@ -1,18 +1,9 @@
 ---
 name: i18n-l10n
-description: Internationalization and localization done right. Locale-aware formatting (numbers, dates, currencies), ICU MessageFormat for variable + plural-aware strings, RTL layout support, locale-routing strategy, translation pipelines, fallback handling, locale switching UX. Build it in early — retrofitting is painful and bug-prone.
+description: "Internationalization and localization done right. Locale-aware formatting (numbers, dates, currencies), ICU MessageFormat for variable + plural-aware strings, RTL layout support, locale-routing strategy, translation pipelines, fallback handling, locale switching UX. Build it in early — retrofitting is painful and bug-prone. Frontend Developer applies during implementation; UX Designer establishes the i18n requirements at design time. Use whenever new user-facing strings are introduced, when adding a new locale, when designing locale-switching UX, or when investigating locale-specific rendering bugs."
 ---
 
 # i18n & L10n
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Internationalization and localization done right. Locale-aware formatting (numbers, dates, currencies), ICU MessageFormat for variable + plural-aware strings, RTL layout support, locale-routing strategy, translation pipelines, fallback handling, locale switching UX. Build it in early — retrofitting is painful and bug-prone. Frontend Developer applies during implementation; UX Designer establishes the i18n requirements at design time. Use whenever new user-facing strings are introduced, when adding a new locale, when designing locale-switching UX, or when investigating locale-specific rendering bugs.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

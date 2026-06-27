@@ -1,18 +1,9 @@
 ---
 name: environments
-description: Define and stand up the environment ladder (dev → test → staging → prod, plus ephemeral preview/PR envs), parity discipline (so what passes staging works in prod), data seeding strategy, access control per environment, and promotion rules between them. Platform/SRE owns the environment definitions; all other agents respect the parity and promotion contracts.
+description: "Define and stand up the environment ladder (dev → test → staging → prod, plus ephemeral preview/PR envs), parity discipline (so what passes staging works in prod), data seeding strategy, access control per environment, and promotion rules between them. Platform/SRE owns the environment definitions; all other agents respect the parity and promotion contracts. Use whenever a new project's environment ladder is being designed, when adding a new environment (e.g., a load-testing env), or when staging behavior diverges from production behavior and parity is being restored."
 ---
 
 # Environments
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Define and stand up the environment ladder (dev → test → staging → prod, plus ephemeral preview/PR envs), parity discipline (so what passes staging works in prod), data seeding strategy, access control per environment, and promotion rules between them. Platform/SRE owns the environment definitions; all other agents respect the parity and promotion contracts. Use whenever a new project's environment ladder is being designed, when adding a new environment (e.g., a load-testing env), or when staging behavior diverges from production behavior and parity is being restored.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml

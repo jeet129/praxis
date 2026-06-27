@@ -1,18 +1,9 @@
 ---
 name: project-phasing
-description: Convert validated requirements + chosen architecture into a phased, dependency-ordered roadmap of vertical slices. MVP/walking-skeleton first, then prioritized increments. Each slice is the *thinnest* user-visible value that flows through every layer (DB → service → API → UI if applicable).
+description: 'Convert validated requirements + chosen architecture into a phased, dependency-ordered roadmap of vertical slices. MVP/walking-skeleton first, then prioritized increments. Each slice is the *thinnest* user-visible value that flows through every layer (DB → service → API → UI if applicable). Phasing is the spine that turns "build the thing" into "build it slice by slice with discipline." Use whenever a project transitions from architecture to execution, or when re-planning mid-project.'
 ---
 
 # Project Phasing
-
-
-<!-- praxis:description:full -->
-## Full description
-
-Convert validated requirements + chosen architecture into a phased, dependency-ordered roadmap of vertical slices. MVP/walking-skeleton first, then prioritized increments. Each slice is the *thinnest* user-visible value that flows through every layer (DB → service → API → UI if applicable). Phasing is the spine that turns "build the thing" into "build it slice by slice with discipline." Use whenever a project transitions from architecture to execution, or when re-planning mid-project.
-
-<!-- praxis:description:end -->
-
 
 <!-- praxis:metadata:begin -->
 ```yaml
