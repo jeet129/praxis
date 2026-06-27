@@ -36,7 +36,7 @@ The library is structured as a Claude Code plugin. Point Claude Code at the dire
 
 ```bash
 # Clone or download the library
-git clone https://github.com/YOUR-ORG/praxis.git ~/dev/praxis
+git clone https://github.com/jeet129/praxis.git ~/dev/praxis
 
 # Launch Claude Code with the library loaded as a plugin
 cd ~/dev/your-test-project
@@ -72,11 +72,11 @@ Per-tool setup notes live in [`docs/<tool>-setup.md`](docs/).
 Once this repo is public on GitHub, Claude Code users can install via the marketplace:
 
 ```
-/plugin marketplace add YOUR-ORG/praxis
+/plugin marketplace add jeet129/praxis
 /plugin install praxis@praxis
 ```
 
-The marketplace manifest at `.claude-plugin/marketplace.json` is pre-wired; you only need to substitute `YOUR-ORG` with the real GitHub org / username.
+The marketplace manifest at `.claude-plugin/marketplace.json` is wired to this repo.
 
 ### Full installation playbook
 
