@@ -1,6 +1,13 @@
 ---
 name: project-phasing
 description: Convert validated requirements + chosen architecture into a phased, dependency-ordered roadmap of vertical slices. MVP/walking-skeleton first, then prioritized increments. Each slice is the *thinnest* user-visible value that flows through every layer (DB → service → API → UI if applicable). Phasing is the spine that turns "build the thing" into "build it slice by slice with discipline." Use whenever a project transitions from architecture to execution, or when re-planning mid-project.
+---
+
+# Project Phasing
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: lifecycle
 domain: cross-cutting
 state: active
@@ -27,9 +34,8 @@ consumers:
   - solution-architect (validates slice feasibility against architecture)
   - all developer agents (work per slice)
 references: []
----
-
-# Project Phasing
+```
+<!-- praxis:metadata:end -->
 
 Phasing is what turns a project from "we'll figure out what to build next when we get there" into "here's the sequence, here's the dependency graph, here's where each slice produces measurable value." It's the most-leveraged planning artifact for incremental delivery.
 

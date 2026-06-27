@@ -1,6 +1,13 @@
 ---
 name: authn-authz
 description: Identity, authentication, authorization. OIDC / OAuth2 / SAML / MFA / session-vs-token, RBAC / ABAC / ReBAC, token lifecycle and rotation, service-to-service auth (mTLS, workload identity), object-level authorization to prevent BOLA/IDOR — the most common API-level security failure. The Solution Architect designs identity and authorization model; Backend Developer applies via the active stack pack (Spring Security / Passport / NestJS guards / Authlib / etc.); Security Reviewer audits placement. Use whenever a service introduces authenticated surface, when designing the identity model, when adding new authorization rules, or when integrating with an identity provider.
+---
+
+# Authentication & Authorization
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -30,9 +37,8 @@ consumers:
   - multi-tenancy (consumes tenant-aware authz)
   - compliance-privacy (consumes for audit-log requirements)
 references: []
----
-
-# Authentication & Authorization
+```
+<!-- praxis:metadata:end -->
 
 Two concerns the team must not conflate. **Authentication** = *who you are*. **Authorization** = *what you can do*. Wrong authn lets the wrong identity in; wrong authz lets the right identity do the wrong things.
 

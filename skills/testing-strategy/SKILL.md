@@ -1,6 +1,13 @@
 ---
 name: testing-strategy
 description: The test pyramid in practice — what to unit-test vs integration-test vs contract-test vs E2E-test vs load-test, coverage targets per layer, test data strategy, TDD where it fits, mutation testing for critical paths, and the merge-gate's coverage check. The QA Engineer agent owns this skill; every developer consumes it to know what tests their slice requires. Use whenever a slice is being planned (decide the test plan), when implementing (write the tests at the right layer), or at code review (verify tests exist at the right layer).
+---
+
+# Testing Strategy
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -31,9 +38,8 @@ references:
  - java-junit5.md
  - node-vitest.md
  - python-pytest.md
----
-
-# Testing Strategy
+```
+<!-- praxis:metadata:end -->
 
 The discipline of testing the right thing at the right layer with the right rigor. Wrong-layer testing is the most common test smell — exhaustive unit tests that mock the entire collaboration graph, or laden E2E suites that test logic the unit layer could test cheaply.
 

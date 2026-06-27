@@ -1,6 +1,13 @@
 ---
 name: multi-tenancy
 description: SaaS tenancy model design — silo / pool / bridge — with tenant isolation, per-tenant data, noisy-neighbor controls, tenant-aware observability, tenant-context propagation, and tenant-aware billing. Solution Architect runs this once for any multi-tenant project; Backend Developer applies the tenant context across every layer. Use whenever a project is multi-tenant SaaS, when designing isolation strategy, when investigating tenant cross-talk, or when adding per-tenant features (limits, billing, observability).
+---
+
+# Multi-Tenancy
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: cross-cutting
 state: active
@@ -31,9 +38,8 @@ consumers:
   - observability (consumes for tenant tagging)
   - cost-finops (consumes per-tenant attribution)
 references: []
----
-
-# Multi-Tenancy
+```
+<!-- praxis:metadata:end -->
 
 A SaaS product serves multiple customers (tenants) from shared infrastructure. The tenancy model defines *how shared*: same database? same schema? same row table? Each tier on this spectrum trades isolation against cost.
 

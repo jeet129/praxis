@@ -1,6 +1,13 @@
 ---
 name: codebase-comprehension
 description: The mandatory first move on any brownfield task. Maps the existing codebase's structure, infers its conventions and architecture, locates seams, identifies risk areas and test-coverage gaps, and writes the persistent `.repo-intel/` artifact (architecture map, dependency graph, service map, ownership map, hotspot analysis) that every downstream skill consults. Incrementally updated rather than recomputed on each engagement. Brownfield-only (B-only) — does nothing on a greenfield empty repo. Use at the start of any work against an existing codebase, and on cadence as the codebase evolves.
+---
+
+# Codebase Comprehension
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: maintenance
 domain: cross-cutting
 state: active
@@ -29,9 +36,8 @@ consumers:
  - tech-debt-management (reads hotspots and conventions)
  - architecture-challenger (reads conventions to attack assumptions)
 references: []
----
-
-# Codebase Comprehension
+```
+<!-- praxis:metadata:end -->
 
 The platform's understanding of a codebase doesn't survive sessions or assistants unless we make it persistent. `.repo-intel/` is that persistence — a structured, agent-readable model of the codebase that every brownfield engagement consults and incrementally updates.
 

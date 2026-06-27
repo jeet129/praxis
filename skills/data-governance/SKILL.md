@@ -1,6 +1,13 @@
 ---
 name: data-governance
 description: Lineage, cataloging, classification, access control, retention, PII handling at the data layer. The data-side enforcement of what `compliance-privacy` declares. Data Engineer owns; Security Reviewer audits; Tech Writer maintains the catalog as living documentation. Activated on engagements with non-trivial data workloads + compliance requirements (most regulated SaaS has both). Use whenever new data sources are being added, when data classification is being established, when responding to data-subject requests, or when an auditor asks "where does this data come from / who can see it / how long do we keep it?"
+---
+
+# Data Governance
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: data
 domain: data
 state: active
@@ -34,9 +41,8 @@ references:
  - collibra.md
  - unity-catalog.md
  - purview.md
----
-
-# Data Governance
+```
+<!-- praxis:metadata:end -->
 
 The discipline that makes data discoverable, traceable, and protected. Without it, an auditor asks "where did this number come from?" and the team spends a week investigating. With it, the catalog + lineage + access policies answer in minutes — and consumers can find the data they need without bothering the Data Engineer.
 

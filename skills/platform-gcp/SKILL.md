@@ -1,6 +1,13 @@
 ---
 name: platform-gcp
 description: GCP cloud-specific reference pack. Managed-service catalog (GKE / Cloud Run / Cloud SQL / Spanner / Bigtable / BigQuery / Cloud Storage / Pub/Sub / Cloud Tasks / Workflows / Cloud Functions), networking (VPC / Cloud Load Balancing / Cloud Armor / Private Service Connect), identity (Cloud IAM / Workload Identity / Secret Manager), observability (Cloud Logging / Cloud Monitoring / Cloud Trace / Error Reporting), DR patterns (multi-zone default; multi-region for global services), cost levers (Committed Use Discounts / Spot VMs / Sustained Use Discounts), GCP Architecture Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for GCP-specific implementation. Selected when GCP is the project's cloud per governance.yaml.
+---
+
+# Platform — GCP
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: platform
 domain: infra
 state: active
@@ -29,9 +36,8 @@ consumers:
   - reliability-dr (multi-zone / multi-region patterns)
   - cost-finops (GCP Billing + tagging via labels)
 references: []
----
-
-# Platform — GCP
+```
+<!-- praxis:metadata:end -->
 
 Deep reference for GCP-specific patterns. Similar structure to AWS / Azure packs: managed services, networking, identity, DR primitives, cost levers, Architecture Framework alignment.
 

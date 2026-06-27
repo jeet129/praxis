@@ -1,6 +1,13 @@
 ---
 name: wireframing-prototyping
 description: Translate user journeys into low/mid-fidelity wireframes and interactive prototypes. Validate the interaction model BEFORE pixel polish — the wireframe is the design's contract; the prototype is its validation. Lives downstream of `ux-journey-mapping` (which provides the friction inventory and opportunity hotspots to wireframe first) and upstream of `design-system` (which provides the tokens and components the wireframes resolve to). The UX Designer runs this. Use whenever a slice's UI is being designed before implementation begins.
+---
+
+# Wireframing & Prototyping
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ux-and-design
 domain: frontend
 state: active
@@ -25,9 +32,8 @@ consumers:
  - product-manager (consumes for validation against requirements)
  - architecture-challenger (security/operations sub-personas review flows for hidden complexity)
 references: []
----
-
-# Wireframing & Prototyping
+```
+<!-- praxis:metadata:end -->
 
 The bridge between the journey and the code. Low or mid-fidelity wireframes show *what's on screen and what it does*; the prototype links them into a walkable flow. Pixel polish and brand styling come later — they're cheap to add once the structure is right, and expensive to change after they're applied.
 

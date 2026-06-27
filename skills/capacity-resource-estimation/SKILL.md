@@ -1,6 +1,13 @@
 ---
 name: capacity-resource-estimation
 description: Translate NFR targets + expected load into resource sizing. Compute / memory / storage / IOPS / network per service; autoscaling policy with min/max bounds and scaling triggers; headroom (the buffer above expected steady-state); growth model (sizing for 12 and 24 months); environment cost envelope. Output drives `iac` provisioning, `deploy-release` resource requests/limits, `cost-finops` attribution, and `performance-testing` target setting. Platform/SRE runs this in the architecture phase and revises mid-project when usage data invalidates assumptions.
+---
+
+# Capacity & Resource Estimation
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -29,9 +36,8 @@ consumers:
   - performance-testing (load test scenarios match the sizing assumptions)
   - reliability-dr (DR sizing follows from this)
 references: []
----
-
-# Capacity & Resource Estimation
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns NFR targets into provisioned infrastructure. Without it, projects either over-provision (paying for idle capacity) or under-provision (paging at peak load). With it, sizing is *evidenced* — explicit workload model, explicit assumptions, explicit growth curve — so revisions are honest and reproducible.
 

@@ -1,6 +1,13 @@
 ---
 name: ml-problem-framing
 description: Frame the ML problem honestly BEFORE any modeling. Is ML actually the right tool here? Supervised vs unsupervised vs RL choice. Target definition. Label-source plan. Baseline (heuristic / rules / simple model) to beat. Success metric tied to business outcome. Fairness and safety considerations stated upfront. The single most-leveraged step in an ML project — get this wrong, the rest is theatre. Activated only on engagements with ML or LLM workloads. ML/AI Engineer co-runs with PM and SA at the start of every ML feature.
+---
+
+# ML Problem Framing
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ml
 domain: ml
 state: active
@@ -29,9 +36,8 @@ consumers:
  - responsible-ai (consumes for fairness/safety planning)
  - ml-training-evaluation (consumes target + metric + baseline)
 references: []
----
-
-# ML Problem Framing
+```
+<!-- praxis:metadata:end -->
 
 The single most-leveraged step in an ML project. Forty-five minutes of disciplined framing prevents weeks of modeling work that solves the wrong problem. This skill runs *before* any data work, model training, or architecture decisions — it answers *what problem are we actually solving, and is ML the right tool?*
 

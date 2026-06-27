@@ -1,6 +1,13 @@
 ---
 name: stack-node-ts
 description: Idiomatic Node.js / TypeScript backend implementation pack — project layout, framework idioms (NestJS / Express / Fastify), strict TypeScript configuration, dependency injection, runtime validation with zod, persistence (Prisma / Drizzle), structured logging with pino, async/concurrency discipline, build (tsc / tsup), packaging (multi-stage Docker), and test idioms (vitest / supertest / Testcontainers). Complements `engineering-standards/references/node-ts.md` (the bar) with the implementation-side idioms (the playbook). Use whenever a developer is implementing a Node/TS backend slice, scaffolding a new service, or choosing between framework patterns.
+---
+
+# Stack — Node / TypeScript
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: stack
 domain: backend
 state: active
@@ -25,9 +32,8 @@ references:
  - nestjs.md
  - fastify.md
  - express.md
----
-
-# Stack — Node / TypeScript
+```
+<!-- praxis:metadata:end -->
 
 Implementation idioms for Node 20+ and TypeScript 5.x backend services. Complements `engineering-standards/references/node-ts.md` — that file is the *bar*; this file is the *playbook*.
 

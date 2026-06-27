@@ -1,6 +1,13 @@
 ---
 name: factory-evaluation
 description: How the Praxis measures and evaluates ITSELF. The library's evals — skill efficacy, agent performance, workflow completion rate, gate clearance discipline, time-to-evidence per gate, defect leakage, slice cycle time, knowledge growth health. Distinct from `evaluation-engineering` (which evaluates the products you ship) — this skill evaluates the *factory that builds them*. Read by System Steward as the input for library-evolution proposals. Use when establishing baseline factory metrics, when investigating systematic regressions across projects, when proposing a skill change with evidence, when reviewing the library quarterly, or when the team feels something is degrading without knowing why.
+---
+
+# Factory Evaluation
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: factory
 domain: cross-cutting
 state: active
@@ -30,9 +37,8 @@ consumers:
   - skill-registry (catalogs eval results per skill)
   - memory-management (memory health metrics)
 references: []
----
-
-# Factory Evaluation
+```
+<!-- praxis:metadata:end -->
 
 The discipline of evaluating the Praxis itself. Teams that don't measure their factory cannot improve it — they iterate on hunches, ship "improvements" that may regress, and accumulate skill bloat. This skill makes the factory measurable: skills measured for efficacy, agents measured for performance, workflows measured for completion + cycle time, governance gates measured for evidence-completeness + time-to-clear.
 

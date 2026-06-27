@@ -1,6 +1,13 @@
 ---
 name: performance-testing
 description: Pre-prod load, soak, stress, and spike testing against the NFR register's performance targets. Validates capacity sizing, surfaces bottlenecks before production, and produces the perf-test-soak-pass evidence for the production_go_live gate. QA Engineer + Platform/SRE co-own this; SA contributes the scenarios; Backend Developer interprets results. Use whenever NFR-bearing changes are being released, when capacity sizing needs validation, when investigating perf regressions, or when establishing perf-test cadence.
+---
+
+# Performance Testing
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -30,9 +37,8 @@ references:
   - k6.md
   - gatling.md
   - locust.md
----
-
-# Performance Testing
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns NFR performance targets from claims into verified properties. Capacity sizing (`capacity-resource-estimation`) sets the *hypothesis*; this skill *tests* it. Without performance testing, perf regressions ship to production and capacity surprises happen during business-critical events.
 

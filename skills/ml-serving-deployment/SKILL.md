@@ -1,6 +1,13 @@
 ---
 name: ml-serving-deployment
 description: Model serving design. Online (low-latency) vs batch vs streaming, A/B + shadow + canary deployment, multi-armed bandits where they fit, model-registry promotion policy, rollback. Online serving consumes resilience-patterns (timeouts, fallbacks, graceful degradation) — a slow model is worse than a missing model. Per the Resolved Decision, ships with refs for SageMaker / Vertex AI / Azure ML / KServe / Triton / BentoML / Ray Serve plus a mode-axis ref for batch vs online vs streaming. ML/AI Engineer owns; Platform/SRE operates infrastructure; deploy-release coordinates production cutover.
+---
+
+# ML Serving & Deployment
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ml
 domain: ml
 state: active
@@ -39,9 +46,8 @@ references:
  - bentoml.md
  - ray-serve.md
  - batch-online-streaming.md
----
-
-# ML Serving & Deployment
+```
+<!-- praxis:metadata:end -->
 
 The bridge from "the model evaluates well in offline tests" to "the model produces value in production." Serving and deployment for ML are *not* the same as serving a stateless API — there are model-specific concerns (artifact management, A/B testing, shadow deployment, drift triggers) on top of normal service operational concerns.
 

@@ -1,6 +1,13 @@
 ---
 name: legacy-modernization
 description: Replacing legacy systems without big-bang rewrites. Strangler fig pattern, anti-corruption layers, parallel-run validation, traffic-shift strategies, data-migration with cutover discipline, sunset planning. Distinct from `tech-debt-management` (incremental hygiene) — this is whole-subsystem replacement. Brownfield-only activation; never fires in greenfield. Solution Architect leads; PM owns the business case; principal approves the strategic decision. Use when proposing a legacy system replacement, when scoping a strangler-fig migration, when designing the anti-corruption layer, when planning parallel-run validation, or when sequencing the cutover.
+---
+
+# Legacy Modernization
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: maintenance
 domain: cross-cutting
 state: active
@@ -35,9 +42,8 @@ consumers:
   - architecture-challenger (challenges the strategy)
   - platform-sre (cutover operations)
 references: []
----
-
-# Legacy Modernization
+```
+<!-- praxis:metadata:end -->
 
 The discipline of replacing legacy systems without the catastrophic big-bang rewrite. Big-bang rewrites fail more often than they succeed — they consume years, accumulate scope, run parallel to the legacy whose feature set keeps growing, and frequently get cancelled. This skill is the alternative: replace incrementally, validate continuously, cutover surgically, sunset deliberately.
 

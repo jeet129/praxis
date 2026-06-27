@@ -1,6 +1,13 @@
 ---
 name: requirements-elicitation
 description: Convert validated product-discovery outputs into structured, testable requirements with explicit acceptance criteria, assumptions, open questions, and scope boundaries. Runs a clarifying-question loop before any design work begins — the discipline that prevents architecture and implementation from running on ambiguous foundations. Use whenever discovery has produced an opportunity brief + MVP scope hypothesis and the project is ready to enter design. Distinct from `requirements-interrogation` (which is the per-agent phase-entry KUACQ procedure) — this is the structured front-end discovery-to-requirements activity owned by the PM.
+---
+
+# Requirements Elicitation
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: discovery
 domain: cross-cutting
 state: active
@@ -25,9 +32,8 @@ consumers:
   - architecture-challenger (reads requirements to attack assumptions)
   - all developer agents (consume per-slice requirements via the implementation packet)
 references: []
----
-
-# Requirements Elicitation
+```
+<!-- praxis:metadata:end -->
 
 Discovery told us *what's worth building*; this skill produces the structured, testable artifact that downstream phases can build against. The PM owns this skill; its output is the input to architecture and the foundation for every implementation packet.
 

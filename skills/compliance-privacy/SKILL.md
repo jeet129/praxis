@@ -1,6 +1,13 @@
 ---
 name: compliance-privacy
 description: Map regulatory regimes (SOC2 / GDPR / HIPAA / PCI-DSS / ISO 27001 / CCPA-CPRA / NIST CSF / FedRAMP) to concrete controls. Data classification, retention, audit logging, PII handling, data residency. Per the Resolved Decision (Section 14 of blueprint), eight regimes are encoded with shared workflow body and per-regime references. Solution Architect and Security Reviewer co-own this; Platform/SRE provisions the controls; tech-writer maintains the compliance evidence. Use whenever a project enters a regulated regime, when designing data handling, or when assembling compliance evidence for the production_go_live gate.
+---
+
+# Compliance & Privacy
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -41,9 +48,8 @@ references:
   - ccpa.md
   - nist-csf.md
   - fedramp.md
----
-
-# Compliance & Privacy
+```
+<!-- praxis:metadata:end -->
 
 The discipline of translating regulatory requirements into concrete engineering controls. Compliance is not paperwork — it's *evidence* that the engineering controls exist, work, and are documented. Done right, the controls are built in; the evidence is a query against the platform. Done wrong, compliance is a fire drill before each audit.
 

@@ -1,6 +1,13 @@
 ---
 name: data-modeling
 description: Logical and physical data design — entity modeling, schema design, normalization vs denormalization decisions, indexing strategy, partitioning strategy, migration discipline (expand-contract for zero-downtime), and polyglot persistence choices. The Solution Architect runs this whenever a slice introduces or changes persistence; the Backend Developer consumes the schema + migration plan as part of the implementation packet. Use whenever new entities are added, existing schemas need changes, performance requires reshaping, or a new persistence store is being introduced.
+---
+
+# Data Modeling
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: backend
 state: active
@@ -32,9 +39,8 @@ references:
  - mongodb.md
  - dynamodb.md
  - polyglot-persistence.md
----
-
-# Data Modeling
+```
+<!-- praxis:metadata:end -->
 
 The schema is the system's most expensive thing to change in production. Get it right early, and the team has freedom; get it wrong, and every future slice fights the schema.
 

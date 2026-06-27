@@ -1,6 +1,13 @@
 ---
 name: data-pipeline
 description: Batch and streaming pipeline design. Ingestion, transformation, materialization, orchestration (Airflow / Dagster / Prefect / Kafka Connect), idempotency, backfills, late-arriving data, schema evolution. Per the agnostic-everywhere decision, ships with refs for the major orchestrators and processing engines. Data Engineer owns this; activates only on engagements with non-trivial data workloads. Use whenever a new pipeline is being designed, an ingestion source is added, backfills need planning, or pipeline reliability needs investigation.
+---
+
+# Data Pipeline
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: data-engineering
 domain: data
 state: active
@@ -35,9 +42,8 @@ references:
   - spark.md
   - beam-flink.md
   - kafka-streams.md
----
-
-# Data Pipeline
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns raw data sources into reliable, observable, schema-stable, replay-able pipelines. Done well, pipelines fail loud, recover automatically, handle schema changes gracefully, and produce data the downstream warehouse and ML team can trust. Done poorly, pipelines silently drop data, fail without alerting, accumulate technical debt with each schema change, and require heroics to backfill.
 

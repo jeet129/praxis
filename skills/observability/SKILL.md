@@ -1,6 +1,13 @@
 ---
 name: observability
 description: The three pillars + correlation, instrumented per service. Structured logging, RED/USE metrics, distributed tracing (OpenTelemetry-first), SLI/SLO/error-budget definition, dashboards, and alerting that pages on symptoms not causes. Developers add the instrumentation hooks as they write the code; SRE wires the collectors and dashboards . Use whenever new services or endpoints are being implemented, when defining SLOs from NFRs, or when troubleshooting requires the instrumentation that isn't there yet. Pushy trigger because retrofitting observability is dramatically more expensive than adding it upfront.
+---
+
+# Observability
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: operations
 domain: cross-cutting
 state: active
@@ -32,9 +39,8 @@ references:
  - tempo.md
  - datadog.md
  - cloud-native.md
----
-
-# Observability
+```
+<!-- praxis:metadata:end -->
 
 Three pillars + the connective tissue between them: **structured logs** that say what happened, **metrics** that show how often and how fast, **traces** that link them across services, and **correlation IDs** that thread one request through all three.
 

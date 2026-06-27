@@ -1,6 +1,13 @@
 ---
 name: delivery-planner
 description: Adaptive planning — instantiate a workflow template for *this* project using its characteristics. Consumes a workflow template (from `workflows/`), the PM's product-discovery output, the SA's architecture, the NFR register, scale targets, regulatory exposure, team composition, distributed-systems complexity, and ML/agentic content. Produces an *executable workflow instance* with the right phases activated, Decision Node thresholds calibrated, gate intensity scaled to risk, parallelism strategy selected, and optional skills toggled. Without this, "build Uber" and "build internal CRUD tool" would run the same workflow — different problems demand different execution graphs. Use whenever a project transitions from discovery to architecture-and-planning, or whenever the project's characterization changes materially.
+---
+
+# Delivery Planner
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: lifecycle
 domain: cross-cutting
 state: active
@@ -20,9 +27,8 @@ consumers:
   - using-praxis
   - delivery-lead
 references: []
----
-
-# Delivery Planner
+```
+<!-- praxis:metadata:end -->
 
 Workflow templates in `workflows/` are *patterns*, not plans. `greenfield-saas` is the same shape regardless of whether you're building Uber or a small internal CRUD tool, but the execution graph these two should run is wildly different. The planner is what turns templates into project-specific executables.
 

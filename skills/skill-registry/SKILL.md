@@ -1,6 +1,13 @@
 ---
 name: skill-registry
 description: The library's orchestration backbone. Aggregates every SKILL.md's frontmatter metadata (dependencies, triggers, outputs, consumers, capability, domain, state) into a single `skill-registry.yaml` that the orchestrator consults to resolve which skills to load for a given task, what their dependencies are, and which agents consume their outputs. Validation runs at promotion — broken dependencies, orphaned consumers, duplicate outputs, cycle detection, and state-transition rules all fail the build. Use whenever a new skill is added or modified, when the orchestrator needs to plan a workflow run, or when the library is being audited for overlap and health.
+---
+
+# Skill Registry
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -24,9 +31,8 @@ consumers:
  - library-curator (human)
  - factory-evaluation (reads skill list for usage metrics)
 references: []
----
-
-# Skill Registry
+```
+<!-- praxis:metadata:end -->
 
 At ~77 skills (with the library targeting 70–90 — see blueprint Section 7), naïve orchestration becomes fragile. The skill-registry is the structured representation of *what the library contains*, *what depends on what*, *who consumes what*, and *what state each skill is in*. The orchestrator never scans `skills/*/SKILL.md` directly at runtime; it consults the registry.
 

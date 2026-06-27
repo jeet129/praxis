@@ -1,6 +1,13 @@
 ---
 name: chaos-engineering
 description: Controlled failure injection in pre-prod (and progressively in prod) to validate resilience-patterns and DR plans in practice. Blast-radius scoping, hypothesis-driven experiments, GameDay cadence, findings → fix backlog. Catches the failure modes the team assumed away. Platform/SRE owns this; experiments live in `.project/operational/chaos/`. Use whenever resilience claims need verification, when running a quarterly GameDay, when adding a chaos experiment to the production_go_live evidence (for resilience-critical changes), or when investigating recurrent fragility.
+---
+
+# Chaos Engineering
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: operations
 domain: infra
 state: active
@@ -27,9 +34,8 @@ consumers:
  - production-release.yaml workflow (consumes pass-recency for evidence)
  - tech-debt-management (consumes remediation backlog)
 references: []
----
-
-# Chaos Engineering
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns "the system is resilient" from a claim into a verified property. Without chaos, resilience claims accumulate untested — the multi-AZ topology that's never seen an AZ failure is *theoretically* resilient. With chaos, failure modes are surfaced cheaply in controlled conditions, before they surface expensively in production.
 

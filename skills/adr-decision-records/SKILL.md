@@ -1,6 +1,13 @@
 ---
 name: adr-decision-records
 description: Standardize how every significant architectural and engineering decision is recorded as an Architecture Decision Record (ADR) — context, options considered, decision taken, consequences, rejected alternatives. Use whenever a non-trivial decision is being made that future readers will need to understand (architecture choices, technology selections, risk acceptances, policy waivers, deprecations, supersessions). ADRs live in `.project/decision/` and are indexed by `memory-management`. The team's decision memory; every design and review skill defers to this format. Pushy trigger because undocumented decisions are the most common operational failure.
+---
+
+# ADR — Architecture Decision Records
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -23,9 +30,8 @@ consumers:
   - all role agents (any agent can author an ADR)
   - memory-management (indexes ADRs)
 references: []
----
-
-# ADR — Architecture Decision Records
+```
+<!-- praxis:metadata:end -->
 
 The standard format and lifecycle for the team's decision memory. Every significant decision becomes an ADR. The format is small, opinionated, and the *only* sanctioned way to record decisions — no scattered Slack messages, no design-doc-then-forgotten, no folklore.
 

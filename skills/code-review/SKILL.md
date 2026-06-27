@@ -1,6 +1,13 @@
 ---
 name: code-review
 description: Structured pull-request review against engineering-standards, the active stack pack, security, NFR impact, and test sufficiency. Produces a severity-tagged review report (blocker / major / minor / nit) with diff-anchored locations and concrete fix suggestions. Used by the Code Reviewer agent and as a pre-merge gate. Distinct from Security Reviewer (different remit, different tool scope). Use on every PR; pushy trigger because skipping reviews is the single most common cause of accumulated tech debt.
+---
+
+# Code Review
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -30,9 +37,8 @@ references:
  - node-ts.md
  - python.md
  - web-frontend.md
----
-
-# Code Review
+```
+<!-- praxis:metadata:end -->
 
 Pre-merge quality gate. Not a generic "this looks fine" exercise — a structured pass against a defined set of dimensions, producing severity-tagged findings that the author addresses before the gate clears.
 

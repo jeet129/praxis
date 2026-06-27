@@ -1,6 +1,13 @@
 ---
 name: cicd-pipeline
 description: Pipeline-as-code design. The full build → test → scan → package → sign → publish → deploy chain with quality gates, caching, parallelism, branch strategy, and environment promotion. Per the agnostic-everywhere decision, ships with refs for GitHub Actions, GitLab CI, Azure DevOps Pipelines, and Jenkins — same workflow body, per-CI implementation in the references. Platform/SRE runs this; Backend Developer + Frontend Developer consume the pipeline's gates. Use whenever a new project's pipeline is being designed, when adding gates (security scans, perf tests, chaos), or when migrating between CI systems.
+---
+
+# CI/CD Pipeline
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -33,9 +40,8 @@ references:
  - gitlab-ci.md
  - azure-devops.md
  - jenkins.md
----
-
-# CI/CD Pipeline
+```
+<!-- praxis:metadata:end -->
 
 The conveyor belt that turns a merged commit into a deployable, verified, signed artifact. Without it, releases are manual rituals; with it, every change ships through identical machinery — which is the precondition for *every* downstream quality property (reliability, security, reproducibility).
 

@@ -1,6 +1,13 @@
 ---
 name: deploy-release
 description: Release workflow and deployment strategies. Rolling / blue-green / canary / progressive delivery, feature flags, semantic versioning + changelog discipline, rollback discipline, image-signature verification before pull, post-deploy verification, and the production_go_live gate evidence package. Platform/SRE owns deployments; Backend + Frontend Developers consume the deploy pipeline as the path their artifacts take to production. Use whenever a release is being designed, when a new deployment strategy is being chosen, or when a rollback is being planned.
+---
+
+# Deploy & Release
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -36,9 +43,8 @@ references:
  - argo-rollouts.md
  - aws-codedeploy.md
  - feature-flags.md
----
-
-# Deploy & Release
+```
+<!-- praxis:metadata:end -->
 
 The artifact is built (per `cicd-pipeline`), packaged into a signed image (`containerization`), and the infrastructure is provisioned (`iac`). This skill takes the artifact and *runs it in production* — safely, observably, reversibly. Done right, deployments are routine; done wrong, they're the primary source of outages.
 

@@ -1,6 +1,13 @@
 ---
 name: requirements-interrogation
 description: The AOP Clarify-step skill that every agent invokes at every phase boundary. Produces a standardized Knowns / Unknowns / Assumptions / Conflicts / Questions (KUACQ) block from whatever inputs the agent has, surfacing ambiguity *before* execution begins. The single most leveraged defense against "starts coding too early." Distinct from `requirements-elicitation` (broader product-discovery-to-requirements activity owned by PM) — this is the focused, per-agent, per-phase interrogation that every developer/reviewer/architect agent runs. Pushy trigger because clarification is the failure mode most agents skip.
+---
+
+# Requirements Interrogation
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: discovery
 domain: cross-cutting
 state: active
@@ -21,9 +28,8 @@ consumers:
   - using-praxis (reads escalation flags)
   - project-memory (persists KUACQ blocks to .project/working/)
 references: []
----
-
-# Requirements Interrogation
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns the AOP's Clarify step from a vague instruction into a structured, evaluable, improvable procedure. Every agent at every phase entry runs this skill — the same block format, the same five categories, the same escalation rules.
 

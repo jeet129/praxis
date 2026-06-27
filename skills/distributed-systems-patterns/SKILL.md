@@ -1,6 +1,13 @@
 ---
 name: distributed-systems-patterns
 description: Cross-component correctness patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (single-component failure-handling). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed.
+---
+
+# Distributed Systems Patterns
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: cross-cutting
 state: active
@@ -30,9 +37,8 @@ consumers:
   - data-modeling (consumes consistency choices for schema design)
   - resilience-patterns (consumes for per-component failure design)
 references: []
----
-
-# Distributed Systems Patterns
+```
+<!-- praxis:metadata:end -->
 
 The patterns that handle **correctness across multiple stateful components**. Where `resilience-patterns` makes one service tolerant of one dependency's failure, this skill makes a *system* of cooperating components correct in the presence of network partitions, partial failures, concurrent updates, and the fact that nodes don't agree on time.
 

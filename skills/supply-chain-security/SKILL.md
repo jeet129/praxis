@@ -1,6 +1,13 @@
 ---
 name: supply-chain-security
 description: Dependency hygiene and build-provenance discipline. SCA scanning, SBOM generation + attestation, pinned/locked dependencies, license checks, base-image provenance, SAST and DAST wiring, signed artifacts (cosign), SLSA-Build-L3 provenance. Platform/SRE wires the scans into cicd-pipeline; Security Reviewer audits findings; tech-debt-management tracks unpatched CVEs. Use whenever a project's pipeline is being designed, when adding new dependencies, when investigating an SCA finding, or when establishing the dependency-policy and rotation cadence.
+---
+
+# Supply Chain Security
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -31,9 +38,8 @@ consumers:
  - deploy-release (verifies signatures before pull)
  - tech-debt-management (tracks unpatched CVEs)
 references: []
----
-
-# Supply Chain Security
+```
+<!-- praxis:metadata:end -->
 
 The discipline that defends the code from the *dependencies it brings in*. Modern applications are 80–95% third-party code by volume; a vulnerability or malicious package upstream is a vulnerability in the application. This skill keeps the supply chain visible, signed, and auditable end-to-end.
 

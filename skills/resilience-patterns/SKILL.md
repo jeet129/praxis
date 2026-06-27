@@ -1,6 +1,13 @@
 ---
 name: resilience-patterns
 description: Single-component-failure-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, idempotency, outbox, saga. Applied during architecture (where) and implementation (how) to make services tolerant of the inevitable failures of dependencies. Distinct from `distributed-systems-patterns` (which addresses correctness across components — consensus, replication, consistency) and from `chaos-engineering` (which verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility.
+---
+
+# Resilience Patterns
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: cross-cutting
 state: active
@@ -27,9 +34,8 @@ consumers:
   - architecture-challenger (reliability-challenger sub-persona attacks these)
   - distributed-systems-patterns (consumes for cross-component correctness)
 references: []
----
-
-# Resilience Patterns
+```
+<!-- praxis:metadata:end -->
 
 The patterns that keep services up when their dependencies aren't. Every service in a distributed system calls dependencies (databases, caches, queues, other services, external APIs); every dependency fails sometimes; the service's behavior under that failure is a design choice.
 

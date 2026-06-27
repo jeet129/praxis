@@ -1,6 +1,13 @@
 ---
 name: nfr-definition
 description: Make non-functional requirements explicit, measurable, and gated. Produces the NFR register — target numbers per quality attribute (performance, availability, scalability, security, compliance, accessibility, observability, RTO/RPO, cost) plus the verification method for each. Without this, NFRs get discovered in production. Use whenever a project enters the architecture phase or a slice introduces new quality targets. The NFR register is consumed by every Decision Node that checks "did we meet the bar?" — `nfr_satisfied()` predicates parameterize against this register.
+---
+
+# NFR Definition
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: discovery
 domain: cross-cutting
 state: active
@@ -23,9 +30,8 @@ consumers:
   - performance-testing (verifies against targets)
   - reliability-dr (designs to RTO/RPO)
 references: []
----
-
-# NFR Definition
+```
+<!-- praxis:metadata:end -->
 
 Non-functional requirements are the silent killers of projects. Functional requirements describe *what* the system does; NFRs describe *how well*. Most architectural mistakes are NFR-blind — the design works at scale 10 but breaks at scale 1000 because nobody pinned the target.
 

@@ -1,6 +1,13 @@
 ---
 name: frontend-performance
 description: Frontend perf discipline. Core Web Vitals (LCP / INP / CLS) target setting, bundle-size budgets per route, code splitting, image and font optimization, prefetch/preload strategy, Lighthouse CI as release gate, RUM-based regression detection. Frontend Developer applies during implementation; Platform/SRE wires Lighthouse CI; performance regressions fail the merge gate. Use whenever new FE features are being implemented, when Lighthouse score degrades, when investigating user-reported slowness, or when establishing the perf-budget per route.
+---
+
+# Frontend Performance
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: frontend
 state: active
@@ -27,9 +34,8 @@ consumers:
  - platform-sre (wires Lighthouse CI + RUM)
  - cicd-pipeline (enforces budgets as merge gate)
 references: []
----
-
-# Frontend Performance
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps the user-facing app fast as features land. Backend performance (`performance-testing`) defends server-side targets; this skill defends *user-perceived* performance. A page that renders in 500ms server-side but takes 8 seconds to become interactive on a mid-range phone has a frontend problem, not a backend problem.
 

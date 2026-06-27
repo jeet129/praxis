@@ -1,6 +1,13 @@
 ---
 name: containerization
 description: Production-grade container image discipline. Minimal/distroless base, multi-stage builds, non-root user, layer caching for build speed, image vulnerability scanning, reproducibility (pinned base + locked deps + provenance attestation), signing. Platform/SRE owns the project's container patterns; developers consume the Dockerfile patterns from the stack packs. Use whenever a Dockerfile is being written, when image base choices are being made, or when supply-chain attestation is being wired into the build.
+---
+
+# Containerization
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -25,9 +32,8 @@ consumers:
  - supply-chain-security (consumes SBOM)
  - deploy-release (verifies signatures before pulling)
 references: []
----
-
-# Containerization
+```
+<!-- praxis:metadata:end -->
 
 The container is the unit of deployment. Build them like you'd deploy them: minimal, immutable, auditable, signed. The Dockerfile is the most-leveraged artifact in the project after the source code itself — its choices determine attack surface, startup time, image size, supply-chain posture, and operational cost.
 

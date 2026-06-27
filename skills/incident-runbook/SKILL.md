@@ -1,6 +1,13 @@
 ---
 name: incident-runbook
 description: Operational readiness discipline. Per-service runbooks, on-call rotation, severity taxonomy, incident response workflow, blameless postmortems with action-item tracking, status-page communication. Platform/SRE owns this; consumes reliability-dr (for severity classification), observability (for incident detection), and feeds tech-debt-management (for action items) and factory-evaluation (for MTTR metrics). Use whenever a new service is being made production-ready, when an incident occurs, when running a postmortem, or when reviewing operational readiness.
+---
+
+# Incident Runbook & Operational Readiness
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: operations
 domain: cross-cutting
 state: active
@@ -28,9 +35,8 @@ consumers:
  - tech-debt-management (consumes action items)
  - factory-evaluation (MTTR + postmortem cadence as library-health metrics)
 references: []
----
-
-# Incident Runbook & Operational Readiness
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns "things break and we figure it out" into "things break, the on-call knows what to do, and we learn from it." Without it, every incident is novel; with it, every incident strengthens the system.
 

@@ -1,6 +1,13 @@
 ---
 name: accessibility
 description: WCAG/ARIA conformance as a cross-cutting practice spanning design and code. Semantic structure, focus management, color contrast, keyboard navigation, screen-reader expectations, automated checks (axe), manual testing protocol, CI gate on regressions. Applied at design time (UX Designer), at code time (FE Developer), and at review time (a11y aspect of code-review + dedicated audits). Use whenever new UI is being designed or implemented, when auditing existing surfaces, or when establishing the project's WCAG conformance target.
+---
+
+# Accessibility
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: frontend
 state: active
@@ -28,9 +35,8 @@ consumers:
   - qa-engineer (manual a11y testing)
   - compliance-privacy (feeds into regulatory attestation)
 references: []
----
-
-# Accessibility
+```
+<!-- praxis:metadata:end -->
 
 Accessibility is *not* a checklist to satisfy regulation; it's a discipline that makes the product work for everyone, including the team's own users when they're tired, on a low-bandwidth connection, using one hand, or relying on a screen reader. Built in from the start; nearly free. Retrofitted later; expensive.
 

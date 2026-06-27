@@ -1,6 +1,13 @@
 ---
 name: environments
 description: Define and stand up the environment ladder (dev → test → staging → prod, plus ephemeral preview/PR envs), parity discipline (so what passes staging works in prod), data seeding strategy, access control per environment, and promotion rules between them. Platform/SRE owns the environment definitions; all other agents respect the parity and promotion contracts. Use whenever a new project's environment ladder is being designed, when adding a new environment (e.g., a load-testing env), or when staging behavior diverges from production behavior and parity is being restored.
+---
+
+# Environments
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -27,9 +34,8 @@ consumers:
   - qa-engineer (acceptance testing happens in specific environments)
   - cicd-pipeline (pipeline stages map to environment promotions)
 references: []
----
-
-# Environments
+```
+<!-- praxis:metadata:end -->
 
 The environment ladder is the journey a change takes from a developer's laptop to a paying customer. Each rung exists for a reason; each has a contract; each has a promotion rule. Done right, what passes staging works in production — because staging is *close enough* to production that the differences don't hide bugs. Done wrong, staging is a fairy tale and production is a series of surprises.
 

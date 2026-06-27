@@ -1,6 +1,13 @@
 ---
 name: ml-feature-engineering
 description: Feature design and operationalization with point-in-time correctness. Feature definitions, train/serve skew prevention, feature-store integration, leakage avoidance, materialization strategy (batch vs online vs streaming). The most-leveraged single technical activity in an ML project; the difference between models that work in notebooks and models that work in production. ML/AI Engineer owns this; Data Engineer integrates feature pipelines with the data plane. Use whenever features are being designed for a model, when investigating train-serve skew, when integrating a feature store, or when handling temporal correctness.
+---
+
+# ML Feature Engineering
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ml
 domain: ml
 state: active
@@ -34,9 +41,8 @@ references:
  - vertex-fs.md
  - databricks-fs.md
  - sagemaker-fs.md
----
-
-# ML Feature Engineering
+```
+<!-- praxis:metadata:end -->
 
 The boundary between data and model. Features are the model's vocabulary; their quality bounds the model's quality. Done well, features are reusable across models, point-in-time correct, and identical at training and serving time. Done poorly, models work in notebooks and fail in production — almost always due to feature problems, not model architecture.
 

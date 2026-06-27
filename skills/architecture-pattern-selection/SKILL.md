@@ -1,6 +1,13 @@
 ---
 name: architecture-pattern-selection
 description: Choose the macro-architecture for a project from the requirements + NFR register + team composition + scale targets. Modular monolith, microservices, event-driven, serverless, layered/hexagonal — each has trade-offs and a sweet spot. Defaults to the **simplest pattern that meets the NFRs** — KISS/YAGNI applied to architecture. Produces an architecture decision with explicit alternatives rejected, a C4 component diagram, and the ADR that locks the choice. Use whenever a project enters the design phase, or a slice introduces architectural divergence from the existing pattern. Architecture Challenger fires against this skill's output.
+---
+
+# Architecture Pattern Selection
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: cross-cutting
 state: active
@@ -27,9 +34,8 @@ consumers:
  - all developers (consume the architecture as design context)
  - architecture-documentation (keeps living docs)
 references: []
----
-
-# Architecture Pattern Selection
+```
+<!-- praxis:metadata:end -->
 
 The single most consequential decision in a project. Get the macro-architecture right and the rest of the design is constrained productively; get it wrong and you spend the project fighting the architecture.
 

@@ -1,6 +1,13 @@
 ---
 name: i18n-l10n
 description: Internationalization and localization done right. Locale-aware formatting (numbers, dates, currencies), ICU MessageFormat for variable + plural-aware strings, RTL layout support, locale-routing strategy, translation pipelines, fallback handling, locale switching UX. Build it in early — retrofitting is painful and bug-prone. Frontend Developer applies during implementation; UX Designer establishes the i18n requirements at design time. Use whenever new user-facing strings are introduced, when adding a new locale, when designing locale-switching UX, or when investigating locale-specific rendering bugs.
+---
+
+# i18n & L10n
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: frontend
 state: active
@@ -27,9 +34,8 @@ consumers:
   - product-manager (consumes for content / market strategy)
   - tech-writer (consumes for documentation localization)
 references: []
----
-
-# i18n & L10n
+```
+<!-- praxis:metadata:end -->
 
 Internationalization (i18n) = building the app so it *can* support multiple locales. Localization (l10n) = the actual translations and locale-specific content. Build i18n from day one even if only one locale ships initially; retrofitting i18n into an established codebase is a multi-quarter project that touches every component.
 

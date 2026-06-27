@@ -1,6 +1,13 @@
 ---
 name: ux-journey-mapping
 description: Map end-to-end user journeys per persona BEFORE any screen design. Actors, goals, touchpoints, emotional states, friction inventory, opportunity hotspots. Ground design decisions in actual flows rather than isolated screens. The UX Designer runs this for any product with non-trivial user flows, in close collaboration with the PM whose discovery output feeds it. Use whenever a new product is being designed, when a new significant user flow is being added, or when the team is debating screens before agreeing on the underlying journey.
+---
+
+# UX Journey Mapping
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ux-and-design
 domain: frontend
 state: active
@@ -23,9 +30,8 @@ consumers:
   - frontend-developer (consumes for context when building screens)
   - wireframing-prototyping (consumes journeys for wireframe scoping)
 references: []
----
-
-# UX Journey Mapping
+```
+<!-- praxis:metadata:end -->
 
 Screens without journeys produce disconnected experiences. The journey map is the *narrative* that explains why each screen exists, what the user is doing before and after, and where the friction in the current flow lives. Wireframes and prototypes are downstream of journeys, not parallel to them.
 

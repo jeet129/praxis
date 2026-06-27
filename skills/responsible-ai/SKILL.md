@@ -1,6 +1,13 @@
 ---
 name: responsible-ai
 description: Fairness, robustness, transparency, and safety practices for ML and AI systems. Bias audits per protected slice, robustness checks (adversarial / distribution shift), explainability (SHAP / LIME / feature attribution), model cards and datasheets, human-in-the-loop policy, escalation on harm signals. HARD GATE — not optional for models that affect people, decisions, or regulated surfaces. Fires for both traditional ML and agentic AI / LLMs . ML/AI Engineer co-runs with Security Reviewer; PM contributes the harm-scenario definitions; compliance-privacy consumes outputs for regulated regimes.
+---
+
+# Responsible AI
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: ml
 state: active
@@ -31,9 +38,8 @@ consumers:
  - product-manager (consumes for harm-scenario design)
  - production-release.yaml workflow (consumes responsible_ai_review gate evidence)
 references: []
----
-
-# Responsible AI
+```
+<!-- praxis:metadata:end -->
 
 The discipline that asks the questions ML and AI projects often skip: *who is affected, how could this go wrong, what controls prevent that?* For models that affect people's lives — credit, employment, healthcare, content moderation, search ranking — responsible-AI is non-negotiable. For agentic AI / LLM features, the same discipline applies with content-safety and prompt-injection added.
 

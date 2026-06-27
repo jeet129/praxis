@@ -1,6 +1,13 @@
 ---
 name: iac
 description: Infrastructure as Code discipline. Module structure, state management, drift detection, environment composition, policy-as-code guardrails, plan/apply discipline. Per the agnostic-everywhere decision, ships with refs for Terraform (the default for multi-cloud) and Pulumi (when programming-language IaC is preferred). Platform/SRE owns the IaC; this is what provisions clouds, K8s clusters, secret stores, registries, and the build infrastructure the rest depends on. Use whenever a new project's infrastructure is being designed, when new resources are being added, when migrating cloud accounts, or when establishing the state-management strategy.
+---
+
+# Infrastructure as Code
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -30,9 +37,8 @@ consumers:
 references:
  - terraform.md
  - pulumi.md
----
-
-# Infrastructure as Code
+```
+<!-- praxis:metadata:end -->
 
 The infrastructure the project runs on is built, modified, and destroyed exclusively through code in the repo. Cloud-console clicks for production resources are a violation — they're invisible to PRs, lack history, drift silently from intent. With IaC, the infrastructure is reviewed, versioned, diffable, rollback-able, and reproducible across accounts.
 

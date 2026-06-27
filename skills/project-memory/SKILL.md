@@ -1,6 +1,13 @@
 ---
 name: project-memory
 description: Owns the write side of `.project/` — the persistent project memory directory structured by the six memory types (semantic / episodic / procedural / decision / operational / working). Every agent reads `.project/` on entry and writes to it via the AOP Document step. Use this skill whenever the orchestrator initializes a project, an agent completes a phase and needs to record decisions or context, an ADR is created or superseded, an incident closes and needs operational memory recorded, or a slice opens and `working/` needs to be primed. Project memory is what makes the platform portable across coding assistants — any tool that can read files can reconstruct project state.
+---
+
+# Project Memory
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -20,9 +27,8 @@ consumers:
   - memory-management (consumes the writes)
   - all role agents (AOP Document step)
 references: []
----
-
-# Project Memory
+```
+<!-- praxis:metadata:end -->
 
 The persistent state primitive that makes the Praxis survive coding-assistant changes. `.project/` lives in the project's repository root (or a parallel directory if the project is being driven without source control), and any assistant that can read files can reconstruct the project's full state by reading it.
 

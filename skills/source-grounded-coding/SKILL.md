@@ -1,6 +1,13 @@
 ---
 name: source-grounded-coding
 description: Verify every non-trivial framework/library/tool decision against official documentation BEFORE implementing. Cite sources inline. Flag what's unverified. Reject hallucinated API surfaces. Pairs with `engineering-standards` (this skill is the active discipline; engineering-standards is the broad reference). The agent's natural failure mode is plausible-sounding API code that doesn't exist; this skill is the counter. Use when implementing against any external library/framework/tool, when answering "does X support Y?", when writing example code for unfamiliar APIs, or when adopting a new dependency.
+---
+
+# Source-Grounded Coding
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -26,9 +33,8 @@ consumers:
   - security-review (consumes for supply-chain attestation)
   - architecture-pattern-selection (consumes for framework-fit decisions)
 references: []
----
-
-# Source-Grounded Coding
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps the agent from making things up. LLM-generated code is **fluent** — it produces well-formed, plausible-sounding API calls. Fluent code that uses APIs that don't exist is worse than no code at all: it looks right, it compiles sometimes, and it fails at runtime in ways nobody traces back to "the agent guessed."
 

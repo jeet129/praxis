@@ -1,6 +1,13 @@
 ---
 name: doubt-driven-decisions
 description: Subjects every non-trivial decision to a fresh-context adversarial review BEFORE it stands. CLAIM → EXTRACT → DOUBT → RECONCILE → STOP. Pairs with `architecture-challenger` (which is macro-level adversarial review of the whole architecture); this SKILL is the per-decision keyboard-level equivalent. Use when correctness matters more than speed, when working in unfamiliar code, when stakes are high (production, security-sensitive, irreversible), or any time a confident output would be cheaper to verify NOW than to debug later.
+---
+
+# Doubt-Driven Decisions
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -26,9 +33,8 @@ consumers:
   - architecture-challenger (macro-level peer; different scope)
   - delivery-lead (consumes for high-stakes decisions)
 references: []
----
-
-# Doubt-Driven Decisions
+```
+<!-- praxis:metadata:end -->
 
 A confident answer is not a correct one. Long agent sessions accumulate context that quietly hardens assumptions into "facts" without anyone noticing. **Doubt-driven decisions** is the discipline of materializing a fresh-context reviewer — biased to **disprove**, not approve — before any non-trivial output stands.
 

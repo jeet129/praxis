@@ -1,6 +1,13 @@
 ---
 name: evaluation-engineering
 description: The QA discipline for AI / agent systems. Golden datasets, LLM-judge methodology (with calibration), regression eval in CI, slice-based metrics, hallucination detection, faithfulness / groundedness scoring, human-in-the-loop review process. Without this, agentic systems regress silently — a "small prompt change" or model upgrade can degrade quality dramatically without anyone noticing. Distinct from `testing-strategy` (application code) and `ml-training-evaluation` (traditional ML model eval). ML/AI Engineer owns the eval design; QA Engineer integrates with the broader testing strategy; reviewers consume eval reports.
+---
+
+# Evaluation Engineering
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: agentic-ai
 domain: ml
 state: active
@@ -35,9 +42,8 @@ references:
   - promptfoo.md
   - deepeval.md
   - inspect-ai.md
----
-
-# Evaluation Engineering
+```
+<!-- praxis:metadata:end -->
 
 The QA discipline for AI systems. Where `testing-strategy` ensures application code is correct, this skill ensures the *AI part* is correct — that the LLM's outputs are accurate, grounded, safe, and stable across changes. Without it, "a small prompt change" silently regresses quality on the long tail; the team finds out from user complaints weeks later.
 

@@ -1,6 +1,13 @@
 ---
 name: cost-finops
 description: Cost-aware design and continuous optimization. Right-sizing, spot / reserved / committed-use, storage tiering, tagging + showback, budget alerts, FinOps culture. Distinct from `capacity-resource-estimation` (which sets initial sizing); this skill ensures cost stays optimal as the system runs. Platform/SRE owns this; PM consults on cost vs. feature trade-offs; principal approves overruns. Use whenever provisioning happens, when cost trends concern, when running quarterly cost reviews, or when budgets need adjustment.
+---
+
+# Cost / FinOps
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: operations
 domain: infra
 state: active
@@ -28,9 +35,8 @@ consumers:
   - capacity-resource-estimation (paired skill — capacity sets target; this optimizes against it)
   - tech-debt-management (consumes optimization backlog)
 references: []
----
-
-# Cost / FinOps
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps run-cost in line with business value as the system scales. Capacity sizing (`capacity-resource-estimation`) sets the *initial* envelope; this skill ensures that as load actually arrives, growth happens, and architecture evolves, the cost stays optimal — not minimal, optimal (the lowest cost that meets the NFRs).
 

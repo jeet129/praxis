@@ -1,6 +1,13 @@
 ---
 name: memory-management
 description: Sister to `project-memory` — owns the read side of `.project/` at scale. Maintains an index across all memory-type subtrees (semantic/episodic/procedural/decision/operational/working), exposes retrieval queries the orchestrator and agents use to find relevant memory entries among many, and runs compaction when episodic/working entries age out so the directory stays usable past 500+ entries. Without this skill, project memory becomes search-by-grep at scale. Use whenever an agent needs to find prior decisions, related ADRs, recent incidents, or any subset of memory by topic/domain/time. Pushy trigger because retrieval gets skipped easily.
+---
+
+# Memory Management
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -23,9 +30,8 @@ consumers:
   - architecture-pattern-selection (retrieves prior architecture ADRs)
   - codebase-comprehension (correlates memory with repo intel)
 references: []
----
-
-# Memory Management
+```
+<!-- praxis:metadata:end -->
 
 The read side of `.project/`. Where `project-memory` writes, this skill indexes, retrieves, and compacts. Together they keep project memory usable past the 500-entry mark where naïve filesystem lookup falls apart.
 

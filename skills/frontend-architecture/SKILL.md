@@ -1,6 +1,13 @@
 ---
 name: frontend-architecture
 description: Frontend macro-decisions — component model, state-management choice (local / server / global / signals), data-fetching strategy (REST / GraphQL / RSC / cache-and-mutate), rendering strategy (SSR / SSG / ISR / CSR / streaming), routing model, micro-frontends (only if justified). The FE analog of `architecture-pattern-selection`. Solution Architect runs this for any web product; defaults to KISS — the simplest FE architecture that meets the NFRs. Use whenever a new web product is being designed or a slice introduces FE patterns not yet established.
+---
+
+# Frontend Architecture
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: frontend
 state: active
@@ -27,9 +34,8 @@ consumers:
  - architecture-challenger (attacks FE decisions in scale/perf/security passes)
  - stack-web-frontend (consumes for framework-specific implementation)
 references: []
----
-
-# Frontend Architecture
+```
+<!-- praxis:metadata:end -->
 
 The FE analog of `architecture-pattern-selection`. Most FE projects don't need exotic architectures; the right default is "boring works." Single-page application with conventional routing, server-side rendering where SEO or first-paint matters, and a state model that matches the actual data lifetimes. Over-engineered FE is one of the most expensive forms of YAGNI violation.
 

@@ -1,6 +1,13 @@
 ---
 name: domain-discovery
 description: Lightweight domain modeling using event-storming-style techniques to find bounded contexts, the ubiquitous language, and the candidate aggregates BEFORE choosing an architecture or designing data. Establishes the shared semantic foundation that every downstream skill consumes. The Solution Architect runs this once for a new product and lightly per slice that introduces new domain concepts. Output lives in `.project/semantic/` and becomes the project's persistent semantic memory.
+---
+
+# Domain Discovery
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: cross-cutting
 state: active
@@ -24,9 +31,8 @@ consumers:
   - api-design (uses contexts to define service boundaries)
   - all developer agents (use the glossary for naming)
 references: []
----
-
-# Domain Discovery
+```
+<!-- praxis:metadata:end -->
 
 The semantic foundation. Every subsequent design decision — architecture, data model, API, naming — refers back to the bounded contexts and the ubiquitous language this skill produces. Done right, downstream conflicts evaporate; done sloppily, the team argues about names and boundaries for the life of the project.
 

@@ -1,6 +1,13 @@
 ---
 name: platform-aws
 description: AWS cloud-specific reference pack. Managed-service catalog (EKS / RDS / S3 / Aurora / DynamoDB / EventBridge / SQS / SNS / Step Functions / Lambda / API Gateway), networking (VPC / Transit Gateway / PrivateLink / ALB / NLB / CloudFront), identity (IAM / IRSA / SSO / KMS), observability (CloudWatch / X-Ray), DR topology (multi-AZ default; multi-region patterns), cost levers (Savings Plans / Reserved Instances / Spot), Well-Architected Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for AWS-specific implementation. Selected when AWS is the project's cloud per governance.yaml.
+---
+
+# Platform — AWS
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: platform
 domain: infra
 state: active
@@ -29,9 +36,8 @@ consumers:
   - reliability-dr (multi-AZ / multi-region patterns)
   - cost-finops (AWS Cost Explorer + Budgets + tagging)
 references: []
----
-
-# Platform — AWS
+```
+<!-- praxis:metadata:end -->
 
 The deep reference library for AWS-specific patterns. Where the cloud-agnostic K8s pack (`platform-k8s`) covers what runs *inside* the cluster, this pack covers what AWS provisions *around* it — managed services, networking, identity, DR primitives — and how to combine them well.
 

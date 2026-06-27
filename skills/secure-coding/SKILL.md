@@ -1,6 +1,13 @@
 ---
 name: secure-coding
 description: OWASP-aligned secure coding practice. Input validation at boundaries, output encoding, parameterized queries, safe deserialization, authn/authz checks at the right layer, crypto usage, SSRF/XXE defenses, secrets-in-code prevention, PII handling at log boundaries. Applied during code writing (developer agents) and at code review (Security Reviewer agent) as a merge gate. Use whenever code is being written that handles input from any external boundary, persists or transmits sensitive data, or makes authorization decisions. Pushy trigger because security findings are the most expensive failure mode to discover post-deployment.
+---
+
+# Secure Coding
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -29,9 +36,8 @@ references:
  - node-ts.md
  - python.md
  - web-frontend.md
----
-
-# Secure Coding
+```
+<!-- praxis:metadata:end -->
 
 OWASP-aligned, language-aware, applied continuously. This skill produces *secure code by construction* during writing, and *severity-tagged findings* during review. It is one of three skills that gate merges (alongside `code-review` and `supply-chain-security`).
 

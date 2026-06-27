@@ -1,6 +1,13 @@
 ---
 name: llm-cost-optimization
 description: Production economics for LLM features. Model selection per task (capability-vs-cost tiering), prompt-cache + KV-cache utilization, semantic caching, batching, smaller-model routing for the common case, token budgets per request, observability of cost as a first-class signal. LLM cost is the silent project killer — features that work in development can be unaffordable at scale. ML/AI Engineer owns the design; Platform/SRE wires the cost monitoring; `cost-finops` treats LLM cost as a category. Use whenever a new LLM feature is being designed, when investigating cost growth, when setting token budgets, or when designing model-routing policy.
+---
+
+# LLM Cost Optimization
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: agentic-ai
 domain: ml
 state: active
@@ -33,9 +40,8 @@ references:
   - litellm.md
   - portkey.md
   - helicone.md
----
-
-# LLM Cost Optimization
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps LLM features financially viable. LLM API costs scale with usage, often dramatically; a feature that costs cents in dev can cost six figures at scale. Without cost discipline, projects either don't ship to scale (too expensive) or ship and burn cash silently.
 

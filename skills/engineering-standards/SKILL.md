@@ -1,6 +1,13 @@
 ---
 name: engineering-standards
 description: The house engineering standards bar. Use whenever code is being written, reviewed, or refactored to ensure conformance to KISS / DRY / SOLID / YAGNI principles, package/module boundaries, naming conventions, error-handling discipline, logging hygiene, and dependency direction. Every implementation skill, code-review pass, and developer agent reads this — it is the single source of truth for the engineering bar. Pushy trigger because skills tend to under-trigger on standards.
+---
+
+# Engineering Standards
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: active
@@ -28,9 +35,8 @@ references:
   - java-spring.md
   - node-ts.md
   - python.md
----
-
-# Engineering Standards
+```
+<!-- praxis:metadata:end -->
 
 The single source of truth for the engineering bar. Every implementation skill, every reviewer, every stack pack defers to this skill rather than restating its rules. If the standards change, you edit one file and the whole team moves with it.
 

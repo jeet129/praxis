@@ -1,6 +1,13 @@
 ---
 name: secrets-config
 description: Twelve-factor configuration + secret management. No secrets in code, no secrets in config files, no secrets in commit history. Centralized secret store at runtime; injection at app startup or per-call; rotation cadence; minimum-privilege scoping; audit logging. Stack-pack-agnostic body with platform-specific refs (AWS Secrets Manager / Azure Key Vault / GCP Secret Manager / K8s External Secrets / HashiCorp Vault). Use whenever code needs configuration that varies by environment or contains sensitive data, when designing the secret-injection pattern, or when establishing rotation policy.
+---
+
+# Secrets & Config
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: build-and-deploy
 domain: infra
 state: active
@@ -32,9 +39,8 @@ references:
  - gcp-secret-manager.md
  - k8s-external-secrets.md
  - hashicorp-vault.md
----
-
-# Secrets & Config
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps credentials out of code, out of repos, out of commit history, out of CI logs, and out of error messages. Done right, the codebase has no secrets in it; secrets are loaded at runtime from a centralized store; access is least-privilege; rotation is automated. Done wrong, a stolen laptop or leaked CI log compromises production.
 

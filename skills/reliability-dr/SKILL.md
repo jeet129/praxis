@@ -1,6 +1,13 @@
 ---
 name: reliability-dr
 description: Reliability engineering and disaster recovery discipline. SLO design from NFRs, error budgets and burn-rate alerts, backup/restore patterns, RTO/RPO targets and verification, multi-AZ/region topology, runbook/restore drill cadence, DR readiness attestation for production_go_live evidence. Platform/SRE owns this; consumes observability's SLI definitions and feeds the production_go_live gate. Use whenever a project defines reliability targets, when designing backup or failover, when running DR drills, or when reliability is being audited.
+---
+
+# Reliability & Disaster Recovery
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: operations
 domain: infra
 state: active
@@ -29,9 +36,8 @@ consumers:
   - incident-runbook (consumes for incident severity classification)
   - chaos-engineering (consumes DR plan for game day scenarios)
 references: []
----
-
-# Reliability & Disaster Recovery
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns NFR availability targets into operational reality. SLOs make availability *measurable*; error budgets make trade-offs *visible*; backup and restore patterns make failures *recoverable*; DR drills make all of this *rehearsed* rather than theoretical.
 

@@ -1,6 +1,13 @@
 ---
 name: ml-training-evaluation
 description: Reproducible training plus rigorous evaluation. Experiment tracking, data + code + config versioning, eval harness (holdout, cross-validation, slice-based metrics, calibration, error analysis), confidence intervals and statistical significance vs baseline. The model card is part of the deliverable, not a postscript. Per the Resolved Decision, ships with refs for MLflow / W&B / Vertex Experiments / SageMaker Experiments / Comet. ML/AI Engineer owns this; the trained model + model card flow to ml-serving-deployment for productionization. Use whenever a model is being trained, when evaluating against a baseline, when comparing model variants, or when assembling the responsible-AI evidence pack.
+---
+
+# ML Training & Evaluation
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ml
 domain: ml
 state: active
@@ -35,9 +42,8 @@ references:
  - vertex-experiments.md
  - sagemaker-experiments.md
  - comet.md
----
-
-# ML Training & Evaluation
+```
+<!-- praxis:metadata:end -->
 
 The discipline that turns training code into a reproducible system and evaluation into honest evidence. Without it, "the model is good" is a story; with it, it's a documented claim with confidence intervals, per-slice breakdowns, and calibration.
 

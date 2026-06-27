@@ -1,6 +1,13 @@
 ---
 name: threat-modeling
 description: STRIDE-based attack-surface analysis applied at design time (architecture phase). Trust boundaries, data-flow diagrams, threats enumerated and prioritized, mitigations mapped to NFRs. Distinct from `secure-coding` (applied during writing/review) and from `architecture-challenger`'s `security-challenger` sub-persona (which uses this skill's outputs to attack a design). Solution Architect runs this once per substantial design + per slice that introduces new trust boundaries. Use whenever a system is being designed, new public surface is being added, integrations are being introduced, or compliance requires documented threat models.
+---
+
+# Threat Modeling
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: quality-and-security
 domain: cross-cutting
 state: active
@@ -27,9 +34,8 @@ consumers:
   - secure-coding (consumes for what to defend against)
   - compliance-privacy (uses for regime-required threat-modeling docs)
 references: []
----
-
-# Threat Modeling
+```
+<!-- praxis:metadata:end -->
 
 The discipline of asking, at design time, "how does this get broken?" Done well, threats are surfaced when fixes are cheap (architectural). Done poorly or skipped, threats surface in production via incidents that are 100x more expensive to fix.
 

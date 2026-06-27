@@ -1,6 +1,13 @@
 ---
 name: api-design
 description: Contract-first API design. Produces the API specification (OpenAPI 3.1 for REST, .proto for gRPC, AsyncAPI for events) BEFORE implementation begins, with explicit versioning, pagination, idempotency, error model, and deprecation policy. The Solution Architect runs this for any slice that introduces or changes an API surface; the Backend Developer consumes the spec as part of the implementation packet. Use whenever a new endpoint, RPC, event topic, or webhook is being introduced. Pushy trigger because skipping contract-first design produces APIs that have to be redesigned a quarter later.
+---
+
+# API Design
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: architecture
 domain: backend
 state: active
@@ -31,9 +38,8 @@ references:
   - grpc-proto.md
   - asyncapi-events.md
   - graphql.md
----
-
-# API Design
+```
+<!-- praxis:metadata:end -->
 
 Contract-first. The specification is written *before* implementation begins, reviewed (by the Architecture Challenger and the consuming agent), and locked. The implementation is then a faithful realization of the contract; deviations are caught at code review against the spec.
 

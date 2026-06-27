@@ -1,6 +1,13 @@
 ---
 name: delivery-lifecycle-orchestrator
 description: TOMBSTONE — This SKILL was consolidated into `using-praxis` in the Polish-1 pass. Its content (workflow execution model, step types, Decision Node evaluation, gate enforcement runtime, workflow lifecycle state machine) lives there under "LAYER 2 — Orchestration Runtime". Do not load this SKILL; do not depend on it; do not reference it. It exists only as a tombstone because the session that performed the consolidation could not delete files.
+---
+
+# Delivery Lifecycle Orchestrator — REMOVED
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: foundation
 domain: cross-cutting
 state: removed
@@ -9,9 +16,8 @@ triggers: []
 outputs: []
 consumers: []
 references: []
----
-
-# Delivery Lifecycle Orchestrator — REMOVED
+```
+<!-- praxis:metadata:end -->
 
 This SKILL has been **consolidated into [`using-praxis`](../using-praxis/SKILL.md)** as part of the Polish-1 pass.
 

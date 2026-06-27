@@ -1,6 +1,13 @@
 ---
 name: ml-monitoring-drift
 description: Production model monitoring. Input-feature distribution drift, prediction drift, performance metrics (with label-arrival lag handled), data-quality regressions, train-serve skew detection, alerting tied to business SLOs, retraining triggers. ML observability is a superset of service observability — pair with `observability` skill; service-level metrics PLUS model-specific drift signals. ML/AI Engineer owns the monitoring design; Platform/SRE wires the collectors; incident-runbook handles model incidents like any other incident. Use whenever a model has been deployed and needs production monitoring, when a drift alert fires, when retraining cadence is being designed, or when investigating model performance regression.
+---
+
+# ML Monitoring & Drift
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: ml
 domain: ml
 state: active
@@ -36,9 +43,8 @@ references:
   - whylabs.md
   - arize.md
   - vertex-model-monitoring.md
----
-
-# ML Monitoring & Drift
+```
+<!-- praxis:metadata:end -->
 
 The discipline that catches model failures in production. Models can stop working *correctly* while continuing to serve *successfully* — the service is up, predictions return, but the predictions are wrong. Standard observability catches service failures (latency, errors); ML monitoring catches the model-specific class.
 

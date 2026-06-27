@@ -1,6 +1,13 @@
 ---
 name: agentic-architecture
 description: Macro-design for LLM-powered features and agent systems. Choose between single-agent / multi-agent / planner-executor / supervisor topologies; design tool-use surfaces and tool schemas; choose memory systems (short-term / episodic / semantic / shared); place LLM calls relative to deterministic logic; decide when to use streaming / function calling / structured outputs. The FE of agentic AI architecture — what RAG (`rag-design`), evaluation (`evaluation-engineering`), safety (`llm-safety`), and cost (`llm-cost-optimization`) hang off of. ML/AI Engineer + SA co-design. Use whenever an LLM / agent feature is being designed, when choosing agent topology, when designing tool-use, or when deciding where deterministic logic vs LLM calls belong.
+---
+
+# Agentic Architecture
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: agentic-ai
 domain: ml
 state: active
@@ -32,9 +39,8 @@ consumers:
   - llm-cost-optimization (consumes for cost-routing decisions)
   - evaluation-engineering (consumes for what to evaluate)
 references: []
----
-
-# Agentic Architecture
+```
+<!-- praxis:metadata:end -->
 
 The macro-design layer for LLM-powered features. Done right, it sets up `rag-design`, `evaluation-engineering`, `llm-safety`, and `llm-cost-optimization` to do their jobs. Done poorly, the system is a chatbot wrapped around a single API call with no story for failure, no story for evaluation, and no story for cost.
 

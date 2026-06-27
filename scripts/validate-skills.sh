@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # validate-skills.sh — structural validator for the Praxis library
 #
-# Verifies every SKILL.md has the full 8-field frontmatter the platform
-# expects: name, description, capability, domain, state, dependencies,
-# triggers, outputs, consumers, references.
+# Each SKILL.md has:
+#   - YAML frontmatter with ONLY name + description
+#     (this is what Claude Code's plugin loader accepts; extra fields break it)
+#   - A `<!-- praxis:metadata:begin --> ... <!-- praxis:metadata:end -->` block
+#     in the body containing a YAML code fence with the orchestration metadata
+#     (capability, domain, state, dependencies, triggers, outputs, consumers, references)
+#
+# Why two-tier: Claude Code's plugin skill loader silently rejects SKILLs whose
+# frontmatter contains unknown fields. Praxis's internal skill-registry needs
+# extended metadata. The body block carries it without breaking the loader.
 #
 # Usage:
 #   ./scripts/validate-skills.sh           # validate this repo's skills/
 #   ./scripts/validate-skills.sh /path     # validate a specific library root
+#   VERBOSE=1 ./scripts/validate-skills.sh # show warnings too
 #
 # Exits non-zero if any skill fails validation. Suitable for CI.
 
@@ -22,11 +30,14 @@ if [[ ! -d "$SKILLS_DIR" ]]; then
   exit 2
 fi
 
-# Required frontmatter fields
-REQUIRED_FIELDS=(name description capability domain state)
+# Required frontmatter fields (Claude Code-compatible)
+FM_REQUIRED=(name description)
 
-# Recommended (warn if missing, don't fail)
-RECOMMENDED_FIELDS=(dependencies triggers outputs consumers references)
+# Required metadata fields (in the body's yaml block)
+META_REQUIRED=(capability domain state)
+
+# Recommended metadata fields (warn if missing)
+META_RECOMMENDED=(dependencies triggers outputs consumers references)
 
 # Valid state values
 VALID_STATES=(experimental active deprecated merged removed)
@@ -36,8 +47,8 @@ N_TOTAL=0
 N_PASS=0
 N_FAIL=0
 N_WARN=0
-N_REMOVED=0      # tombstones (state: removed) — not counted in active total
-N_ACTIVE=0       # active total — what counts toward 70-90 health band
+N_REMOVED=0      # tombstones (state: removed)
+N_ACTIVE=0       # what counts toward 70-90 health band
 FAILURES=()
 WARNINGS=()
 
@@ -52,7 +63,7 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
   skill_failed=0
   skill_warned=0
 
-  # Extract frontmatter (between --- markers)
+  # Extract frontmatter (between first two --- markers)
   frontmatter=$(awk '/^---$/{flag=!flag; if(!flag)exit; next} flag' "$skill_md")
 
   if [[ -z "$frontmatter" ]]; then
@@ -61,61 +72,100 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
     continue
   fi
 
-  # Check required fields
-  for field in "${REQUIRED_FIELDS[@]}"; do
-    if ! echo "$frontmatter" | grep -q "^$field:"; then
-      FAILURES+=("$skill_name: missing required field '$field'")
+  # 1. Frontmatter validation: must have ONLY name + description
+  fm_keys=$(echo "$frontmatter" | grep -E "^[a-zA-Z_][a-zA-Z0-9_-]*:" | sed 's/:.*//' | sort -u)
+  for required in "${FM_REQUIRED[@]}"; do
+    if ! echo "$fm_keys" | grep -qx "$required"; then
+      FAILURES+=("$skill_name: frontmatter missing required field '$required'")
       skill_failed=1
     fi
   done
 
-  # Check name matches directory
+  # Reject any non-allowed frontmatter keys (Claude Code rejects them silently)
+  while read -r key; do
+    [[ -z "$key" ]] && continue
+    case "$key" in
+      name|description) ;;
+      *)
+        FAILURES+=("$skill_name: frontmatter has disallowed field '$key' (move to body metadata block)")
+        skill_failed=1
+        ;;
+    esac
+  done <<< "$fm_keys"
+
+  # 2. Name matches directory
   declared_name=$(echo "$frontmatter" | grep "^name:" | head -1 | sed 's/^name: *//' | tr -d '"')
   if [[ -n "$declared_name" && "$declared_name" != "$skill_name" ]]; then
     FAILURES+=("$skill_name: declared name '$declared_name' doesn't match directory")
     skill_failed=1
   fi
 
-  # Check state is valid
-  declared_state=$(echo "$frontmatter" | grep "^state:" | head -1 | sed 's/^state: *//' | tr -d '"')
-  if [[ -n "$declared_state" ]]; then
-    state_ok=0
-    for s in "${VALID_STATES[@]}"; do
-      [[ "$s" == "$declared_state" ]] && state_ok=1
+  # 3. Extract body metadata YAML block (between the markers)
+  metadata=$(awk '
+    /<!-- praxis:metadata:begin -->/{flag=1; next}
+    /<!-- praxis:metadata:end -->/{flag=0; exit}
+    flag {
+      # strip the ```yaml and ``` fences
+      if (/^```/) next
+      print
+    }
+  ' "$skill_md")
+
+  if [[ -z "$metadata" ]]; then
+    FAILURES+=("$skill_name: no praxis:metadata block in body")
+    skill_failed=1
+  else
+    # 4. Check required metadata fields
+    for required in "${META_REQUIRED[@]}"; do
+      if ! echo "$metadata" | grep -q "^$required:"; then
+        FAILURES+=("$skill_name: metadata block missing required field '$required'")
+        skill_failed=1
+      fi
     done
-    if [[ $state_ok -eq 0 ]]; then
-      FAILURES+=("$skill_name: invalid state '$declared_state' (must be one of: ${VALID_STATES[*]})")
-      skill_failed=1
+
+    # 5. Validate state
+    declared_state=$(echo "$metadata" | grep "^state:" | head -1 | sed 's/^state: *//' | tr -d '"')
+    if [[ -n "$declared_state" ]]; then
+      state_ok=0
+      for s in "${VALID_STATES[@]}"; do
+        [[ "$s" == "$declared_state" ]] && state_ok=1
+      done
+      if [[ $state_ok -eq 0 ]]; then
+        FAILURES+=("$skill_name: invalid state '$declared_state' (must be one of: ${VALID_STATES[*]})")
+        skill_failed=1
+      fi
     fi
-  fi
 
-  # Tombstones (state: removed) — count separately, skip recommended-field checks
-  if [[ "$declared_state" == "removed" ]]; then
-    N_REMOVED=$((N_REMOVED + 1))
-    if [[ $skill_failed -eq 0 ]]; then
-      N_PASS=$((N_PASS + 1))
-    else
-      N_FAIL=$((N_FAIL + 1))
+    # Tombstone handling (shouldn't appear in skills/ anymore; archived to archive/skills/)
+    if [[ "$declared_state" == "removed" ]]; then
+      N_REMOVED=$((N_REMOVED + 1))
+      WARNINGS+=("$skill_name: tombstone (state: removed) found inside skills/ — should live in archive/skills/")
+      skill_warned=1
+      if [[ $skill_failed -eq 0 ]]; then
+        N_PASS=$((N_PASS + 1))
+      else
+        N_FAIL=$((N_FAIL + 1))
+      fi
+      N_WARN=$((N_WARN + skill_warned))
+      continue
     fi
-    continue
-  fi
 
-  # Past this point, the skill is active (or experimental/deprecated) — counts toward health band
-  N_ACTIVE=$((N_ACTIVE + 1))
+    N_ACTIVE=$((N_ACTIVE + 1))
 
-  # Check recommended fields (warnings only)
-  for field in "${RECOMMENDED_FIELDS[@]}"; do
-    if ! echo "$frontmatter" | grep -q "^$field:"; then
-      WARNINGS+=("$skill_name: missing recommended field '$field'")
+    # 6. Recommended metadata fields (warnings)
+    for field in "${META_RECOMMENDED[@]}"; do
+      if ! echo "$metadata" | grep -q "^$field:"; then
+        WARNINGS+=("$skill_name: metadata missing recommended field '$field'")
+        skill_warned=1
+      fi
+    done
+
+    # 7. Description quality: should contain "Use when" trigger phrase
+    declared_desc=$(echo "$frontmatter" | grep "^description:" | head -1)
+    if ! echo "$declared_desc" | grep -qi "use when\|use whenever"; then
+      WARNINGS+=("$skill_name: description lacks 'Use when' trigger phrase")
       skill_warned=1
     fi
-  done
-
-  # Description quality: should contain "Use when" trigger phrase
-  declared_desc=$(echo "$frontmatter" | grep "^description:" | head -1)
-  if ! echo "$declared_desc" | grep -qi "use when\|use whenever"; then
-    WARNINGS+=("$skill_name: description lacks 'Use when' trigger phrase")
-    skill_warned=1
   fi
 
   if [[ $skill_failed -eq 0 ]]; then
@@ -166,7 +216,6 @@ else
   echo "✓ Library health: $N_ACTIVE active skills in target 70-90 band."
 fi
 
-# Exit code
 if [[ $N_FAIL -gt 0 ]]; then
   exit 1
 fi

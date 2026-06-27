@@ -1,6 +1,13 @@
 ---
 name: platform-azure
 description: Azure cloud-specific reference pack. Managed-service catalog (AKS / Azure SQL / Cosmos DB / Service Bus / Event Grid / App Service / Functions / Container Apps / API Management), networking (VNet / Application Gateway / Front Door / Private Link / VPN), identity (Entra ID / Managed Identity / Key Vault), observability (Azure Monitor / Application Insights / Log Analytics), DR patterns (Availability Zones default; paired regions for DR), cost levers (Reservations / Spot VMs / Hybrid Benefit), Azure Well-Architected Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for Azure-specific implementation. Selected when Azure is the project's cloud per governance.yaml.
+---
+
+# Platform — Azure
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: platform
 domain: infra
 state: active
@@ -29,9 +36,8 @@ consumers:
   - reliability-dr (AZ / paired-region patterns)
   - cost-finops (Azure Cost Management + tagging)
 references: []
----
-
-# Platform — Azure
+```
+<!-- praxis:metadata:end -->
 
 Deep reference for Azure-specific patterns. Like the AWS pack, this covers Azure managed services, networking, identity, DR primitives, cost levers, and Azure Well-Architected Framework alignment.
 

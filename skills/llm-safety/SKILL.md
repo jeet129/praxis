@@ -1,6 +1,13 @@
 ---
 name: llm-safety
 description: Guardrails for LLM outputs. Input filtering, jailbreak resilience, prompt-injection defenses, PII redaction, content-policy enforcement, output validation (structured-output schemas, tool-call validation), unsafe-output classifiers, escalation on harm signals. Pairs with `responsible-ai` (this skill is LLM-specific; that one is the broader framework). ML/AI Engineer + Security Reviewer co-own. Use whenever an LLM feature is being designed, when investigating prompt-injection attempts, when establishing content policy, or when wiring safety gates into the request flow.
+---
+
+# LLM Safety
+
+
+<!-- praxis:metadata:begin -->
+```yaml
 capability: agentic-ai
 domain: ml
 state: active
@@ -34,9 +41,8 @@ references:
   - nemo-guardrails.md
   - guardrails-ai.md
   - lakera.md
----
-
-# LLM Safety
+```
+<!-- praxis:metadata:end -->
 
 The discipline that keeps LLM features from being weaponized, exploited, or producing harmful outputs. Without it, an LLM is an attack surface — prompt injection, data exfiltration via output, content policy violations, refusal of legitimate requests. With it, the LLM operates within a defined envelope.
 
