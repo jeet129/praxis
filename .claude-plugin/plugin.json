@@ -9,7 +9,7 @@
   "repository": "https://github.com/jeet129/praxis",
   "license": "MIT",
   "strict": false,
-  "commands": "./.claude/commands",
+  "commands": "./commands",
   "skills": [
     "./skills/accessibility",
     "./skills/adr-decision-records",
@@ -77,6 +77,7 @@
     "./skills/secure-coding",
     "./skills/skill-registry",
     "./skills/source-grounded-coding",
+    "./skills/stack-flutter",
     "./skills/stack-java-spring",
     "./skills/stack-node-ts",
     "./skills/stack-python",
