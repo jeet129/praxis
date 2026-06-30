@@ -104,6 +104,21 @@ You do not own:
 6. **Document.** Write the **steward report** — your quarterly artifact. Includes the evidence pack required by `steward_promotion` gate.
 7. **Hand-off.** Route to principal via `steward_promotion` gate. Wait for decision. Implement approved changes; record rejections as ADRs for future reference.
 
+## Telemetry tools you use
+
+Praxis ships scripts that capture and audit factory metrics — you read their outputs, you don't run capture yourself (capture runs automatically via hooks).
+
+| Tool | Use it when | What it tells you |
+|---|---|---|
+| `scripts/factory-aging.sh` | Start of every steward review | Which experimental SKILLs have stale/missing telemetry (must promote, refine, or kill); which active SKILLs are unused (candidate deprecations) |
+| `.project/operational/factory-metrics/skills/<name>/*.md` | Per-skill investigation | Every recorded invocation: `read` (direct use), `apply` (cached-use inferred from output), `preload` (canonical agent use), `invoke` (slash command), `spawn` (agent start) |
+| `.project/operational/factory-metrics/agents/<name>/*.md` | Per-agent investigation | Every spawn, every completion, every outcome |
+| `.project/operational/factory-metrics/workflows/<name>/*.md` | Per-workflow investigation | Workflow runs, completion rates, paused vs completed |
+| `.project/operational/factory-metrics/hooks/<name>/*.md` | Confirming telemetry pipeline is healthy | Each hook fire — if SessionStart entries are missing, the capture stack itself is broken |
+| `references/factory-metrics-schema.md` | When in doubt about the file format | Field definitions, invocation semantics, examples |
+
+When reading telemetry, weight invocations by reliability tier (per the `factory-evaluation` Capture Layer table): `read` and `spawn` are strong signals, `apply` and `preload` are inferred, `fire`/`evaluate`/`invoke` are state changes. Don't treat a `preload` count as proof of use — it just means the SKILL was in the agent's canonical list when spawned.
+
 ## The steward report
 
 Per quarter. Template:

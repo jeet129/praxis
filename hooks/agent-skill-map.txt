@@ -1,0 +1,30 @@
+# agent-skill-map.txt — canonical SKILLs each agent uses.
+#
+# Used by hooks/tap.sh SubagentStart branch to record "agent-preload" SKILL
+# uses — cases where an agent spawns with SKILL knowledge in its
+# definition / system prompt and applies that knowledge without ever
+# reading the SKILL.md file in this conversation.
+#
+# Each agent's spawn registers a preload entry per SKILL it canonically uses.
+# These are recorded with invocation=preload (distinguishable from
+# invocation=read which means the SKILL.md was explicitly Read).
+#
+# Format: AGENT_NAME | COMMA_SEPARATED_SKILL_NAMES
+# Lines starting with # are comments. Blank lines ignored.
+
+delivery-lead             | using-praxis,project-memory,memory-management,skill-registry,delivery-planner
+architecture-challenger   | architecture-pattern-selection,doubt-driven-decisions,adr-decision-records,nfr-definition
+product-manager           | product-discovery,requirements-elicitation,requirements-interrogation,requirements-intake,domain-discovery,user-research
+solution-architect        | architecture-pattern-selection,architecture-documentation,adr-decision-records,nfr-definition,codebase-comprehension,distributed-systems-patterns,api-design,data-modeling
+lead-developer            | engineering-standards,source-grounded-coding,api-design,impact-analysis
+backend-developer         | engineering-standards,source-grounded-coding,api-design,secure-coding,testing-strategy
+frontend-developer        | engineering-standards,source-grounded-coding,frontend-architecture,frontend-performance,design-system,accessibility,i18n-l10n
+data-engineer             | data-pipeline,data-modeling,data-quality,data-warehouse-modeling,data-governance
+ml-ai-engineer            | ml-problem-framing,ml-feature-engineering,ml-training-evaluation,ml-serving-deployment,ml-monitoring-drift,rag-design,evaluation-engineering,llm-safety,llm-cost-optimization,responsible-ai,agentic-architecture
+code-reviewer             | code-review,engineering-standards,source-grounded-coding
+security-reviewer         | secure-coding,threat-modeling,authn-authz,compliance-privacy,supply-chain-security,secrets-config
+qa-engineer               | testing-strategy,performance-testing,evaluation-engineering
+tech-writer               | technical-documentation,adr-decision-records,architecture-documentation
+platform-sre              | observability,reliability-dr,resilience-patterns,chaos-engineering,incident-runbook,cicd-pipeline,iac,containerization,deploy-release,environments,secrets-config,capacity-resource-estimation,cost-finops
+ux-designer               | user-research,ux-journey-mapping,wireframing-prototyping,design-system,accessibility
+system-steward            | system-steward,factory-evaluation,skill-registry,memory-management

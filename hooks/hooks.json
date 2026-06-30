@@ -5,7 +5,58 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SCRIPT=\"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionStart || { SCRIPT=\"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true; }"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Task|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PostToolUse || true"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStart || true"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
           }
         ]
       }

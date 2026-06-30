@@ -37,10 +37,13 @@ references:
   - grpc-proto.md
   - asyncapi-events.md
   - graphql.md
+  - contract-review.md
 ```
 <!-- praxis:metadata:end -->
 
 Contract-first. The specification is written *before* implementation begins, reviewed (by the Architecture Challenger and the consuming agent), and locked. The implementation is then a faithful realization of the contract; deviations are caught at code review against the spec.
+
+**Reviewing a whole contract baseline** (not a single endpoint) — e.g. a surface the SA generated in bulk, possibly after `architecture_sign_off` — use `references/contract-review.md`. It is the checklist behind the `/review contracts` command and covers shared-foundation consistency, evolvability/versioning, REST/gRPC/event hygiene, and the safety/privacy surfaces. Generation is not review: a baseline must be vetted by a different role before slices consume it.
 
 This is one of the highest-leverage skills in the library — APIs that ship without contract-first design accumulate inconsistencies, get redesigned a quarter later, and break consumers in the meantime.
 

@@ -70,6 +70,7 @@
     "./skills/rag-design",
     "./skills/reliability-dr",
     "./skills/requirements-elicitation",
+    "./skills/requirements-intake",
     "./skills/requirements-interrogation",
     "./skills/resilience-patterns",
     "./skills/responsible-ai",

@@ -121,17 +121,56 @@ Five metric families.
 
 ## The factory eval harness
 
-Implementation:
+### Capture (Layer 0–4 model)
 
-- **Telemetry from agents** — every skill invocation, agent action, gate event logged with structured metadata.
-- **Periodic batch eval** — scripts that compute the catalog metrics from the telemetry.
-- **Sampling** — for quality metrics (decision quality, output acceptance), sample N items and have principal review.
+The harness implements **defense in depth** — multiple overlapping capture mechanisms because no single one is reliable.
 
-Storage:
+| Layer | What it catches | How | Reliability |
+|---|---|---|---|
+| **0 — Direct invocation** | SKILL.md read into context by an agent | `PostToolUse(Read)` hook → `hooks/tap.sh` → `scripts/factory-record.sh` (invocation: `read`) | ~95% |
+| **1 — Sub-agent spawn** | An agent is invoked via the Task tool or natively starts | `PostToolUse(Task)` + `SubagentStart` hooks (invocation: `spawn`) | ~99% |
+| **2 — Output-artifact detection** | Cached SKILL applied without re-Read; detected by the output it produces | `PostToolUse(Write\|Edit)` matched against `hooks/output-skill-map.txt` (invocation: `apply`) | ~80% of cached uses |
+| **3 — Agent-preload mapping** | SKILLs the agent canonically uses, recorded at agent spawn | `SubagentStart` → look up `hooks/agent-skill-map.txt` (invocation: `preload`) | ~100% for declared preloads |
+| **4 — Slash command** | User invoked a praxis command directly | `UserPromptSubmit` parsed for `/praxis:<cmd>` or `/cmd` (invocation: `invoke`) | ~100% in Claude Code |
 
-- Telemetry in append-only event log (file-based or DB depending on scale).
-- Metrics in `.project/operational/factory-metrics/{quarter}.md`.
-- Sampled review items in `.project/operational/factory-samples/`.
+Layer 4 + 1 are direct signals. Layers 0 + 2 + 3 catch the cached-use cases (the SKILL was applied without an explicit Read).
+
+### Invocation enum
+
+The frontmatter `invocation:` field on every telemetry file distinguishes how the artifact was used:
+
+- `read` — the artifact's source file was explicitly read into context
+- `spawn` — a sub-agent was started (Task tool or SubagentStart)
+- `apply` — a SKILL was applied (inferred from output artifact written; cached-use detection)
+- `preload` — a SKILL is canonically used by the agent that just spawned (preloaded context)
+- `fire` — a hook script executed
+- `evaluate` — a governance gate was evaluated
+- `complete` — a sub-agent finished
+- `invoke` — a slash command was invoked
+
+The Steward synthesis treats these with different weights — `read` and `spawn` are strong signals (direct use); `apply` and `preload` are medium signals (inferred use); `fire`, `evaluate`, `invoke`, `complete` are state-change signals.
+
+### Storage
+
+- Per-use telemetry at `.project/operational/factory-metrics/<type>s/<name>/<date>-<rand>.md` (one file per invocation).
+- Quarterly synthesis at `.project/operational/factory-metrics/{quarter}.md` (Steward writes).
+- Per-artifact quarterly rollup at `.project/operational/factory-metrics/<type>s/<name>/<quarter>.md`.
+- Format spec: `references/factory-metrics-schema.md`.
+
+### Helper scripts (ship with the plugin)
+
+| Script | Purpose | When run |
+|---|---|---|
+| `scripts/factory-record.sh` | Universal recorder — writes one telemetry file | Called by hooks, workflows, slash commands |
+| `hooks/tap.sh` | Universal artifact tap — routes hook events to recorder | Wired in `hooks/hooks.json` |
+| `scripts/factory-aging.sh` | Coverage audit — flags experimental SKILLs with stale/missing telemetry | Steward review + CI gate |
+| `/praxis:factory-record` slash command | Human-authored rich observation | User-invoked |
+
+### Implementation details
+
+- **Dedup per session**: auto-stub entries dedupe within a session via `.project/working/.factory-tap/<session-id>` (don't write 50 entries for one SKILL re-read 50 times in one conversation).
+- **Fail-soft**: telemetry NEVER blocks Claude. All hook errors swallowed; recorder exit 0 unless arg error.
+- **Tool-agnostic format**: the file format works for all 8 supported coding tools; only the trigger (hook vs workflow step vs manual) varies per tool.
 
 ## The quarterly factory report
 
