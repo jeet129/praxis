@@ -22,13 +22,13 @@ Spans the full lifecycle — discovery, architecture, UX, implementation, releas
 | **Validator** | `scripts/validate-skills.sh` — checks frontmatter, dependency graph, broken refs. 80/80 pass. |
 | **Memory taxonomy** | Six-type project memory under `.project/` (semantic / episodic / procedural / decision / operational / working). |
 
-For the typical project flow visualization, see [`docs/lifecycle.md`](docs/lifecycle.md). For the full operating manual, see [`PLAYBOOK.md`](PLAYBOOK.md).
+For the typical project flow visualization, see [`docs/lifecycle.md`](docs/lifecycle.md). For plugin build and distribution mechanics, see [`docs/plugin-builds.md`](docs/plugin-builds.md). For the full operating manual, see [`PLAYBOOK.md`](PLAYBOOK.md).
 
 ---
 
 ## Installation
 
-Three paths. Pick the one that matches your tool + workflow.
+Four paths. Pick the one that matches your tool + workflow.
 
 ### Path 1 — Plugin-dir loading (recommended for first test)
 
@@ -45,7 +45,25 @@ cd ~/dev/your-test-project
 
 The bundled `try-as-plugin.sh` validates the library + Claude CLI, creates the `.project/` memory tree if `--init`, and runs `claude --plugin-dir <library>`. Library updates propagate immediately — no re-install.
 
-### Path 2 — File install (8 supported tools)
+### Path 2 — Codex plugin marketplace
+
+Codex users should install the generated Codex plugin package:
+
+```bash
+codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+```
+
+Then open Codex:
+
+```text
+/plugins
+```
+
+Install `praxis-codex`, then start with `$praxis-setup-subagents` and `$praxis-start`.
+
+The Codex package is generated at `plugins/praxis-codex/` from the canonical root library plus Codex-specific command skills and subagent profiles.
+
+### Path 3 — File install (8 supported tools)
 
 The bundled `install.sh` copies the library into a target project in the right layout for any of 8 AI coding tools:
 
@@ -53,7 +71,6 @@ The bundled `install.sh` copies the library into a target project in the right l
 cd ~/dev/praxis
 
 ./install.sh --tool=claude-code /path/to/your-project    # default
-./install.sh --tool=codex       /path/to/your-project
 ./install.sh --tool=cursor      /path/to/your-project
 ./install.sh --tool=gemini      /path/to/your-project
 ./install.sh --tool=opencode    /path/to/your-project
@@ -67,7 +84,9 @@ Flags: `--dry-run` preview · `--force` overwrite · `--user` Claude Code user-g
 
 Per-tool setup notes live in [`docs/<tool>-setup.md`](docs/).
 
-### Path 3 — Claude Code marketplace install (when published)
+`./install.sh --tool=codex` remains available as the legacy `.team/` + `AGENTS.md` copy-based setup, but the plugin marketplace path is preferred for Codex distribution.
+
+### Path 4 — Claude Code marketplace install (when published)
 
 Once this repo is public on GitHub, Claude Code users can install via the marketplace:
 
@@ -116,7 +135,7 @@ For the full operating guide, see [`PLAYBOOK.md`](PLAYBOOK.md).
 | Tool | Layout | Setup guide |
 |---|---|---|
 | **Claude Code** | `.claude/` + slash commands + hooks + plugin manifests | [`docs/claude-code-setup.md`](docs/claude-code-setup.md) |
-| **Codex** | `.team/` + `AGENTS.md` at repo root | [`docs/codex-setup.md`](docs/codex-setup.md) |
+| **Codex** | Codex plugin marketplace + `plugins/praxis-codex/` | [`docs/codex-setup.md`](docs/codex-setup.md) |
 | **Cursor** | `.cursor/rules/` + library at `.cursor/praxis/` | [`docs/cursor-setup.md`](docs/cursor-setup.md) |
 | **Gemini CLI** | `.gemini/` + skills + commands + `GEMINI.md` routing | [`docs/gemini-cli-setup.md`](docs/gemini-cli-setup.md) |
 | **OpenCode** | `.team/` + `.opencode/config.json` + `AGENTS.md` | [`docs/opencode-setup.md`](docs/opencode-setup.md) |
@@ -177,6 +196,9 @@ praxis/
 ├── try-as-plugin.sh          Claude Code plugin-dir launcher
 ├── uninstall.sh              clean removal
 ├── plugin.json               Antigravity manifest
+├── .agents/plugins/          Codex plugin marketplace
+├── plugins/praxis-codex/     Generated Codex plugin package
+├── codex-plugin-assets/      Codex-only command skills + subagent templates
 ├── .claude-plugin/           Claude Code plugin + marketplace manifests
 ├── agents/                   16 role agents
 ├── skills/                   79 active SKILLs (+ 1 tombstone, skipped by installer)

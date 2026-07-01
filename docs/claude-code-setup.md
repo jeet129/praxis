@@ -57,6 +57,8 @@ Automatically fires on session open. Surfaces:
 /plugin install praxis@praxis
 ```
 
+For maintainer build and release details, see `docs/plugin-builds.md`.
+
 ## Sanity check
 
 ```

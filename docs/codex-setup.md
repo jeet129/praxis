@@ -1,34 +1,110 @@
 # Codex Setup
 
-## Install
+Praxis ships to Codex as a repo-backed plugin package. The Claude Code plugin remains separate and unchanged.
+
+## Install From GitHub Marketplace
+
+Add this repo as a Codex plugin marketplace:
 
 ```bash
-./install.sh --tool=codex /path/to/your-project
+codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
 ```
 
-## What lands
+Then open Codex and install the plugin:
 
-```
-your-project/
-├── .team/                  ← full library
-├── AGENTS.md               ← routing file at repo root
-└── .project/               ← project memory tree
+```text
+/plugins
 ```
 
-## How Codex finds the library
+Select `praxis-codex`.
 
-Codex reads `AGENTS.md` at the repo root. The installer writes a complete routing table covering every task type, mapping to the right workflow or SKILL.
+## What The Codex Plugin Contains
 
-## Sanity check
-
+```text
+plugins/praxis-codex/
+├── .codex-plugin/plugin.json
+├── skills/                  # canonical Praxis skills plus Codex command-entry skills
+├── workflows/               # Praxis workflow YAML
+├── codex-agents/            # Codex subagent TOML templates
+├── agents/                  # original role markdown references
+├── governance/
+├── references/
+├── patterns/
+└── scripts/
 ```
-"Read AGENTS.md and confirm you can navigate to .team/agents/ and .team/skills/.
-List the 16 agents and the 80 SKILLs you can see. Read governance.yaml and
-summarize active gates."
+
+## First Use
+
+After installing the plugin, start with:
+
+```text
+$praxis-setup-subagents
+$praxis-start
 ```
 
-## Differences from Claude Code
+`$praxis-setup-subagents` copies the bundled Codex subagent profiles into the target repo's `.codex/agents/` directory. Restart Codex or start a new session after installing subagents.
 
-- No slash commands (Codex doesn't support them); use the routing table in AGENTS.md.
-- No SessionStart hook (use `using-praxis` SKILL as first read).
-- Same content; different addressing.
+Then use:
+
+```text
+$praxis-discover
+$praxis-architect
+$praxis-audit
+$praxis-slice
+$praxis-release
+$praxis-steward
+$praxis-review
+```
+
+## Development Workflow
+
+Root folders remain the canonical source:
+
+```text
+skills/
+agents/
+workflows/
+governance/
+references/
+patterns/
+scripts/
+```
+
+Codex-only source lives in:
+
+```text
+codex-plugin-assets/
+```
+
+Rebuild the plugin package after changing canonical or Codex-only source:
+
+```bash
+scripts/build-codex-plugin.sh
+scripts/validate-codex-plugin.sh
+```
+
+## Non-Interference With Claude Code
+
+Codex uses:
+
+```text
+.agents/plugins/marketplace.json
+plugins/praxis-codex/
+codex-plugin-assets/
+```
+
+Claude Code continues to use:
+
+```text
+.claude-plugin/
+.claude/commands/
+commands/
+```
+
+Do not move or rename the Claude Code plugin files when updating the Codex plugin.
+
+For maintainer build and release details, see `docs/plugin-builds.md`.
+
+## Legacy Installer
+
+`install.sh --tool=codex` is the older `.team/` + `AGENTS.md` copy-based setup. Prefer the plugin marketplace path above for Codex distribution.

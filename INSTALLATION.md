@@ -4,6 +4,8 @@ Step-by-step from "I have the `praxis/` directory" to "I'm running my first real
 
 This document is the install-focused companion to `PLAYBOOK.md` (the operating guide). Read this before your first install; read `PLAYBOOK.md` before your first session.
 
+Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
+
 ---
 
 ## 0. What's NOT automated (read this first)
@@ -74,7 +76,7 @@ For your first install, **use per-project**.
 | Tool | Choose if |
 |---|---|
 | **Claude Code** | Default. Best UX for the platform (slash commands + hook + plugin manifests). |
-| **Codex** | You prefer Codex; willing to use AGENTS.md routing instead of slash commands. |
+| **Codex** | You prefer Codex's plugin marketplace, skills, and subagent profiles. |
 | **Cursor / Gemini / OpenCode / Copilot / Kiro / Antigravity** | Per-tool docs in `docs/<tool>-setup.md`. |
 
 For your first install, **use Claude Code**.
@@ -487,7 +489,7 @@ What to look for:
 Same library; different addressing:
 
 ```bash
-./install.sh --tool=codex ~/dev/test-aidp
+codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
 ./install.sh --tool=cursor ~/dev/test-aidp
 ./install.sh --tool=gemini ~/dev/test-aidp
 ./install.sh --tool=copilot ~/dev/test-aidp
