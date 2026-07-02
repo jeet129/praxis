@@ -15,10 +15,10 @@ The primary target — best UX for the platform.
 your-project/
 ├── .claude/                ← Claude Code reads this automatically
 │   ├── agents/             16 role agents
-│   ├── skills/             80 SKILLs
+│   ├── skills/             84 SKILLs
 │   ├── workflows/          5 workflows
 │   ├── governance/         governance.yaml (7+4 gates)
-│   ├── commands/           7 slash commands
+│   ├── commands/           8 slash commands
 │   ├── hooks/              SessionStart hook
 │   ├── scripts/            skill validator
 │   ├── patterns/           reusable solution shapes
@@ -66,4 +66,4 @@ For maintainer build and release details, see `docs/plugin-builds.md`.
 available. Read governance.yaml and summarize active gates."
 ```
 
-Expected: 16 agents, 80 SKILLs, 7 active gates + 4 conditional.
+Expected: 16 agents, 84 SKILLs, 7 active gates + 4 conditional.

@@ -37,13 +37,16 @@ Flags: `--dry-run` (preview), `--force` (overwrite), `--user` (Claude Code user-
 
 Same content, different addressing:
 
-- **80 SKILLs** — discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
-- **16 role agents** — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML/AI specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, System Steward.
+- **83 active SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
+- **16 role agents** with per-role model defaults (7 Opus / 9 Sonnet) — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML/AI specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, UX Designer, System Steward.
 - **5 workflows** — greenfield-api-service, greenfield-saas, brownfield-enhancement, implementation-slice, production-release.
 - **Governance** — 7 active gates + 4 conditional gates with approver matrix and evidence packs.
-- **7 slash commands** — `/start /discover /architect /slice /release /audit /steward` (tool-supporting).
-- **SessionStart hook** — surfaces project charter + library health.
-- **Skill validator** — checks all SKILL.md frontmatter; passes 80/80.
+- **Adaptive model routing** — `adaptive-model-routing` SKILL uses a 5-signal complexity rubric to route each specialist to Opus / Sonnet / Haiku (Claude Code) or high / medium / low reasoning effort (Codex).
+- **8 slash commands** — `/start /discover /architect /slice /release /audit /steward /factory-record`.
+- **6 hook subscriptions** — SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop; drive a universal artifact tap that captures ~97% of plugin-artifact invocations to `.project/operational/factory-metrics/`.
+- **Telemetry helpers** — `factory-record.sh`, `factory-aging.sh` (coverage gate), `factory-frequency.sh` (usage aggregation).
+- **Skill validator** — checks all SKILL.md frontmatter; passes 83/83.
+- **Pre-commit hook** — auto-rebuilds `plugins/praxis-codex/` when canonical source changes. Install with `scripts/install-git-hooks.sh`.
 - **Project memory tree** — 17 directories under `.project/` for six-type memory taxonomy.
 - **README.md** + **PLAYBOOK.md** — operating documentation.
 

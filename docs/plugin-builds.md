@@ -100,6 +100,16 @@ bash scripts/build-codex-plugin.sh
 bash scripts/validate-codex-plugin.sh
 ```
 
+### Automating build with the pre-commit hook
+
+Rather than running the build manually before every commit, activate the repo-tracked pre-commit hook:
+
+```bash
+scripts/install-git-hooks.sh   # one-time per clone
+```
+
+This points `core.hooksPath` at `.githooks/`, where `pre-commit` runs `build-codex-plugin.sh` + `validate-codex-plugin.sh` and auto-stages the regenerated `plugins/praxis-codex/` so the source change and the built package land in one atomic commit. See CONTRIBUTING.md for details + escape hatches (`git commit --no-verify`).
+
 The generated package must contain:
 
 ```text
@@ -160,7 +170,9 @@ $praxis-start
 
 Release rule: commit `plugins/praxis-codex/` along with `.agents/plugins/`.
 Committing only `codex-plugin-assets/` is not enough for GitHub marketplace
-installation.
+installation. The pre-commit hook (above) enforces this — commits touching
+canonical source or `codex-plugin-assets/` auto-stage the regenerated
+`plugins/praxis-codex/`, so drift becomes impossible when the hook is active.
 
 ## Future Plugin Targets
 

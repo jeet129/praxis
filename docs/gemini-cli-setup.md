@@ -11,8 +11,8 @@
 ```
 your-project/
 ├── .gemini/
-│   ├── skills/             80 SKILLs
-│   ├── commands/           7 slash commands
+│   ├── skills/             84 SKILLs
+│   ├── commands/           8 slash commands
 │   ├── agents/, workflows/, governance/, references/, patterns/
 │   └── README.md, PLAYBOOK.md
 ├── GEMINI.md               ← routing file at repo root
@@ -38,5 +38,5 @@ Same 7 as Claude Code, mirrored at `.gemini/commands/`:
 
 ```
 "Read GEMINI.md and confirm you can navigate to .gemini/skills/ and .gemini/agents/.
-List the 16 agents and the 80 SKILLs."
+List the 16 agents and the 84 SKILLs."
 ```

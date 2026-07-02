@@ -12,26 +12,30 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 
 Before installing, calibrate expectations. The library ships with:
 
-✅ **80 SKILLs** that an AI agent reads and follows.
-✅ **16 role agents** the AI can adopt.
+✅ **83 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
+✅ **16 role agents** the AI can adopt, each with a `model:` default (7 Opus / 9 Sonnet).
 ✅ **5 workflows** orchestrating multi-step delivery.
-✅ **7 slash commands** that map intent to skill sequences.
-✅ **SessionStart hook** that surfaces project state.
+✅ **8 slash commands** that map intent to skill sequences (including `/factory-record` for rich telemetry observations).
+✅ **6 hook subscriptions** (SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop) driving a universal artifact tap.
+✅ **Adaptive model routing** (`adaptive-model-routing` SKILL + per-agent frontmatter) — routes each specialist to Opus or Sonnet (or in Codex, high/medium reasoning-effort) based on task complexity.
+✅ **Telemetry capture pipeline** — every SKILL / agent / workflow / command invocation logs to `.project/operational/factory-metrics/` via `scripts/factory-record.sh`. ~97% capture rate on Claude Code.
+✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry.
+✅ **Frequency reporter** — `scripts/factory-frequency.sh` aggregates usage per SKILL / period.
 ✅ **Governance gates** with evidence packs.
 ✅ **Project memory taxonomy** (six types).
 ✅ **Skill validator script.**
+✅ **Pre-commit hook** that auto-rebuilds the Codex plugin package (`plugins/praxis-codex/`) whenever canonical source changes.
 
 The library does NOT ship with:
 
-❌ **Telemetry collection.** Nothing logs which SKILLs the agent actually invoked, which gates fired, how long workflows took, etc.
-❌ **Automatic metric computation.** No background job builds the factory-evaluation report.
-❌ **Automatic Steward proposals.** The Steward agent can structure proposals; YOU provide the evidence (your observations).
+❌ **Automatic Steward synthesis.** The Steward agent still reads the metric files manually at quarterly review; the aggregation → proposals step is not automated yet (though `factory-frequency.sh` produces the raw aggregates it consumes).
 ❌ **Automatic change application.** Approved SKILL changes still require you to edit the file.
-❌ **CI/CD hooks for the library itself.** No pipeline auto-validates new SKILLs against the registry.
+❌ **CI/CD hooks for the library itself.** No pipeline auto-validates new SKILLs against the registry (roadmap item).
+❌ **Guaranteed 100% telemetry capture.** The residual ~3% (SKILL uses that don't involve reading the SKILL.md OR producing an observable output OR spawning a sub-agent) is invisible; `factory-aging.sh` catches it via aging thresholds instead.
 
-The "quarterly steward cadence" is real DISCIPLINE you run; it's not running itself. The factory-evaluation is a TEMPLATE; you fill it from your own observations of which SKILLs your projects actually used.
+The "quarterly steward cadence" is real DISCIPLINE you run — but now with real telemetry it reads, not hypothetical observations. The factory-evaluation review is still human-driven; the *data* under it is captured automatically.
 
-**Bottom line: the library is a structured discipline with high-quality content + tooling for routing. It's not an autopilot.** When you read PLAYBOOK.md or the SKILLs and they say "the library improves itself" or "quarterly evaluation runs," interpret that as "you run the evaluation; the library gives you the framework."
+**Bottom line: the library is a structured discipline with high-quality content + tooling for routing + tooling for measurement. It's not an autopilot, but the measurement loop is closed. When you read PLAYBOOK.md and it says "quarterly evaluation runs," the Steward now has real per-SKILL usage data to read.**
 
 ---
 
@@ -96,7 +100,7 @@ ls agents/
 
 Expected:
 - README.md, PLAYBOOK.md (this file too), install.sh, uninstall.sh are present
-- `skills/` has 80 subdirectories (79 active + 1 tombstone)
+- `skills/` has 84 subdirectories (83 active + 1 tombstone)
 - `agents/` has 16 .md files
 
 If anything is missing, re-download or restore.
@@ -125,7 +129,7 @@ Expected output:
 ==> Installing Claude Code layout → /home/you/dev/test-aidp/.claude
   [dry-run] would create /home/you/dev/test-aidp/.claude
   [dry-run] would copy agents/ (16 files)
-  [dry-run] would copy skills/ (79 active; skipped 1 tombstones)
+  [dry-run] would copy skills/ (83 active; skipped 1 tombstones)
   [dry-run] would copy workflows/ (5 files)
   ...
 ==> Creating project memory tree → /home/you/dev/test-aidp/.project
@@ -165,7 +169,7 @@ ls -la .claude/
 #           hooks/ scripts/ commands/ .claude-plugin/ README.md PLAYBOOK.md
 
 find .claude/skills -name SKILL.md | wc -l
-# Expected: 79
+# Expected: 83
 
 find .claude/agents -name '*.md' | wc -l
 # Expected: 16
@@ -174,7 +178,7 @@ find .claude/workflows -name '*.yaml' | wc -l
 # Expected: 5
 
 ls .claude/commands/
-# Expected: 7 .toml files (start, discover, architect, slice, release, audit, steward)
+# Expected: 8 .md files (start, discover, architect, slice, release, audit, steward, factory-record)
 
 find .project -type d | wc -l
 # Expected: 18 (the root + 17 subdirs)
@@ -183,7 +187,7 @@ find .project -type d | wc -l
 **Check 2 — Validator passes:**
 ```bash
 bash .claude/scripts/validate-skills.sh ~/dev/test-aidp/.claude
-# Expected: "✓ Library health: 79 active skills in target 70-90 band."
+# Expected: "✓ Library health: 83 active skills in target 70-90 band."
 # Failures = 0
 ```
 
@@ -231,9 +235,9 @@ The bundled `try-as-plugin.sh` script:
 Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `--help`.
 
 **What you get with plugin-dir loading:**
-- All 79 SKILLs available.
+- All 83 SKILLs available.
 - All 16 agents available.
-- All 7 slash commands available (`/start`, `/discover`, etc.).
+- All 8 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
 - Governance gates accessible.
 
@@ -262,11 +266,11 @@ Confirm you can see the Praxis. Specifically:
    4 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 7 slash commands, 79 SKILLs, 16 agents, governance gates as listed.
+Expected: 8 slash commands, 83 SKILLs, 16 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 7 slash commands, the workflow routing tree, 7+4 gates, 79 SKILLs, 16 agents.
+Expected response from Claude: lists 8 slash commands, the workflow routing tree, 7+4 gates, 83 SKILLs, 16 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 
@@ -614,7 +618,7 @@ For quick reference when you're looking at the installed `.claude/` tree:
 | Artifact | What it does | When you'd touch it |
 |---|---|---|
 | `.claude/agents/*.md` | Role-agent definitions. | Customize an agent's working style. |
-| `.claude/skills/*/SKILL.md` | The 79 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
+| `.claude/skills/*/SKILL.md` | The 83 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
 | `.claude/workflows/*.yaml` | Multi-step orchestrations. | Customize phase ordering or add a new workflow for a recurring pattern. |
 | `.claude/governance/governance.yaml` | Gate definitions + approver matrix. | Customize gate evidence requirements or approver routing. |
 | `.claude/commands/*.toml` | Slash commands. | Add a slash command for a recurring activity. |
