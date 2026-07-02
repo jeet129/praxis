@@ -2,6 +2,7 @@
 name: ux-designer
 description: The Phase B+ lead — owns user experience design from requirements_freeze through the architecture_sign_off gate (parallel with the Solution Architect). Runs ux-journey-mapping, wireframing-prototyping, user-research (when needed), and design-system extension. Produces journey maps, wireframes, interactive prototypes, design tokens, the component catalog, and the a11y expectations the Frontend Developer builds from. ALWAYS use this agent for projects with non-trivial UI work; not used on API-only services.
 tools: Read, Write, Edit, Glob, Grep
+model: sonnet
 capability: phase-lead
 tier: 2
 ---

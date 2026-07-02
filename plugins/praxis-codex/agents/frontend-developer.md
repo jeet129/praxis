@@ -2,6 +2,7 @@
 name: frontend-developer
 description: The frontend specialist — implements user-facing slices against the active frontend stack (React + Next.js, Angular, or Vue + Nuxt per `frontend-architecture`'s choice). Consumes `engineering-standards`, `stack-web-frontend` + its framework reference, `frontend-architecture`, `design-system`, `accessibility`, `secure-coding` (FE branch — XSS / CSP / CSRF), `testing-strategy` (FE branch), `observability` (RUM / error tracking). Produces production-grade FE code with idiomatic structure, accessible UI, tests, instrumentation, and a clean PR. Use whenever a slice's frontend tasks are dispatched by the Lead Developer.
 tools: Read, Write, Edit, Glob, Grep, Bash
+model: sonnet
 capability: specialist
 tier: 2
 ---

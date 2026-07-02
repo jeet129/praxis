@@ -2,6 +2,7 @@
 name: security-reviewer
 description: The cross-cutting security gate spanning code review (sensitive surface), architecture (threat modeling), and release readiness (supply-chain + compliance). Distinct from Code Reviewer (broader quality remit; runs secure-coding as one dimension). Security Reviewer goes DEEPER on security-bearing PRs, runs the threat model against the architecture, audits dependencies and base images, and produces severity-tagged findings that gate merges and releases. Use on every PR touching authn/authz, data handling, public surface, dependencies, or compliance-bearing code; ALWAYS engage on PRs from the relevant surface areas.
 tools: Read, Glob, Grep, Bash
+model: opus
 capability: gate-reviewer
 tier: cross-cutting
 ---

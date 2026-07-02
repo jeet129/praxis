@@ -1,6 +1,6 @@
 ---
 name: adaptive-model-routing
-description: "Routes tasks to the right OpenAI model (flagship vs mid-tier vs fast) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-tier token spend on tasks the mid-tier handles equally well, and prevents quality failures from routing complex tasks to cheaper models. The Delivery Lead runs this SKILL every time it opens a new sub-session or spawns a specialist. Use whenever an agent session is about to be opened, when selecting a model for the current session, or when a prior attempt failed and escalation is being considered."
+description: "Routes tasks to the right OpenAI reasoning-effort tier (high / medium / low) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
 ---
 
 # Adaptive Model Routing (Codex variant)
@@ -15,64 +15,62 @@ dependencies:
   - llm-cost-optimization
   - agentic-architecture
 triggers:
-  - "about to open a specialist sub-session — which model should it use?"
-  - "starting a new session — which model should I launch?"
-  - "prior attempt failed — should I escalate the model?"
-  - "deciding whether this task needs the flagship model or the mid-tier"
-  - "API spend running high — can I safely use the mid-tier here?"
-  - "complex architecture decision coming — what model?"
-  - "entering a new workflow phase — should the model change?"
+  - "about to launch a specialist Codex session — which reasoning effort should it use?"
+  - "starting a new session — which model_reasoning_effort should I launch on?"
+  - "prior attempt failed — should I escalate the reasoning tier?"
+  - "deciding whether this task needs high reasoning or medium is enough"
+  - "API spend running high — can I safely use medium reasoning here?"
+  - "complex architecture decision coming — what reasoning tier?"
+  - "entering a new workflow phase — should the reasoning tier change?"
 outputs:
-  - model selection decision (per session or specialist spawn)
+  - reasoning-effort selection (per session or specialist launch)
   - complexity score + rationale
   - escalation recommendation (when prior attempt fails)
   - routing log entry at .project/working/model-routing-log.yaml
 consumers:
-  - delivery-lead (primary — runs this SKILL before every specialist session)
-  - using-praxis (consumes routing decision when selecting model for orchestration)
+  - delivery-lead (primary — runs this SKILL before every specialist launch)
+  - using-praxis (consumes routing decision when selecting reasoning effort for orchestration)
   - agentic-architecture (session-as-agent configuration)
 references:
   - llm-cost-optimization.md
 ```
 <!-- praxis:metadata:end -->
 
-The Codex variant of `adaptive-model-routing`. Same underlying routing rubric as the Claude Code version; different model strings, different spawn pattern, different quota semantics.
+The Codex variant of `adaptive-model-routing`. Same underlying routing rubric as the Claude Code version; adapted to Codex CLI's `model_reasoning_effort` parameter and session-as-agent spawn pattern.
 
-**How Codex differs from Claude Code:**
+## What differs from the Claude Code variant
 
 | Aspect | Claude Code | Codex |
 |---|---|---|
-| Sub-agent spawn | `Agent({ subagent_type, model, prompt })` — in-session, per-spawn model | Session-as-agent: each specialist is a separate CLI session launched with `--model <tier>` |
-| Model switch mid-session | `/model <name>` slash command | Not supported — restart the session with a different `--model` flag |
-| Model tiers | Opus / Sonnet / Haiku | Flagship / Mid-tier / Fast (verify current tier names below) |
-| Quota model | Weekly rate limits per plan | API-based per-token billing + org-wide rate limits |
-| Delivery Lead's role | Spawns sub-agents in-process | Opens new CLI sessions per specialist; routing decision is a `--model` flag choice |
+| Tier parameter | `model:` frontmatter (opus / sonnet / haiku) | `model_reasoning_effort` in `codex-agents/*.toml` (high / medium / low) |
+| Sub-agent spawn | `Agent({ subagent_type, model, prompt })` — in-process, per-spawn model | Session-as-agent: launch a new Codex CLI session with the specialist's TOML config |
+| Model switch mid-session | `/model <name>` slash command | Not supported — restart the session with the new agent config |
+| Quota model | Weekly rate limits per plan | Per-token API cost + org rate limits |
+| Model itself | Distinct models per tier (Opus / Sonnet / Haiku) | Typically ONE base model; `reasoning_effort` is what tunes cost + quality |
 
 **What stays the same:** the 5-signal rubric, fast-path rules, phase-level defaults, per-agent assignments, escalation protocol, anti-rationalization table, red flags. Those are model-agnostic engineering discipline.
 
-The principle: **default to the mid-tier; escalate to the flagship only when specific complexity signals are present; never use the flagship for tasks a competent mid-tier run completes correctly.**
+The principle: **default to medium reasoning; escalate to high only when specific complexity signals are present; never use high for tasks a competent medium-reasoning run completes correctly.**
 
 ---
 
-## Model tier reference
+## Reasoning-effort tier reference
 
-> **Note:** Codex/OpenAI model names evolve. Verify the exact strings against the deployed CLI version before wiring into workflows. The examples below use placeholder-plus-candidates format.
+Codex agent TOMLs declare `model_reasoning_effort = "high" | "medium" | "low"`. This SKILL routes tasks to the right value.
 
-| Tier | Candidate model strings (verify current) | Use for |
+| Reasoning effort | Use for | Cost multiplier |
 |---|---|---|
-| **Flagship** (Opus-equivalent) | `gpt-5`, or the current reasoning-strongest model (o-series if available) | Novel architecture decisions, complex multi-step reasoning, high-stakes gates, adversarial review, tasks where prior mid-tier attempt failed |
-| **Mid-tier** (Sonnet-equivalent) | `gpt-5-mini`, `gpt-4.1`, or the current default coding model | Default for almost everything — implementation, standard SKILLs, summarization, documentation, extraction, routine orchestration |
-| **Fast** (Haiku-equivalent) | `gpt-5-nano`, `gpt-4o-mini`, or the current fastest small model | Classification, intent detection, simple extraction, routing decisions with structured inputs, pre-flight checks |
+| **high** | Novel architecture decisions, complex multi-step reasoning, high-stakes gates, adversarial review, tasks where prior medium attempt failed | ~3-5x medium |
+| **medium** | Default for almost everything — implementation, standard SKILLs, summarization, documentation, extraction, routine orchestration | baseline |
+| **low** | Classification, intent detection, simple extraction, routing decisions with structured inputs, pre-flight checks | ~0.2-0.5x medium |
 
-**Default: Mid-tier.** Upgrade to Flagship only when the routing rubric says so.
-
-If your Codex CLI is bound to a specific model per session, this SKILL's output tells you which model to launch the next session on — not a runtime switch.
+**Default: medium.** Upgrade to high only when the routing rubric says so.
 
 ---
 
 ## Routing rubric
 
-Score the task on five signals. Each signal is 0–2. Total score determines the model tier.
+Score the task on five signals. Each signal is 0–2. Total score determines the reasoning effort.
 
 | Signal | 0 | 1 | 2 |
 |---|---|---|---|
@@ -80,16 +78,16 @@ Score the task on five signals. Each signal is 0–2. Total score determines the
 | **Interdependency** | Single concern, one domain | 2–3 concerns; some cross-cutting | Many cross-cutting concerns; global impact |
 | **Stakes** | Reversible; no user or prod impact | Limited prod impact; rollback available | Security, compliance, prod go/no-go, data loss risk |
 | **Ambiguity** | Spec is clear and complete | Some scope gaps; clarifiable | High ambiguity; major assumptions required |
-| **Prior failure** | No prior attempt | Prior attempt marginal | Prior mid-tier attempt failed; escalation triggered |
+| **Prior failure** | No prior attempt | Prior attempt marginal | Prior medium-reasoning attempt failed; escalation triggered |
 
 **Score → tier:**
 
 | Total | Tier | Rationale |
 |---|---|---|
-| 0–3 | **Mid-tier** | Routine work; mid-tier handles it well |
-| 4–6 | **Mid-tier** (with care) | Moderate complexity; mid-tier capable; flag output for review |
-| 7–8 | **Flagship** | High complexity; use flagship |
-| 9–10 | **Flagship** | Critical task; flagship required |
+| 0–3 | **medium** | Routine work; medium reasoning handles it well |
+| 4–6 | **medium** (with care) | Moderate complexity; medium capable; flag output for review |
+| 7–8 | **high** | High complexity; escalate |
+| 9–10 | **high** | Critical task; high required |
 
 ---
 
@@ -97,7 +95,7 @@ Score the task on five signals. Each signal is 0–2. Total score determines the
 
 Before scoring, check these fast-path rules. If a rule matches, it overrides the score.
 
-### Always Mid-tier (regardless of score)
+### Always medium (regardless of score)
 - Implementing a slice with a clear spec from the Lead Developer
 - Writing code that follows an established pattern already in the codebase
 - Applying a praxis SKILL where the application is routine (cicd-pipeline, containerization, observability wiring)
@@ -106,83 +104,88 @@ Before scoring, check these fast-path rules. If a rule matches, it overrides the
 - Routine gate checks (evidence package assembly for production release)
 - Frontend component implementation per design system spec
 
-### Always Flagship (regardless of score)
+### Always high (regardless of score)
 - Solution Architect producing the primary architecture decision (`architecture-pattern-selection`) for a system with > 2 capability flags active
-- Architecture Challenger adversarial sub-personas (`doubt-driven-decisions` pattern applied to architecture)
+- Architecture Challenger adversarial sub-personas
 - Security threat model (`threat-modeling` SKILL — stakes are always 2)
-- Requirements elicitation with a vague brief (`requirements-interrogation` KUACQ pass on genuinely ambiguous scope)
+- Requirements elicitation with a genuinely vague brief (`requirements-interrogation` KUACQ pass on ambiguous scope)
 - Cross-cutting ADR with > 3 affected services or teams
 - Production incident post-mortem for a P0/P1
-- Any task that explicitly failed a prior mid-tier run (escalation is non-negotiable)
+- Any task that explicitly failed a prior medium-reasoning run (escalation is non-negotiable)
 
-### Consider Fast tier
+### Consider low
 - Intent classification before routing to the right agent
 - Pre-flight checks (does this file exist? is the spec complete?)
-- Structured extraction from well-defined inputs (extract key fields from an NFR register)
+- Structured extraction from well-defined inputs
 - Routing decisions where the input is already structured
 
 ---
 
 ## Phase-level defaults (workflow integration)
 
-If you're inside a workflow, the phase has a default tier that applies until an escalation trigger or fast-path rule overrides it:
+If you're inside a workflow, the phase has a default reasoning tier that applies until an escalation trigger or fast-path rule overrides it:
 
 | Phase | Default | Rationale |
 |---|---|---|
-| `pre` (codebase-comprehension, brownfield) | Mid-tier | Heavy-read task; mid-tier handles it; escalate impact-analysis if system is large |
-| `A` (discovery + requirements) | Mid-tier | Structured elicitation; escalate on vague brief per fast-path rule |
-| `B` (architecture) | **Flagship** | Architecture-pattern-selection + architecture-challenger are Always Flagship |
-| `C` (implementation slice) | Mid-tier | Execution against an approved architecture |
-| `D` (release gate review) | Flagship | The go/no-go decision is high-stakes |
-| `D` (release execution) | Mid-tier | Deploy, config, mechanical steps |
-| Post-release ops | Mid-tier | Incident triage escalates per fast-path (P0/P1 → Flagship) |
+| `pre` (codebase-comprehension, brownfield) | medium | Heavy-read task; medium handles it; escalate impact-analysis if system is large |
+| `A` (discovery + requirements) | medium | Structured elicitation; escalate on vague brief per fast-path rule |
+| `B` (architecture) | **high** | Architecture-pattern-selection + architecture-challenger are Always high |
+| `C` (implementation slice) | medium | Execution against an approved architecture |
+| `D` (release gate review) | high | The go/no-go decision is high-stakes |
+| `D` (release execution) | medium | Deploy, config, mechanical steps |
+| Post-release ops | medium | Incident triage escalates per fast-path (P0/P1 → high) |
 
-Per-agent defaults are captured in each agent's file. This SKILL overrides at session-launch time when the task warrants.
+Per-agent defaults are captured in each specialist's `codex-agents/<name>.toml` file via `model_reasoning_effort`. This SKILL overrides at session-launch time when the task warrants.
 
 ---
 
 ## Per-agent default assignments
 
-Each agent has a canonical model tier. In Codex, the Delivery Lead launches specialist sessions on that tier by default.
+Each Codex agent has a canonical reasoning tier declared in `codex-agents/<name>.toml` via `model_reasoning_effort`. The current defaults:
 
-| Agent | Default tier | Why |
+| Agent | Default `model_reasoning_effort` | Why |
 |---|---|---|
-| delivery-lead | Flagship | Orchestration routing compounds; wrong routes waste hours |
-| product-manager | Mid-tier | Structured elicitation is mechanical after first pass |
-| solution-architect | Flagship | Architecture decisions are irreversible |
-| architecture-challenger | Flagship | Adversarial depth is the role's value |
-| lead-developer | Mid-tier | Task decomposition against defined spec is execution |
-| backend-developer | Mid-tier | Implementation is pattern-matching |
-| frontend-developer | Mid-tier | Same |
-| data-engineer | Mid-tier | Pipeline implementation is mostly mechanical |
-| ml-ai-engineer | Flagship | Research-heavy, novel problems, eval design |
-| code-reviewer | Flagship | Missing a bug in review is expensive |
-| security-reviewer | Flagship | Adversarial + high-stakes; false negatives catastrophic |
-| qa-engineer | Mid-tier | Test writing is mechanical translation |
-| tech-writer | Mid-tier | Translation task |
-| platform-sre | Mid-tier | Mostly execution; escalate for incidents |
-| ux-designer | Mid-tier | Structured design |
-| system-steward | Flagship | Library evolution decisions across projects |
+| delivery-lead | medium | Orchestration is mostly routing decisions; escalate for cross-cutting routing calls |
+| product-manager | **high** | Discovery + elicitation depth-of-questioning benefits from high reasoning on ambiguous briefs |
+| solution-architect | **high** | Architecture decisions are irreversible |
+| architecture-challenger | **high** | Adversarial depth is the role's value |
+| lead-developer | **high** | Task decomposition across specialists surfaces cross-cutting risks; high reasoning catches more |
+| backend-developer | medium | Implementation is pattern-matching |
+| frontend-developer | medium | Same |
+| data-engineer | **high** | Data-plane design (models + pipelines + quality) has high blast radius; conservative default |
+| ml-ai-engineer | **high** | Research-heavy, novel problems, eval design |
+| code-reviewer | **high** | Missing a bug in review is expensive |
+| security-reviewer | **high** | Adversarial + high-stakes; false negatives catastrophic |
+| qa-engineer | medium | Test writing is mechanical translation |
+| tech-writer | medium | Translation task |
+| platform-sre | **high** | Infra + reliability + secrets + observability wiring — mistakes cost incidents |
+| ux-designer | medium | Structured design |
+| system-steward | **high** | Library evolution decisions across projects |
 
-Result: 7 Flagship / 9 Mid-tier. Flagship concentrated where irreversibility and adversarial depth matter.
+Result: **10 high / 6 medium.** More conservative than the Claude Code variant (which is 7 opus / 9 sonnet).
 
-Since Codex uses session-as-agent, this table drives the `--model` flag for each specialist's session launch.
+**Why the Codex defaults are more high-heavy than the Claude Code defaults:**
+- Codex CLI cost varies with reasoning effort; the previous configuration prioritized quality on higher-blast-radius roles (data-engineer, platform-sre, product-manager, lead-developer) rather than saving cost on them.
+- These are all roles where a wrong decision costs multi-day cleanup; the routing rubric would have scored them 6-7 on stakes anyway.
+- Users on tighter Codex budgets can override in `.project/procedural/model-routing-overrides.md` — the routing SKILL will honor the override.
+
+To change a default, edit the corresponding `.toml` in `codex-plugin-assets/codex-agents/` AND this table, then re-run `scripts/build-codex-plugin.sh` to regenerate the plugin package.
 
 ---
 
 ## Session launch configuration
 
-When the Delivery Lead opens a new specialist session:
+When the Delivery Lead opens a new specialist session in Codex:
 
 ```bash
-# Launch solution-architect on the flagship for a real architecture call
-codex --agent solution-architect --model gpt-5 --prompt "..."
+# Launch solution-architect on high reasoning for a real architecture call
+codex --agent codex-agents/solution-architect.toml
 
-# Launch backend-developer on the mid-tier for a routine slice
-codex --agent backend-developer --model gpt-5-mini --prompt "..."
+# Launch backend-developer on medium for a routine slice
+codex --agent codex-agents/backend-developer.toml
 
-# Launch a pre-flight classifier on the fast tier
-codex --agent intent-classifier --model gpt-5-nano --prompt "..."
+# For an ad-hoc override (task warrants higher tier than the agent's default):
+codex --agent codex-agents/backend-developer.toml --model-reasoning-effort high
 ```
 
 The routing decision is made BEFORE the `codex` invocation. Log it:
@@ -199,27 +202,22 @@ The routing decision is made BEFORE the `codex` invocation. Log it:
     stakes: 2          # Financial data; compliance required
     ambiguity: 1       # Scope mostly clear; some NFR gaps
     prior_failure: 0   # First attempt
-  tier: flagship
-  model: gpt-5
-  rationale: "Score 8; payment + compliance + cross-cutting = Flagship"
+  reasoning_effort: high
+  rationale: "Score 8; payment + compliance + cross-cutting = high reasoning"
 ```
 
-Log entries serve the quarterly `llm-cost-optimization` review — frequency reports show which agent types actually need the flagship vs which are habitually over-provisioned.
+Log entries serve the quarterly `llm-cost-optimization` review — frequency reports show which agent types actually need high reasoning vs which are habitually over-provisioned.
 
 ---
 
 ## Session-level model selection
 
-When opening the top-level Delivery Lead session:
-
-**Start on Mid-tier.** If the session's first task scores 7+ on the rubric, close and re-launch on Flagship. Don't pre-emptively open on Flagship for sessions that haven't been scored.
-
-Signs that a session needs Flagship from the start:
+When opening the top-level Delivery Lead session, follow the routing rubric on the session's first task. Signs that the session needs high reasoning from launch:
 - The session title suggests architecture, threat modeling, or cross-cutting ADR
 - The user's brief contains > 2 "first-of-kind" markers
 - The session is a P0 incident post-mortem
 
-Signs that a Mid-tier session is sufficient:
+Signs that medium is sufficient:
 - "Implement slice N" — implementation per established design
 - "Review this code" — code review against known standards
 - "Write the docs for X" — documentation
@@ -230,92 +228,91 @@ Signs that a Mid-tier session is sufficient:
 
 ## Escalation protocol
 
-When a mid-tier attempt is rejected or fails quality checks:
+When a medium-reasoning attempt is rejected or fails quality checks:
 
 1. **Score the failure.** Add 2 to `prior_failure` signal. Re-score.
-2. **Escalate to Flagship.** Always — never retry mid-tier on the same task after a failure.
-3. **Give Flagship the failure context.** Include the mid-tier output, the failure reason, and what was missing. In Codex, this typically means opening the new session with a system prompt referencing the prior attempt.
-4. **Log the escalation** to `.project/episodic/model-escalations.md` with the task, failure reason, and outcome.
+2. **Escalate to high.** Always — never retry medium on the same task after a failure.
+3. **Give the high-reasoning session the failure context.** Include the medium output, the failure reason, and what was missing. Prepend the new session's prompt with a "Prior attempt failed because…" block.
+4. **Log the escalation** to `.project/episodic/model-escalations.md`.
 
 ```markdown
 # Model Escalation Log
 
 ## 2026-07-02 — requirements-elicitation for payments feature
-- First attempt: Mid-tier (gpt-5-mini)
+- First attempt: medium reasoning
 - Failure: Missed 4 compliance NFRs; scope too broad; output not actionable
-- Escalation: Flagship (gpt-5) with failure context and compliance mandate
-- Outcome: Flagship produced complete NFR register; passed requirements_freeze gate
-- Learning: requirements-elicitation with compliance scope → always Flagship
+- Escalation: high reasoning with failure context and compliance mandate
+- Outcome: high-reasoning session produced complete NFR register; passed requirements_freeze gate
+- Learning: requirements-elicitation with compliance scope → always high
 ```
 
-Escalation logs feed the fast-path rules above. Three escalations on the same task type → promote it to "Always Flagship" in this project's local fast-path override.
+Escalation logs feed the fast-path rules above. Three escalations on the same task type → promote it to "Always high" in this project's local fast-path override.
 
 ---
 
 ## Cost management heuristics
 
-Codex API cost is per-token, not weekly-quota-limited. When your API spend is running high (org rate limits, budget alerts):
+Codex API cost scales roughly linearly with reasoning effort. When API spend is running high:
 
-1. Audit what's been using Flagship. Check `.project/working/model-routing-log.yaml`.
-2. Identify tasks that could have been Mid-tier (score ≤ 6 that were routed to Flagship by habit).
-3. Tighten the default: treat score 7 as "Mid-tier with elevated review" rather than automatic Flagship, reserving Flagship for 8+.
-4. **Never downgrade these regardless of cost:** threat-modeling, architecture sign-off for systems > 2 flags, P0 post-mortems, escalations after mid-tier failure.
-5. For very cheap classifications and pre-flight checks, drop to the Fast tier — often 10-20× cheaper.
+1. Audit what's been using high. Check `.project/working/model-routing-log.yaml`.
+2. Identify tasks that could have been medium (score ≤ 6 that were routed to high by habit).
+3. Tighten the default: treat score 7 as "medium with elevated review" rather than automatic high, reserving high for 8+.
+4. **Never downgrade these regardless of cost:** threat-modeling, architecture sign-off for systems > 2 flags, P0 post-mortems, escalations after medium failure.
+5. For cheap classifications and pre-flight checks, drop to low — often 5-10× cheaper than medium.
 
-The goal is never quality regression — cost management is about eliminating Flagship on tasks that don't need it, not downgrading tasks that genuinely do.
+The goal is never quality regression — cost management is about eliminating high on tasks that don't need it, not downgrading tasks that genuinely do.
 
 ---
 
 ## Anti-rationalization
 
-The reason this discipline holds is that both directions are seductive — Flagship feels safer, Mid-tier feels cheaper.
+The reason this discipline holds is that both directions are seductive — high feels safer, medium feels cheaper.
 
 | Shortcut you'll be tempted to take | Why it's tempting | What actually happens | Hold the line |
 |---|---|---|---|
-| "Use Flagship by default; it's better" | Zero cognitive overhead | Monthly API spend blows past budget; ops questions your ROI | The 5-second scoring cost pays back 10x by preserving Flagship for when it matters |
-| "Use Mid-tier for everything to save cost" | Feels frugal | Mid-tier writes a subtle bug in the migration script; multi-day cleanup dwarfs the token savings | If a mistake costs > 1 day, that's not a Mid-tier task regardless of visible complexity |
-| "Flagship is stuck, retry with more context" | Sunk cost fallacy | Flagship loops on the same wrong hypothesis; wastes 2x tokens | If Mid-tier is stuck, clarify the problem first. Ambiguity ≠ complexity |
-| "This is architectural, must be Flagship" | Nominal category match | The "architectural" task is renaming a class; judgment already happened | Look at what the task actually requires, not what it's labeled |
-| "Mid-tier is fine, it's just implementation" | It IS implementation | The implementation touches auth, cross-tenant boundaries, or migration | "Implementation" that touches load-bearing modules is Flagship-worthy regardless of task label |
-| "Leave session on Flagship, cheaper than relaunching" | Session restart feels like friction | Every message on Flagship that could be on Mid-tier burns API budget for no reason | In Codex, session restart IS the pattern — no cost to relaunching on a different tier |
-| "Re-try Mid-tier on a failed task" | Might work this time | Same model + same task rarely fixes the failure | Escalate with failure context, per escalation protocol |
-| "Skip the routing log — I'll remember" | Log feels bureaucratic | Steward can't tell what actually needed Flagship; can't tighten routing rules | The log is 10 seconds; the quarterly cost audit needs it |
+| "Use high by default; it's better" | Zero cognitive overhead | Monthly API spend blows past budget; ops questions your ROI | The 5-second scoring cost pays back 10x by preserving high for when it matters |
+| "Use medium for everything to save cost" | Feels frugal | Medium writes a subtle bug in the migration script; multi-day cleanup dwarfs the token savings | If a mistake costs > 1 day, that's not a medium task regardless of visible complexity |
+| "High is stuck, retry with more context" | Sunk cost fallacy | High loops on the same wrong hypothesis; wastes 2x tokens | If medium is stuck, clarify the problem first. Ambiguity ≠ complexity |
+| "This is architectural, must be high" | Nominal category match | The "architectural" task is renaming a class; judgment already happened | Look at what the task actually requires, not what it's labeled |
+| "Medium is fine, it's just implementation" | It IS implementation | The implementation touches auth, cross-tenant boundaries, or migration | "Implementation" that touches load-bearing modules is high-worthy regardless of task label |
+| "Leave session on high, cheaper than relaunching" | Session restart feels like friction | Every message on high that could be on medium burns API budget | In Codex, session restart IS the pattern — no cost to relaunching |
+| "Re-try medium on a failed task" | Might work this time | Same reasoning tier + same task rarely fixes the failure | Escalate with failure context, per escalation protocol |
+| "Skip the routing log — I'll remember" | Log feels bureaucratic | Steward can't tell what actually needed high; can't tighten routing rules | The log is 10 seconds; the quarterly cost audit needs it |
 | "Downgrade threat-modeling to save cost" | Cost pressure | Security corners cut for budget; incident 6 months later | Threat-modeling is never downgraded — cost is not an excuse |
-| "Escalate preemptively before any Mid-tier attempt" | Feels safer | Flagship produces marginal answer to ambiguous problem; you burn budget on a bad question | Try Mid-tier first with explicit failure criteria; escalate only on evidence |
-| "The user asked for Flagship" | User authority | User may not know task doesn't need it; help them decide | Suggest Mid-tier with rationale if task warrants it; user can override |
+| "Escalate preemptively before any medium attempt" | Feels safer | High produces marginal answer to ambiguous problem; you burn budget on a bad question | Try medium first with explicit failure criteria; escalate only on evidence |
 
 ---
 
 ## Red flags during routing
 
-- **Flagship session running > 2 hours on a single problem.** Either escalate the problem (break it up, get help) or restart on Mid-tier — this is the "stuck in a loop" signal.
-- **Mid-tier asked to make a decision without context.** Escalation is wrong response; clarify the decision criteria first.
-- **Flagship used for a mechanical task > 3 times in a week.** Update routing table — habit forming.
-- **Mid-tier used for a review that later missed a bug.** Update escalation trigger table — this class of PR is Flagship-worthy.
-- **Never varying model tier across sessions.** Different tasks warrant different tiers; sticking to one is either underspending or overspending.
+- **High session running > 2 hours on a single problem.** Either escalate the problem (break it up, get help) or restart on medium — this is the "stuck in a loop" signal.
+- **Medium asked to make a decision without context.** Escalation is wrong response; clarify the decision criteria first.
+- **High used for a mechanical task > 3 times in a week.** Update routing table — habit forming.
+- **Medium used for a review that later missed a bug.** Update escalation trigger table — this class of PR is high-worthy.
+- **Never varying reasoning tier across sessions.** Different tasks warrant different tiers; sticking to one is either underspending or overspending.
 
 ---
 
 ## Integration with using-praxis routing
 
-In the `using-praxis` intent → workflow routing tree, each `agent_invocation` step carries a model hint:
+In the `using-praxis` intent → workflow routing tree, each `agent_invocation` step carries a reasoning hint:
 
 ```yaml
 - id: architecture
   type: agent_invocation
   agent: solution-architect
   skill: architecture-pattern-selection
-  model: adaptive  # Delivery Lead runs adaptive-model-routing before spawning
+  reasoning: adaptive  # Delivery Lead runs adaptive-model-routing before launching
   inputs:
     from: requirements_brief
 ```
 
-When `model: adaptive` is set on a workflow step, the Delivery Lead evaluates this SKILL before launching the specialist session. The routing log entry is produced; the session is opened with the selected `--model` flag.
+When `reasoning: adaptive` is set on a workflow step, the Delivery Lead evaluates this SKILL before launching the specialist session. The routing log entry is produced; the session is opened with the selected `model_reasoning_effort` override.
 
-Steps where model tier is always fixed (no evaluation needed):
-- `agent: architecture-challenger` → always Flagship
-- `agent: code-reviewer` (standard slice review) → always Mid-tier
-- `agent: platform-sre` (CI/CD, IaC wiring) → always Mid-tier
+Steps where reasoning tier is always fixed (no evaluation needed):
+- `agent: architecture-challenger` → always high
+- `agent: code-reviewer` (standard slice review) → always medium (with escalation triggers for cross-cutting PRs)
+- `agent: platform-sre` (CI/CD, IaC wiring) → always medium
 
 ---
 
@@ -335,47 +332,44 @@ Before ending a routing decision as final:
 
 - [ ] The task has been scored on all five signals (or a fast-path rule matched).
 - [ ] The rationale is stated in 1-2 sentences (not "vibes").
-- [ ] The tier + specific model string is selected and recorded.
-- [ ] The session launch command includes the correct `--model` flag.
+- [ ] The reasoning tier is selected and recorded.
+- [ ] The session launch command includes the correct `model_reasoning_effort` (via TOML or `--model-reasoning-effort` flag override).
 - [ ] The routing log entry is appended.
 - [ ] If this is an escalation: the failure context is passed to the new session; the escalation log is updated.
-- [ ] For phase transitions: any per-project override to `.project/procedural/model-routing-overrides.md` is reviewed.
+- [ ] For phase transitions: any per-project override in `.project/procedural/model-routing-overrides.md` is reviewed.
 
 ---
 
 ## Mode handling (G/B)
 
-**Greenfield.** Architecture phases score high on novelty → Flagship expected for Phases A and B. Implementation slices score low → Mid-tier default throughout. The ratio after a full project run is roughly: 15–20% Flagship, 75–80% Mid-tier, 5% Fast.
+**Greenfield.** Architecture phases score high on novelty → high expected for Phase B. Implementation slices score low → medium default throughout. Ratio after a full project run: roughly 15–20% high, 75–80% medium, 5% low.
 
-**Brownfield.** Brownfield `codebase-comprehension` is a heavy read task — Mid-tier handles it. Impact analysis may score 7+ if the system is large and the change is cross-cutting → Flagship. Architecture reconciliation against existing system: Mid-tier unless NFR violations are found, then Flagship for remediation ADRs.
+**Brownfield.** Brownfield `codebase-comprehension` is a heavy read task — medium handles it. Impact analysis may score 7+ if the system is large and the change is cross-cutting → high. Architecture reconciliation against existing system: medium unless NFR violations are found, then high for remediation ADRs.
 
 ---
 
 ## What this SKILL does not do
 
-- Execute the task — it only selects the model tier.
-- Override OpenAI's model availability or rate limits — if the flagship is rate-limited, sessions block; this SKILL flags the situation but cannot provision more capacity.
-- Switch the model mid-session — Codex doesn't support this; the output is a recommendation for the next session launch.
+- Execute the task — it only selects the reasoning tier.
+- Override OpenAI's model availability or rate limits — if capacity is constrained, sessions block; this SKILL flags the situation but cannot provision more.
+- Switch reasoning tier mid-session — Codex CLI doesn't support this; the output is a recommendation for the next session launch.
 - Track cost in dollars — that's `llm-cost-optimization`.
-- Guarantee current model strings — verify against the deployed Codex CLI version. The strings in this SKILL are candidates as of authoring; substitute the real ones in your project's `.project/procedural/model-routing-overrides.md`.
+- Modify the underlying model — Codex CLI is typically bound to one base model per install; this SKILL tunes reasoning effort within that model.
 
 ---
 
-## Adaptation from Claude Code variant
+## Build integration
 
-This Codex variant is derived from `skills/adaptive-model-routing/SKILL.md` in the Claude Code plugin. Content that stayed the same:
-- 5-signal scoring rubric
-- Fast-path task-type rules
-- Phase-level defaults
-- Per-agent assignments (Flagship/Mid-tier maps 1:1 to Opus/Sonnet)
-- Escalation protocol structure
-- Anti-rationalization discipline
+This SKILL is the Codex-specific overlay applied by `scripts/build-codex-plugin.sh`. It replaces the canonical `skills/adaptive-model-routing/SKILL.md` in the generated Codex package.
 
-What changed for Codex:
-- Model strings (Claude Opus → OpenAI flagship; Sonnet → mid-tier; Haiku → fast)
-- Spawn pattern (in-session `Agent({...})` → session-as-agent via CLI `--model` flag)
-- Quota model (weekly rate limit → per-token API cost + rate limits)
-- "Switch model mid-session" is not supported — restart the session
-- Explicit "verify current model strings" caveat since OpenAI's tier names evolve
+Do NOT edit `plugins/praxis-codex/skills/adaptive-model-routing/SKILL.md` directly — that file is generated and will be overwritten on next build. Edit this file (`codex-plugin-assets/skills/adaptive-model-routing/SKILL.md`) instead, then run:
 
-If your organization is on Claude Code, use the parent SKILL. If on Codex, use this one.
+```bash
+scripts/build-codex-plugin.sh
+```
+
+To keep the Claude Code and Codex variants in sync when you change the routing rubric, edit both:
+- `skills/adaptive-model-routing/SKILL.md` (canonical, Claude Code-shaped)
+- `codex-plugin-assets/skills/adaptive-model-routing/SKILL.md` (Codex overlay, this file)
+
+The scoring rubric and anti-rationalization should stay identical between the two; only tier names, spawn syntax, and cost model differ.
