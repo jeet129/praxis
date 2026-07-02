@@ -1,0 +1,425 @@
+# Workflow: implementation-slice
+# The per-slice sub-workflow called by greenfield-api-service, brownfield-enhancement,
+# greenfield-saas (and others) inside their implementation_loop step.
+#
+# Wave 2 wires in the full review + test + acceptance gate set so slices ship through
+# real quality machinery. Wave 3 will extend this with CI pipeline + deployment.
+#
+# Inputs from parent workflow:
+#   - slice (current slice from phased_roadmap)
+#   - architecture_decision
+#   - api_contract (if applicable)
+#   - data_model_delta (if applicable)
+#   - nfr_register
+#   - mode (greenfield | brownfield)
+#   - active_stack_backend, active_stack_frontend (set by delivery-planner)
+#
+# Outputs back to parent:
+#   - slice_status: completed | failed
+#   - slice_acceptance: ACCEPTED | ACCEPTED_WITH_CAVEATS | REJECTED
+#   - pr_merged: boolean
+#   - episodic_entry_path
+
+name: implementation-slice
+version: 1
+description: |
+  Per-slice implementation loop. Opens the slice, builds the implementation packet,
+  decomposes via Lead Developer, dispatches specialists (BE/FE/Data/ML as active),
+  runs Code Review + Security Review + QA acceptance, validates integration, closes.
+
+entry_criteria:
+  - slice_defined
+  - implementation_packet_ready
+  - architecture_sign_off_cleared
+
+steps:
+  # ------------------------------------------------------------------
+  # Open the slice — orchestrator side
+  # ------------------------------------------------------------------
+  - id: open_slice
+    type: agent_invocation
+    agent: delivery-lead
+    action: open_slice
+    inputs:
+      slice: from(parent.current_slice)
+      phased_roadmap: from(parent.phased_roadmap)
+    outputs: [slice_id, working_memory_initialized]
+    notes: |
+      Delivery Lead writes the slice's working/ memory area, primes
+      .project/working/slice-state.md with the slice's spec, sets the
+      single-writer lock for the slice.
+
+  # ------------------------------------------------------------------
+  # Build the implementation packet (per Section 9 of the blueprint)
+  # ------------------------------------------------------------------
+  - id: build_implementation_packet
+    type: agent_invocation
+    agent: solution-architect
+    action: build_implementation_packet
+    inputs:
+      slice: from(parent.current_slice)
+      requirements_brief: from(parent.requirements_brief)
+      user_stories: from(parent.user_stories)
+      nfr_register: from(parent.nfr_register)
+      architecture_decision: from(parent.architecture_decision)
+      api_contract: from(parent.api_contract, if_exists)
+      data_model_delta: from(parent.data_model_delta, if_exists)
+      threat_model: from(parent.threat_model, if_exists)
+    outputs: [implementation_packet]
+    notes: |
+      SA assembles per Section 9: increment spec + AC + NFR targets for this slice +
+      architecture context + API contract delta + data model delta + threat model
+      entries + ADRs constraining + test plan outline + engineering-standards reference +
+      stack pack + brownfield context (.repo-intel/) + pipeline integration points.
+
+  # ------------------------------------------------------------------
+  # UX hand-off (when slice has UI)
+  # ------------------------------------------------------------------
+  - id: ux_handoff_check
+    type: decision_node
+    predicate: slice_has_ui(slice, implementation_packet)
+    branches:
+      true: [ux_handoff]
+      false: [lead_developer_decompose]
+
+  - id: ux_handoff
+    type: agent_invocation
+    agent: ux-designer
+    action: build_ux_handoff_package
+    inputs:
+      slice: from(parent.current_slice)
+      journey_maps: from(parent.journey_maps)
+      design_system: from(parent.design_system)
+    outputs: [wireframes, interaction_notes, a11y_expectations, i18n_requirements, performance_budget]
+    notes: |
+      UX Designer assembles the FE-facing portion of the implementation packet.
+
+  # ------------------------------------------------------------------
+  # Lead Developer decomposes the slice
+  # ------------------------------------------------------------------
+  - id: lead_developer_decompose
+    type: agent_invocation
+    agent: lead-developer
+    action: decompose_slice
+    inputs:
+      implementation_packet: from(build_implementation_packet.implementation_packet)
+      ux_handoff: from(ux_handoff.outputs, if_exists)
+    outputs: [task_dag, specialist_assignments, dependency_graph]
+    notes: |
+      Lead Developer maps the slice to per-specialist tasks with inputs/outputs/AC
+      mapping and dependency sequencing.
+
+  # ------------------------------------------------------------------
+  # Parallel implementation by active specialists
+  # ------------------------------------------------------------------
+  - id: implementation_parallel
+    type: parallel
+    branches:
+      - condition: task_dag.has_backend_tasks
+        id: backend_implementation
+        agent: backend-developer
+        inputs:
+          tasks: from(lead_developer_decompose.task_dag.backend_tasks)
+          active_stack: from(planner.active_stack_backend)
+          implementation_packet: from(build_implementation_packet.implementation_packet)
+        outputs: [be_pr_opened, be_tests_passing, be_observability_added]
+
+      - condition: task_dag.has_frontend_tasks
+        id: frontend_implementation
+        agent: frontend-developer
+        inputs:
+          tasks: from(lead_developer_decompose.task_dag.frontend_tasks)
+          active_stack: from(planner.active_stack_frontend)
+          ux_handoff: from(ux_handoff.outputs)
+          implementation_packet: from(build_implementation_packet.implementation_packet)
+        outputs: [fe_pr_opened, fe_tests_passing, fe_a11y_passing]
+
+      - condition: task_dag.has_data_tasks
+        id: data_implementation
+        agent: data-engineer   # Wave 5; conditional activation
+        status: deferred_until_wave_5
+        inputs:
+          tasks: from(lead_developer_decompose.task_dag.data_tasks)
+
+      - condition: task_dag.has_ml_tasks
+        id: ml_implementation
+        agent: ml-ai-engineer   # Wave 6; conditional activation
+        status: deferred_until_wave_6
+        inputs:
+          tasks: from(lead_developer_decompose.task_dag.ml_tasks)
+
+    outputs: [all_prs_opened, all_tests_passing]
+
+  # ------------------------------------------------------------------
+  # Pre-merge gate: Code Review + Security Review (parallel)
+  # ------------------------------------------------------------------
+  - id: pre_merge_review
+    type: parallel
+    branches:
+      - id: code_review
+        agent: code-reviewer
+        inputs:
+          prs: from(implementation_parallel.all_prs_opened)
+          implementation_packet: from(build_implementation_packet.implementation_packet)
+        outputs: [code_review_verdict, code_review_findings]
+
+      - id: security_review
+        agent: security-reviewer
+        inputs:
+          prs: from(implementation_parallel.all_prs_opened)
+          implementation_packet: from(build_implementation_packet.implementation_packet)
+          threat_model: from(parent.threat_model, if_exists)
+        outputs: [security_review_verdict, security_findings]
+        condition: pr_touches_security_surface(prs)
+        # Security Reviewer fires only on PRs touching auth/data/public-surface/deps;
+        # for non-security-bearing PRs, Code Reviewer's security dimension is sufficient.
+
+  - id: review_findings_resolved
+    type: decision_node
+    predicate: all_blocker_findings_resolved(code_review_findings, security_findings)
+    branches:
+      true: [merge_prs]
+      false: [implementation_parallel, with_findings_as_input]
+
+  # ------------------------------------------------------------------
+  # Merge gate: Code Reviewer PASS + Security Reviewer PASS (when fired) required
+  # ------------------------------------------------------------------
+  - id: merge_prs
+    type: decision_node
+    predicate: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped)
+    branches:
+      true: [cicd_pipeline_run]
+      false: [implementation_parallel, with_review_failures_as_input]
+
+  # ------------------------------------------------------------------
+  # WAVE 3 — CI pipeline runs on merged commits
+  # ------------------------------------------------------------------
+  - id: cicd_pipeline_run
+    type: skill_invocation
+    skill: cicd-pipeline
+    owner: platform-sre
+    inputs:
+      merge_commit: from(merge_prs.merge_commit_sha)
+      stack: from(planner.active_stack)
+    outputs:
+      - signed_image_digest
+      - sbom_attestation
+      - provenance_attestation
+      - sast_report
+      - sca_report
+      - container_scan_report
+      - coverage_report
+      - pipeline_status   # passed | failed
+    notes: |
+      Wave 3 pipeline: build → test → SAST/SCA → container build → vuln scan → sign + attest → publish.
+      Per cicd-pipeline skill's 13-stage chain. Per the agnostic decision, the per-CI implementation
+      (GitHub Actions / GitLab CI / Azure DevOps) is in cicd-pipeline/references/.
+
+  - id: pipeline_gate
+    type: decision_node
+    predicate: pipeline_status == passed
+    branches:
+      true: [staging_deploy]
+      false: [implementation_parallel, with_pipeline_failures_as_input]
+
+  # ------------------------------------------------------------------
+  # WAVE 3 — Staging deploy (canary or rolling per deploy-release ADR)
+  # ------------------------------------------------------------------
+  - id: staging_deploy
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    inputs:
+      image_digest: from(cicd_pipeline_run.signed_image_digest)
+      environment: staging
+      strategy: from(release_strategy_adr.staging_strategy)   # typically rolling for staging
+    outputs:
+      - staging_deployment_id
+      - staging_rollout_state   # progressing | succeeded | failed
+    notes: |
+      Per environments skill's promotion rules (dev → test → staging),
+      and deploy-release skill's rollout strategy. Signature + provenance verified
+      before pull. Rollback plan armed before deploy starts.
+
+  - id: staging_verification
+    type: parallel
+    branches:
+      - id: smoke_tests
+        type: skill_invocation
+        skill: testing-strategy
+        owner: qa-engineer
+        inputs:
+          environment: staging
+          deployment: from(staging_deploy.staging_deployment_id)
+        outputs: [smoke_test_status]
+      - id: observability_check
+        type: skill_invocation
+        skill: observability
+        owner: platform-sre
+        inputs:
+          environment: staging
+          deployment: from(staging_deploy.staging_deployment_id)
+          soak_window: 5m
+        outputs:
+          - slo_status
+          - error_rate
+          - p99_latency
+          - log_volume_anomaly
+
+  - id: staging_verified_check
+    type: decision_node
+    predicate: smoke_test_status == pass AND slo_status == healthy AND error_rate < nfr.error_rate_target
+    branches:
+      true: [acceptance_testing]
+      false: [auto_rollback_staging, then_back_to_implementation_parallel]
+
+  - id: auto_rollback_staging
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    action: rollback
+    inputs:
+      environment: staging
+      deployment: from(staging_deploy.staging_deployment_id)
+      reason: from(staging_verified_check.failure_reason)
+    outputs: [rollback_status]
+    notes: |
+      Auto-rollback when staging verification fails. Per deploy-release skill's
+      rollback discipline — forward-only (re-deploy previous image SHA) is the
+      default for staging. Postmortem-lite generated for the team.
+
+  # ------------------------------------------------------------------
+  # QA Acceptance — runs against the verified staging deployment
+  # ------------------------------------------------------------------
+  - id: acceptance_testing
+    type: agent_invocation
+    agent: qa-engineer
+    action: run_slice_acceptance
+    inputs:
+      slice: from(parent.current_slice)
+      ac: from(build_implementation_packet.implementation_packet.acceptance_criteria)
+      merged_prs: from(merge_prs)
+      staging_deployment: from(staging_deploy.staging_deployment_id)
+    outputs: [acceptance_verdict, qa_report, exploratory_findings]
+    notes: |
+      QA verifies each AC individually against the live staging deployment.
+      For UI slices, runs manual a11y protocol (keyboard, screen reader, zoom)
+      per the accessibility skill. Exploratory testing catches issues beyond the AC.
+
+  - id: acceptance_check
+    type: decision_node
+    predicate: acceptance_verdict == ACCEPTED OR (acceptance_verdict == ACCEPTED_WITH_CAVEATS AND caveats_acknowledged)
+    branches:
+      true: [integration_validation]
+      false: [implementation_parallel, with_acceptance_failures_as_input]
+
+  # ------------------------------------------------------------------
+  # Lead Developer's final integration validation
+  # ------------------------------------------------------------------
+  - id: integration_validation
+    type: agent_invocation
+    agent: lead-developer
+    action: validate_slice_integration
+    inputs:
+      slice: from(parent.current_slice)
+      merged_prs: from(merge_prs)
+      acceptance_report: from(acceptance_testing.qa_report)
+    outputs: [integration_passed, integration_notes]
+    notes: |
+      Lead Developer verifies BE+FE+(Data/ML) outputs compose end-to-end against the AC.
+      Not deep code review (Code Reviewer did that) and not acceptance (QA did that) —
+      integration sanity that the specialists' work converges.
+
+  # ------------------------------------------------------------------
+  # Documentation hand-off (Tech Writer's lightweight Wave-2 contribution)
+  # ------------------------------------------------------------------
+  - id: documentation_check
+    type: agent_invocation
+    agent: tech-writer
+    action: verify_slice_documentation
+    inputs:
+      slice: from(parent.current_slice)
+      pr_changes: from(merge_prs)
+      adrs_written: from(implementation_parallel.adrs_written, if_exists)
+    outputs: [documentation_complete, doc_gaps]
+    notes: |
+      Tech Writer verifies that ADRs were written for non-trivial decisions, API docs
+      are updated, brownfield .repo-intel/ has been incrementally refreshed. In Wave 7
+      this expands to full architecture-documentation + technical-documentation.
+
+  # ------------------------------------------------------------------
+  # Close the slice
+  # ------------------------------------------------------------------
+  - id: close_slice
+    type: agent_invocation
+    agent: delivery-lead
+    action: close_slice
+    inputs:
+      slice: from(parent.current_slice)
+      integration_status: from(integration_validation.integration_passed)
+      acceptance_verdict: from(acceptance_testing.acceptance_verdict)
+      documentation_complete: from(documentation_check.documentation_complete)
+    outputs: [slice_status, episodic_entry_path]
+    notes: |
+      Delivery Lead archives the slice's working/ memory to episodic/, releases the
+      single-writer lock, updates the phased roadmap's status, increments slice
+      counter, and signals the parent workflow to proceed to the next slice (or
+      complete if this was the last).
+
+# ------------------------------------------------------------------
+# Exit
+# ------------------------------------------------------------------
+exit_criteria:
+  - close_slice.completed == true
+
+failure_paths:
+  rollback:
+    - revert_repo_changes_for_current_slice
+    - close_slice_with_failure_status
+    - notify_principal_via_governance
+
+  retry_n:
+    - max_retries: 3
+    - retry_step: implementation_parallel
+    - notes: |
+        On step failure (review or acceptance), the workflow loops back to
+        implementation_parallel with the findings/failures as input. After 3 retry
+        cycles without resolution, escalates to the principal — repeated failures
+        usually mean the slice is over-scoped, the AC is unclear, or there's a
+        deeper architectural issue.
+
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+# ------------------------------------------------------------------
+# Wave scope notes
+# ------------------------------------------------------------------
+notes: |
+  Wave 3 (this version) wires the full pre-production loop:
+    - Code Review + Security Review (parallel) before merge
+    - cicd-pipeline run on merge: build + test + SAST/SCA + container build + sign + attest + publish
+    - deploy-release to staging via the chosen strategy (rolling default)
+    - Staging verification: smoke tests + observability SLO check (parallel)
+    - Auto-rollback in staging on verification failure
+    - QA Acceptance against the verified staging deployment
+    - Lead Developer integration validation
+    - Tech Writer documentation check
+    - Delivery Lead closes the slice
+
+  Production deploy is handled by workflows/production-release.yaml — the parent
+  workflow triggers it on the cadence the team chooses (per-slice for continuous
+  deployment, or batched per release). The production_go_live gate fires there,
+  not at slice close.
+
+  Wave 4 will add:
+    - performance-testing for slices touching NFR-bearing surface
+    - chaos-engineering for slices touching resilience-critical surface
+    - reliability-dr verification before production cutover
+    - distributed-systems-patterns operational checks
+    - cost-finops monitoring per deploy
+
+  Wave 5+6 conditional branches (data_implementation, ml_implementation) activate
+  automatically when the slice's task_dag includes those task types and the relevant
+  agents are available.

@@ -116,16 +116,32 @@ Evidence to check:
 
 7-10 items. Each item should be objectively verifiable (someone can confirm yes/no).
 
+## One-time setup: install git hooks
+
+After cloning, activate the repo-tracked pre-commit hook:
+
+```bash
+scripts/install-git-hooks.sh
+```
+
+This points git at `.githooks/` so every commit automatically:
+- Rebuilds `plugins/praxis-codex/` when canonical source (`skills/`, `agents/`, `workflows/`, etc.) or Codex overlays (`codex-plugin-assets/`) change.
+- Runs `scripts/validate-codex-plugin.sh` on the result.
+- Auto-stages regenerated files so source + built package land in one atomic commit.
+
+Skip in emergencies with `git commit --no-verify`. Restore with the same install command.
+
 ## Pull request workflow
 
 1. **Fork** the repo + create a branch from `main`.
-2. **Write your changes** following the conventions above.
-3. **Run the validator**: `bash scripts/validate-skills.sh` — must pass with zero failures.
-4. **Run YAML parse check**: every SKILL.md frontmatter must parse cleanly.
-5. **Cross-reference check**: if you added a SKILL, update `consumers:` lists of any SKILL it consumes; if you added a reference, cite it from the SKILL's frontmatter.
-6. **Commit** with descriptive messages (per `references/git-workflow-checklist.md` if you want).
-7. **Open a PR** with: what changed, why, how to test, any breaking changes.
-8. **Address review** within reasonable time.
+2. **Install git hooks** if you haven't: `scripts/install-git-hooks.sh` (see section above).
+3. **Write your changes** following the conventions above.
+4. **Run the validator**: `bash scripts/validate-skills.sh` — must pass with zero failures.
+5. **Run YAML parse check**: every SKILL.md frontmatter must parse cleanly.
+6. **Cross-reference check**: if you added a SKILL, update `consumers:` lists of any SKILL it consumes; if you added a reference, cite it from the SKILL's frontmatter.
+7. **Commit** with descriptive messages (per `references/git-workflow-checklist.md` if you want). The pre-commit hook rebuilds the Codex plugin package automatically — do not bypass with `--no-verify` unless the build itself is broken (in which case fix the build first).
+8. **Open a PR** with: what changed, why, how to test, any breaking changes.
+9. **Address review** within reasonable time.
 
 ## Validator
 

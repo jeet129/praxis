@@ -9,7 +9,7 @@ For any non-trivial task, consult `skills/using-praxis/SKILL.md` — the front-d
 Read `.project/semantic/project-charter.md` to know the project's mode (G/B), data/ML/agentic-AI flags, compliance regimes, scale targets, and stack preferences. Skills activate per these flags.
 
 ## Where things live
-- Skills: `skills/<name>/SKILL.md` (80 SKILLs)
+- Skills: `skills/<name>/SKILL.md` (84 SKILLs)
 - Agent personas: `agents/*.md` (16 role agents)
 - Workflows: `workflows/*.yaml`
 - Governance gates: `governance/governance.yaml` (7 active + 4 conditional)

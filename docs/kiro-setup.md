@@ -11,7 +11,7 @@
 ```
 your-project/
 ├── .kiro/
-│   ├── skills/             80 SKILLs (Kiro auto-discovers under .kiro/skills/)
+│   ├── skills/             84 SKILLs (Kiro auto-discovers under .kiro/skills/)
 │   ├── agents/, workflows/, governance/, references/, patterns/
 │   └── README.md, PLAYBOOK.md
 ├── AGENTS.md               ← Kiro also supports AGENTS.md

@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — praxis
+#
+# Ensures the generated Codex plugin package (plugins/praxis-codex/) stays
+# in sync with canonical source. When you commit changes to canonical
+# directories (skills/, agents/, workflows/, ...) OR to codex-plugin-assets/,
+# this hook:
+#
+#   1. Runs scripts/build-codex-plugin.sh to regenerate plugins/praxis-codex/
+#   2. Runs scripts/validate-codex-plugin.sh to verify the result
+#   3. Re-stages any regenerated files so they're part of THIS commit
+#
+# Skips entirely if no relevant source files are staged (docs-only commits,
+# hook-scaffolding commits, etc.).
+#
+# Fail-safe: if the build or validate fails, the commit is aborted with a
+# non-zero exit and an error message. Fix the source, then re-commit.
+#
+# Install (one-time per clone):
+#   scripts/install-git-hooks.sh
+# or manually:
+#   git config core.hooksPath .githooks
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Directories that, when staged, require a Codex plugin rebuild
+TRIGGERS=(
+  "skills/"
+  "agents/"
+  "workflows/"
+  "governance/"
+  "references/"
+  "patterns/"
+  "scripts/"
+  "codex-plugin-assets/"
+)
+
+# Detect whether any staged file lives under a trigger path
+needs_rebuild=0
+staged_files="$(git diff --cached --name-only)"
+for trigger in "${TRIGGERS[@]}"; do
+  if echo "$staged_files" | grep -q "^$trigger"; then
+    needs_rebuild=1
+    break
+  fi
+done
+
+if [[ $needs_rebuild -eq 0 ]]; then
+  # Nothing that affects the Codex package — exit clean
+  exit 0
+fi
+
+echo ""
+echo "praxis pre-commit: canonical or Codex-overlay source changed"
+echo "praxis pre-commit: regenerating plugins/praxis-codex/ ..."
+echo ""
+
+# Guard: build script must exist and be executable
+if [[ ! -x scripts/build-codex-plugin.sh ]]; then
+  echo "ERROR: scripts/build-codex-plugin.sh not found or not executable" >&2
+  echo "       chmod +x scripts/build-codex-plugin.sh, then re-commit" >&2
+  exit 1
+fi
+
+# Run the build
+if ! scripts/build-codex-plugin.sh; then
+  echo ""
+  echo "ERROR: Codex plugin build failed." >&2
+  echo "       Fix the source, then re-commit." >&2
+  exit 1
+fi
+
+# Run validation (if present)
+if [[ -x scripts/validate-codex-plugin.sh ]]; then
+  if ! scripts/validate-codex-plugin.sh; then
+    echo ""
+    echo "ERROR: Codex plugin validation failed." >&2
+    echo "       Fix the source, then re-commit." >&2
+    exit 1
+  fi
+fi
+
+# Re-stage any regenerated files so they land in THIS commit atomically
+if [[ -n "$(git diff --name-only plugins/praxis-codex/ 2>/dev/null)" ]] \
+   || [[ -n "$(git ls-files --others --exclude-standard plugins/praxis-codex/ 2>/dev/null)" ]]; then
+  echo ""
+  echo "praxis pre-commit: staging regenerated plugins/praxis-codex/"
+  git add plugins/praxis-codex/
+fi
+
+echo ""
+echo "praxis pre-commit: build + validation passed. Proceeding with commit."
+echo ""
+exit 0

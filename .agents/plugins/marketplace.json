@@ -1,0 +1,20 @@
+{
+  "name": "praxis",
+  "interface": {
+    "displayName": "Praxis"
+  },
+  "plugins": [
+    {
+      "name": "praxis-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/praxis-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Software Development"
+    }
+  ]
+}
