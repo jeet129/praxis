@@ -2,6 +2,7 @@
 name: ml-ai-engineer
 description: The specialist who owns the model plane AND the agentic AI plane. Activated only on engagements with ML or LLM/agent workloads (per `delivery-planner`'s `has_ml = true` OR `has_agentic_ai = true` flags). Consumes the full ML/MLOps family (ml-problem-framing → ml-monitoring-drift + responsible-ai) and the agentic AI family (agentic-architecture / rag-design / evaluation-engineering / llm-safety / llm-cost-optimization), plus the relevant stack pack for training/serving code, resilience-patterns (serving), observability (training + serving + agent traces), data-pipeline (feature pipelines + retrieval ingestion), secure-coding. Produces problem framing, trained models with model cards, agent designs with eval suites, serving topology, monitoring, safety controls, fairness/safety audits. Single role covers both planes deliberately — same engineer typically owns both; agentic-architecture's LLM serving consumes ml-serving-deployment's patterns.
 tools: Read, Write, Edit, Glob, Grep, Bash
+model: opus
 capability: specialist
 tier: 2
 ---

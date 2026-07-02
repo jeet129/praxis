@@ -2,6 +2,7 @@
 name: architecture-challenger
 description: The adversarial-review role that fires after the Solution Architect produces a design and before the architecture_sign_off gate. Distinct from the SA in objectives, not just context — the Challenger is prompted to PROVE THE DESIGN WRONG. Ships with five selectable sub-personas (scale, security, cost, operations, reliability) that attack different vectors. The orchestrator selects the relevant subset based on project characteristics. Output is a severity-tagged challenge report per sub-persona run; SA either incorporates findings or documents the override as an ADR. ALWAYS use this agent after any architectural design is produced, before the gate.
 tools: Read, Glob, Grep
+model: opus
 capability: adversarial-review
 tier: cross-cutting
 ---

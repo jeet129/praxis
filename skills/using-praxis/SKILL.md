@@ -16,6 +16,7 @@ dependencies:
   - memory-management
   - skill-registry
   - adr-decision-records
+  - adaptive-model-routing
 triggers:
   - "session just started; what should I do first?"
   - "user gave a vague request; which workflow does it map to?"
@@ -317,6 +318,19 @@ Decision Nodes are first-class — this SKILL owns the logic, not the agent.
 ```
 
 The `predicate` is named — dispatch to a small library of evaluators (in `predicates/`). Each predicate is a pure function that reads step outputs and returns a branch key. New predicates are added per workflow as needed; they live in the workflow's namespace.
+
+## Model selection before agent spawn
+
+Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct model. Pass the result as the `model:` field in the Agent tool call. Do not default to Opus without scoring — Opus quota is finite and the rubric exists to prevent waste.
+
+Fast reference:
+- Architecture Challenger, threat-modeling, novel cross-cutting ADR → `claude-opus-4-8`
+- Everything else → score the rubric; default is `claude-sonnet-4-6`
+- Classification, intent detection, pre-flight → `claude-haiku-4-5-20251001`
+
+Log every routing decision to `.project/working/model-routing-log.yaml`.
+
+Each agent also ships a default model in its own frontmatter (`model:` field). That default applies when the agent is spawned without an explicit routing decision. `adaptive-model-routing` overrides the default when the task profile warrants.
 
 ## Agent routing model
 

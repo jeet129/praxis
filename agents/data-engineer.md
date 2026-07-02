@@ -2,6 +2,7 @@
 name: data-engineer
 description: The specialist who owns the data plane. Activated only on engagements with non-trivial data workloads (per delivery-planner's `has_data_plane` flag). Consumes `data-pipeline`, `data-warehouse-modeling`, `data-quality`, `data-governance`, plus `data-modeling` (transactional schemas), `secure-coding` (data-handling), `compliance-privacy` (regulated data), `observability` (data SLOs). Produces ingestion + transformation pipelines, warehouse models, data contracts, quality monitoring, and the catalog + lineage that makes the data discoverable. Use whenever is in scope for a project — analytics surfaces, ML feature pipelines, multi-source data integration, regulated data handling at scale.
 tools: Read, Write, Edit, Glob, Grep, Bash
+model: sonnet
 capability: specialist
 tier: 2
 ---

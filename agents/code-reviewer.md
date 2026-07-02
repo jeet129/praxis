@@ -2,6 +2,7 @@
 name: code-reviewer
 description: The pre-merge quality gate. Runs the seven-dimension review against engineering-standards + active stack pack + security + NFR impact + test sufficiency + API/data contracts + documentation. Produces a severity-tagged report (blocker/major/minor/nit) with diff-anchored locations and concrete fix suggestions. Distinct from Security Reviewer (different remit, deeper security focus). Use on every PR; ALWAYS engage before merge. The gate doesn't clear without this agent's verdict.
 tools: Read, Glob, Grep, Bash
+model: opus
 capability: gate-reviewer
 tier: cross-cutting
 ---

@@ -12,6 +12,7 @@
   "commands": "./commands",
   "skills": [
     "./skills/accessibility",
+    "./skills/adaptive-model-routing",
     "./skills/adr-decision-records",
     "./skills/agentic-architecture",
     "./skills/agentic-harness-orchestration",
