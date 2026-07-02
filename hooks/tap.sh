@@ -44,8 +44,36 @@ fi
 
 # Extract common fields
 session_id=$(echo "$payload" | jq -r '.session_id // empty' 2>/dev/null)
-cwd=$(echo "$payload" | jq -r '.cwd // empty' 2>/dev/null)
-[[ -z "$cwd" ]] && cwd="$PROJECT_DIR"
+
+# Resolve the workspace root for telemetry writes.
+# Priority:
+#   1. CLAUDE_PROJECT_DIR — Claude Code sets this to the workspace root.
+#      Always correct even when the tool ran from a subdirectory.
+#   2. Walk up from payload.cwd to find a .project/ or .git/ marker.
+#      This handles monorepo cases where payload.cwd is a service subdir
+#      (e.g., services/java-core) — without the walk, telemetry would
+#      create stray .project/ trees under each service subdir.
+#   3. Fall back to payload.cwd as-is.
+#   4. Last resort: $PROJECT_DIR (recorder's default: hook-caller pwd).
+if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+  cwd="$CLAUDE_PROJECT_DIR"
+else
+  payload_cwd=$(echo "$payload" | jq -r '.cwd // empty' 2>/dev/null)
+  if [[ -n "$payload_cwd" ]]; then
+    probe="$payload_cwd"
+    cwd=""
+    while [[ "$probe" != "/" && -n "$probe" ]]; do
+      if [[ -d "$probe/.project" || -d "$probe/.git" ]]; then
+        cwd="$probe"
+        break
+      fi
+      probe=$(dirname "$probe")
+    done
+    [[ -z "$cwd" ]] && cwd="$payload_cwd"
+  else
+    cwd="$PROJECT_DIR"
+  fi
+fi
 
 # --------------------------------------------------------------------
 # Helper: record an artifact invocation
