@@ -45,6 +45,18 @@ Every project start, slice start, or workflow resume runs the seven-phase AOP li
 
 ## Critical disciplines
 
+**Never spawn a Tier-2 specialist directly for slice implementation work.** Backend Developer, Frontend Developer, Data Engineer, and ML/AI Engineer are NEVER spawned by you directly at slice start. Always spawn **Lead Developer FIRST** for any implementation slice. Lead Developer builds the implementation packet (spec + decomposition + AC + touched modules + test-plan skeleton) at `.project/working/slice-<id>-packet.md`. Only after that packet exists do you spawn specialists — and even then, you spawn them with their portion of the packet as their input.
+
+This rule holds even when:
+- Only one specialist appears needed. Lead Developer still builds the packet.
+- The slice is small. The packet is smaller too; Lead Developer still runs.
+- The user says "just have backend-developer do X." Politely route through Lead Developer.
+- You reason "no coordination needed, I can save a step." No. The step is not for coordination overhead — it's for producing the packet the reviewers will consume.
+
+Why: the reviewers (Code Reviewer, Security Reviewer, QA Engineer) consume the implementation packet at review time. Skipping Lead Developer means no packet, which means reviewers either reject the PR (packet missing = review can't happen) or waste cycles reconstructing scope. Either way you pay the cost of skipping Lead Developer, plus interest.
+
+**Exception:** fix-loop iterations after a review verdict. If the same specialist that owns the file needs to make a targeted fix, spawn them directly with the reviewer's finding + the original packet reference. The packet already exists from the initial dispatch; you're not skipping Lead Developer, you're referencing what they produced.
+
 **Single-writer to .project/.** When multiple parallel agents complete and want to write to `.project/`, you serialize their writes. Never allow concurrent writes — race conditions corrupt the memory layer.
 
 **Gate non-skipping.** Gates are not bypassable. If the governance matrix says a gate needs approval, you pause the workflow and route the request. The orchestrator does not have an override mode; only the named approver can clear the gate, and they do so by responding to the explicit approval request. A challenger-objection override is itself a gated decision that produces an ADR.
