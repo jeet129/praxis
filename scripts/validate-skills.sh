@@ -49,6 +49,7 @@ N_FAIL=0
 N_WARN=0
 N_REMOVED=0      # tombstones (state: removed)
 N_ACTIVE=0       # what counts toward 70-90 health band
+N_COMMAND_ADAPTERS=0  # capability: command entry points; excluded from the band
 FAILURES=()
 WARNINGS=()
 LINE_BUDGET_WARNINGS=()
@@ -163,7 +164,15 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
       continue
     fi
 
-    N_ACTIVE=$((N_ACTIVE + 1))
+    # Command-entry adapter skills (capability: command — e.g. the Codex
+    # $praxis-* commands) are validated like any skill but do NOT count
+    # toward the 70-90 knowledge-skill health band: they are thin entry
+    # points, not knowledge, and scale with harness count by design.
+    if echo "$metadata" | grep -q "^capability: command$"; then
+      N_COMMAND_ADAPTERS=$((N_COMMAND_ADAPTERS + 1))
+    else
+      N_ACTIVE=$((N_ACTIVE + 1))
+    fi
 
     # 6. Recommended metadata fields (warnings)
     for field in "${META_RECOMMENDED[@]}"; do
@@ -196,6 +205,9 @@ echo "Summary"
 echo "-------"
 echo "  Total SKILL.md files: $N_TOTAL"
 echo "  Active skills:        $N_ACTIVE  (counts toward 70-90 health band)"
+if [[ $N_COMMAND_ADAPTERS -gt 0 ]]; then
+  echo "  Command adapters:     $N_COMMAND_ADAPTERS  (capability: command; excluded from the band)"
+fi
 echo "  Removed (tombstones): $N_REMOVED (not counted)"
 echo "  Passed:               $N_PASS"
 echo "  Failed:               $N_FAIL"

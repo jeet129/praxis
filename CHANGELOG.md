@@ -81,6 +81,9 @@ minor versions until it stabilizes.
 
 ### Fixed
 
+- Cleared remaining line-budget warnings: Codex adaptive-model-routing overlay slimmed 369 -> 298 (examples/tables to references/), using-praxis 330 -> 299 (gate-topology and agent-mapping tables to references/); validate-skills.sh now counts `capability: command` adapter skills separately from the 70-90 knowledge-skill health band.
+
+
 - Delegation-chain contradiction resolved: canonical two-tier model is now unambiguous — Lead Developer (not Delivery Lead) dispatches specialists per the ledger DAG and validates integration; Delivery Lead resumes at review gates. Harness fallback documented for environments that cannot nest agent spawns. Parallelism rule made explicit everywhere (delivery-lead, lead-developer, implementation-slice.yaml, loop-contracts, Codex praxis-slice): dependencies are on contract artifacts, not on sibling implementations — FE/test start when the contract lands.
 
 

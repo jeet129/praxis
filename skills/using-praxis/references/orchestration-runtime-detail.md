@@ -120,3 +120,42 @@ Workflow state persists in `.project/working/workflow-state.yaml` so execution c
 - Plan the project — that's `delivery-planner` + `project-phasing`.
 - Make agent-level judgment — agents do that within their phase.
 - Modify the library — System Steward does that; this SKILL consumes the library as-published.
+
+## Workflow gate-topology signatures
+
+| Workflow | Gate-topology signature |
+|---|---|
+| `ideation-refinement-loop` | 1 gate — bounded convergence loop |
+| `greenfield-api-service` | 2 gates (`requirements_freeze`, `architecture_sign_off`) + slice sub-gates |
+| `greenfield-saas` | same 2-gate shape, parallel BE/FE/Data slices |
+| `brownfield-enhancement` | same 2-gate shape + comprehension precondition |
+| `implementation-slice` | pre-merge review/QA gate; sub-workflow, no top-level gate of its own |
+| `production-release` | 1 gate (`production_go_live`), 10-item evidence pack |
+| `expedited-change` | 2 gates — compressed now + MANDATORY retro |
+| `spike` | 1 gate (`spike_disposition`); no review gate; code never merges |
+| `modernization` | 3 gates — strategy sign-off, per-increment parallel-run, decommission |
+
+## Agent → role mapping
+
+When you decide which agent should do the work:
+
+| User intent | Lead agent |
+|---|---|
+| Vague request, mode unclear | Delivery Lead |
+| "Define what we're building" | Product Manager |
+| "Design the architecture" | Solution Architect |
+| "Review the architecture adversarially" | Architecture Challenger |
+| "Decompose into slices" | Lead Developer |
+| "Implement backend slice" | Backend Developer |
+| "Implement frontend slice" | Frontend Developer |
+| "Design the UX" | UX Designer |
+| "Review this PR" | Code Reviewer |
+| "Audit security" | Security Reviewer |
+| "Write the test plan" | QA Engineer |
+| "Write the docs" | Tech Writer |
+| "Set up infra / CI / deploy" | Platform/SRE |
+| "Build data pipeline / model the warehouse" | Data Engineer (has_data_plane required) |
+| "Build ML feature / LLM agent / RAG / safety" | ML/AI Engineer (has_ml or has_agentic_ai required) |
+| "Evolve the library itself" | System Steward (cross-project; quarterly) |
+
+Two-tier orchestration: **Delivery Lead routes phases → Phase Leads run their phase → Specialists execute slices.** Don't have agents invoke other agents directly outside this pattern.

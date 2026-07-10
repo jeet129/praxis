@@ -40,15 +40,7 @@ The Codex variant of `adaptive-model-routing`. Same underlying routing rubric as
 
 ## What differs from the Claude Code variant
 
-| Aspect | Claude Code | Codex |
-|---|---|---|
-| Tier parameter | `model:` frontmatter (opus / sonnet / haiku) | `model_reasoning_effort` in `codex-agents/*.toml` (high / medium / low) |
-| Sub-agent spawn | `Agent({ subagent_type, model, prompt })` — in-process, per-spawn model | Session-as-agent: launch a new Codex CLI session with the specialist's TOML config |
-| Model switch mid-session | `/model <name>` slash command | Not supported — restart the session with the new agent config |
-| Quota model | Weekly rate limits per plan | Per-token API cost + org rate limits |
-| Model itself | Distinct models per tier (Opus / Sonnet / Haiku) | Typically ONE base model; `reasoning_effort` is what tunes cost + quality |
-
-**What stays the same:** the 5-signal rubric, fast-path rules, phase-level defaults, per-agent assignments, escalation protocol, anti-rationalization table, red flags. Those are model-agnostic engineering discipline.
+Codex resolves tiers via `model_reasoning_effort` in `codex-agents/*.toml` (high / medium / low) on typically one base model; agents run as launched CLI sessions (no mid-session model switch — relaunch with the new config), and cost is per-token API spend rather than plan quota. Everything else — the 5-signal rubric, fast-path rules, phase defaults, per-agent assignments, escalation protocol — is identical model-agnostic discipline shared with every harness.
 
 The principle: **default to medium reasoning; escalate to high only when specific complexity signals are present; never use high for tasks a competent medium-reasoning run completes correctly.**
 
@@ -93,33 +85,7 @@ Score the task on five signals. Each signal is 0–2. Total score determines the
 
 ## Task-type fast path
 
-Before scoring, check these fast-path rules. If a rule matches, it overrides the score.
-
-### Always medium (regardless of score)
-- Implementing a slice with a clear spec from the Lead Developer
-- Writing code that follows an established pattern already in the codebase
-- Applying a praxis SKILL where the application is routine (cicd-pipeline, containerization, observability wiring)
-- Producing documentation, release notes, runbook templates
-- Summarizing, extracting, or classifying structured content
-- Routine gate checks (evidence package assembly for production release)
-- Frontend component implementation per design system spec
-
-### Always high (regardless of score)
-- Solution Architect producing the primary architecture decision (`architecture-pattern-selection`) for a system with > 2 capability flags active
-- Architecture Challenger adversarial sub-personas
-- Security threat model (`threat-modeling` SKILL — stakes are always 2)
-- Requirements elicitation with a genuinely vague brief (`requirements-interrogation` KUACQ pass on ambiguous scope)
-- Cross-cutting ADR with > 3 affected services or teams
-- Production incident post-mortem for a P0/P1
-- Any task that explicitly failed a prior medium-reasoning run (escalation is non-negotiable)
-
-### Consider low
-- Intent classification before routing to the right agent
-- Pre-flight checks (does this file exist? is the spec complete?)
-- Structured extraction from well-defined inputs
-- Routing decisions where the input is already structured
-
----
+Fast-path rules override the score. Summary: routine implementation against a clear packet, pattern-following code, docs/release notes, structured summarization/extraction, and routine gate checks are **always medium**. Primary architecture decisions (>2 flags), challenger sub-personas, threat models, vague-brief elicitation, cross-cutting ADRs (>3 services), P0/P1 post-mortems, and any task that failed a prior medium run are **always high**. Intent classification, pre-flight checks, and structured extraction from well-defined inputs may drop to **low**. Load `references/routing-examples.md` for the full lists.
 
 ## Phase-level defaults (workflow integration)
 
@@ -232,17 +198,9 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 ```markdown
 # Model Escalation Log
 
-## 2026-07-02 — requirements-elicitation for payments feature
-- First attempt: medium reasoning
-- Failure: Missed 4 compliance NFRs; scope too broad; output not actionable
-- Escalation: high reasoning with failure context and compliance mandate
-- Outcome: high-reasoning session produced complete NFR register; passed requirements_freeze gate
-- Learning: requirements-elicitation with compliance scope → always high
-```
+## Worked example, anti-rationalization table, and red flags
 
-Escalation logs feed the fast-path rules above. Three escalations on the same task type → promote it to "Always high" in this project's local fast-path override.
-
----
+Load `references/routing-examples.md` for the dated worked case study, the full anti-rationalization table, and the red-flags checklist.
 
 ## Cost management heuristics
 
@@ -255,35 +213,6 @@ Codex API cost scales roughly linearly with reasoning effort. When API spend is 
 5. For cheap classifications and pre-flight checks, drop to low — often 5-10× cheaper than medium.
 
 The goal is never quality regression — cost management is about eliminating high on tasks that don't need it, not downgrading tasks that genuinely do.
-
----
-
-## Anti-rationalization
-
-The reason this discipline holds is that both directions are seductive — high feels safer, medium feels cheaper.
-
-| Shortcut you'll be tempted to take | Why it's tempting | What actually happens | Hold the line |
-|---|---|---|---|
-| "Use high by default; it's better" | Zero cognitive overhead | Monthly API spend blows past budget; ops questions your ROI | The 5-second scoring cost pays back 10x by preserving high for when it matters |
-| "Use medium for everything to save cost" | Feels frugal | Medium writes a subtle bug in the migration script; multi-day cleanup dwarfs the token savings | If a mistake costs > 1 day, that's not a medium task regardless of visible complexity |
-| "High is stuck, retry with more context" | Sunk cost fallacy | High loops on the same wrong hypothesis; wastes 2x tokens | If medium is stuck, clarify the problem first. Ambiguity ≠ complexity |
-| "This is architectural, must be high" | Nominal category match | The "architectural" task is renaming a class; judgment already happened | Look at what the task actually requires, not what it's labeled |
-| "Medium is fine, it's just implementation" | It IS implementation | The implementation touches auth, cross-tenant boundaries, or migration | "Implementation" that touches load-bearing modules is high-worthy regardless of task label |
-| "Leave session on high, cheaper than relaunching" | Session restart feels like friction | Every message on high that could be on medium burns API budget | In Codex, session restart IS the pattern — no cost to relaunching |
-| "Re-try medium on a failed task" | Might work this time | Same reasoning tier + same task rarely fixes the failure | Escalate with failure context, per escalation protocol |
-| "Skip the routing log — I'll remember" | Log feels bureaucratic | Steward can't tell what actually needed high; can't tighten routing rules | The log is 10 seconds; the quarterly cost audit needs it |
-| "Downgrade threat-modeling to save cost" | Cost pressure | Security corners cut for budget; incident 6 months later | Threat-modeling is never downgraded — cost is not an excuse |
-| "Escalate preemptively before any medium attempt" | Feels safer | High produces marginal answer to ambiguous problem; you burn budget on a bad question | Try medium first with explicit failure criteria; escalate only on evidence |
-
----
-
-## Red flags during routing
-
-- **High session running > 2 hours on a single problem.** Either escalate the problem (break it up, get help) or restart on medium — this is the "stuck in a loop" signal.
-- **Medium asked to make a decision without context.** Escalation is wrong response; clarify the decision criteria first.
-- **High used for a mechanical task > 3 times in a week.** Update routing table — habit forming.
-- **Medium used for a review that later missed a bug.** Update escalation trigger table — this class of PR is high-worthy.
-- **Never varying reasoning tier across sessions.** Different tasks warrant different tiers; sticking to one is either underspending or overspending.
 
 ---
 
