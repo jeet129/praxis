@@ -1,0 +1,63 @@
+# Model routing table — the ONLY file in the repo that names concrete models.
+#
+# Agents declare an abstract `capability_tier` in their frontmatter (deep | standard | light).
+# This table resolves that tier to a harness-native model setting. When a vendor ships a
+# new model family, edit this file and run `scripts/apply-model-routing.py` — no agent
+# definition changes.
+#
+# Tier semantics (harness-agnostic):
+#   deep     — adversarial judgment, architecture, security, orchestration routing.
+#              Misses are expensive; buy the strongest reasoning available.
+#   standard — implementation, test authoring, product/UX artifacts. The thinking is
+#              carried by the implementation packet; generation quality at this tier
+#              is sufficient and much cheaper.
+#   light    — mechanical/formulaic work: doc drafts, scaffolding, formatting,
+#              telemetry digests. Cheapest tier; escalate on gate failure.
+#
+# Runtime override: delivery-lead applies the adaptive-model-routing rubric per task
+# and may shift an agent ±1 tier (see skills/adaptive-model-routing/SKILL.md,
+# "Routing the factory itself"). Static tiers here are defaults, not ceilings.
+
+version: 1
+
+tiers: [deep, standard, light]
+
+harnesses:
+  claude-code:
+    field: model            # written into agents/*.md frontmatter
+    map:
+      deep: opus
+      standard: sonnet
+      light: haiku
+  codex:
+    field: model_reasoning_effort   # written into codex-plugin-assets/codex-agents/*.toml
+    map:
+      deep: high
+      standard: medium
+      light: low
+  gemini-cli:
+    field: model
+    map:
+      deep: gemini-2.5-pro
+      standard: gemini-2.5-flash
+      light: gemini-2.5-flash-lite
+
+# Optional governance pin: set to a tier name to force every agent to that tier
+# (e.g. a compliance-critical engagement that mandates `deep` everywhere).
+overrides:
+  force_tier: null
+
+# Escalation policy consumed by delivery-lead at runtime:
+escalation:
+  on_gate_failure: promote_one_tier_and_retry_once   # then escalate to human
+  demotion_allowed: true                             # trivial tasks may run one tier lower
+  log_routing_decisions_to: .project/telemetry/model-routing.jsonl
+
+# Relative cost weights per tier — used by scripts/factory-routing-report.py to
+# compute a cost PROXY when the harness doesn't expose token counts. These are
+# deliberately coarse (roughly: relative per-token price of the tier's resolved
+# model); tune per organization. They are NOT dollar figures.
+cost_weights:
+  deep: 5.0
+  standard: 1.0
+  light: 0.25

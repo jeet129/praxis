@@ -32,7 +32,10 @@ consumers:
   - ux-designer (consumes for design decisions; consulted on RTL)
   - product-manager (consumes for content / market strategy)
   - tech-writer (consumes for documentation localization)
-references: []
+references:
+  - message-catalogs-and-plurals.md
+  - locale-formatting-and-rtl.md
+  - translation-pipeline.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -64,15 +67,7 @@ Default for new React projects: **next-intl** (Next.js) or **react-intl** (other
 
 ### 2. Message catalog format
 
-The translator-facing format. The shared standard: **ICU MessageFormat**.
-
-```json
-{
-  "orderItems.count": "{count, plural, =0 {No items} one {1 item} other {# items}}",
-  "orderTotal.label": "Total: {amount, number, ::currency/USD}",
-  "lastUpdated": "Last updated: {date, date, ::yyyyMMdd}"
-}
-```
+The translator-facing format. The shared standard: **ICU MessageFormat**. Load `references/message-catalogs-and-plurals.md` for a worked catalog example.
 
 ICU MessageFormat handles:
 - **Plurals** correctly per locale (English has 2 forms; Polish has 3; Arabic has 6).
@@ -127,74 +122,21 @@ Missing translations are tracked; in production they shouldn't show the key (use
 
 ### No hardcoded strings
 
-Every string the user sees goes through the i18n library:
-
-```tsx
-// Bad
-<button>Save</button>
-
-// Good
-<button>{t('save')}</button>
-
-// Bad
-<p>You have 5 items in your cart.</p>
-
-// Good — uses ICU plural
-<p>{t('cart.items', { count: 5 })}</p>
-```
-
-Static strings in error responses, validation messages, tooltips, alt text — *all* go through i18n.
-
-CI / lint rules can enforce: a linter rule that flags string literals in JSX (ESLint `react/jsx-no-literals`); manual review for what slipped through.
+Every string the user sees goes through the i18n library, including error responses, validation messages, tooltips, and alt text. CI / lint rules can enforce this (e.g., ESLint `react/jsx-no-literals`); manual review catches what slipped through.
 
 ### Plural-aware (always)
 
-Every count-related message uses ICU plural, never string concatenation:
-
-```tsx
-// Bad
-<p>{count} item{count !== 1 ? 's' : ''}</p>
-
-// Good
-<p>{t('items.count', { count })}</p>
-// where the message is: "{count, plural, =0 {No items} one {1 item} other {# items}}"
-```
-
-Plural rules vary wildly across languages. The `{count !== 1 ? 's' : ''}` pattern is English-only thinking; it produces nonsense translations.
+Every count-related message uses ICU plural, never string concatenation. Plural rules vary wildly across languages; the `{count !== 1 ? 's' : ''}` pattern is English-only thinking and produces nonsense translations.
 
 ### Locale-aware formatting
 
-Numbers, dates, currencies, times — through the locale-aware API:
+Numbers, dates, currencies, times — through the locale-aware API. Use the platform's `Intl` API (built into modern browsers and Node) for date/number/currency formatting; the library wraps this.
 
-```tsx
-// Bad
-<p>Total: ${amount.toFixed(2)}</p>
-
-// Good
-<p>{t('total', { amount })}</p>
-// where the message: "Total: {amount, number, ::currency/USD}"
-
-// Or directly:
-<p>Total: {new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(amount)}</p>
-```
-
-Use the platform's `Intl` API (built into modern browsers and Node) for date/number/currency formatting. The library wraps this.
+Load `references/message-catalogs-and-plurals.md` for the hardcoded-string and plural-aware code examples, and `references/locale-formatting-and-rtl.md` for the locale-formatting code example.
 
 ### RTL support
 
-For Arabic, Hebrew, Persian, Urdu, etc. (right-to-left layout):
-
-```html
-<html dir="rtl" lang="ar">
-```
-
-CSS implications:
-- **Logical properties**: `margin-inline-start` instead of `margin-left`; `padding-inline-end` instead of `padding-right`. Auto-flips in RTL.
-- **Logical units**: `inset-inline-start` instead of `left`.
-- **Icons that imply direction** (arrows): may need flipping in RTL; the design system documents which.
-- **Test in RTL** during design and development; don't bolt on later.
-
-Modern CSS supports logical properties broadly; use them by default even in LTR-only projects (future-proof).
+For Arabic, Hebrew, Persian, Urdu, etc. (right-to-left layout): set `dir="rtl"` on `<html>`, use CSS logical properties (`margin-inline-start` not `margin-left`) so layout auto-flips, account for icons that imply direction, and test in RTL during design and development rather than bolting it on later. Load `references/locale-formatting-and-rtl.md` for the full example and CSS implications.
 
 ### Locale-switching UX
 
@@ -207,31 +149,11 @@ The user-visible control:
 
 ## Translation pipeline
 
-The workflow that gets translations from translators into the catalog:
+The workflow that gets translations from translators into the catalog: a developer adds a new key in `en.json`; CI detects it and extracts it to a translation tool (Lokalise, Crowdin, Transifex, Phrase, or git-based); translators provide translations; the tool produces a PR with updated locale files; the PR is reviewed and merged; CI deploys the updated catalogs.
 
-```
-1. Developer adds new key in en.json (default locale).
-2. CI detects new key + extracts to translation tool (Lokalise, Crowdin, Transifex, Phrase, or git-based).
-3. Translators receive notifications; provide translations.
-4. Translation tool produces PR with updated locale files.
-5. PR reviewed (lightweight; verifies format + context); merged.
-6. CI deploys updated catalogs.
-```
+For solo / small projects, even a git-based workflow (PRs from a translation contractor) beats ad-hoc. For larger projects, a managed translation platform with context-sharing (screenshots, glossary, style guide) produces higher quality. Translators need context per key — meaningful key names, a description of where it appears, variable types, and screenshots where the tool supports it. A per-locale style guide (tone, capitalization, currency placement) lives in `.project/procedural/i18n-style-guide.md`.
 
-For solo / small projects: even a git-based workflow (PRs from a translation contractor) beats ad-hoc.
-
-For larger projects: a managed translation platform with context-sharing (screenshots, glossary, style guide) produces higher quality.
-
-### Translation context
-
-Translators are blind without context. The catalog includes:
-
-- **Key naming** — meaningful (`cart.items.count`, not `msg_42`).
-- **Description per key** — short note about where it appears + tone.
-- **Variable types** — what's `{count}`? An integer? Decimal?
-- **Screenshots / preview** — for translation tools that support it.
-
-Style guide per locale: tone (formal vs. informal), capitalization rules, currency placement, etc. Lives in `.project/procedural/i18n-style-guide.md`.
+Load `references/translation-pipeline.md` for the full workflow steps and translation-context checklist.
 
 ## Outputs
 

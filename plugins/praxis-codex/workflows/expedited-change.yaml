@@ -1,0 +1,240 @@
+# Workflow: expedited-change
+# The emergency path for P0/P1 production incidents and critical security patches.
+# Differs from brownfield-enhancement in trading full-weight gates for compressed
+# ones NOW, in exchange for mandatory retroactive rigor within a declared window.
+
+name: expedited-change
+version: 1
+description: |
+  Fast path for a P0/P1 incident fix or a critical security patch. Gates are
+  compressed to what a 2 a.m. responder can actually clear — blocker-only
+  review, single-approver gate, rollback armed before deploy — but the
+  compression is repaid in full within a declared retroactive window: a
+  normal-bar review pass, a postmortem, and a tech-debt entry for every
+  shortcut taken. The retro half is not optional.
+
+entry_criteria:
+  - incident_declared == true
+  - severity_or_patch_class_known == true
+  - principal_intent_captured == true
+
+steps:
+  # ------------------------------------------------------------------
+  # Classify — confirm this is actually expedited-path territory
+  # ------------------------------------------------------------------
+  - id: severity_classification
+    type: agent_invocation
+    agent: platform-sre
+    skill: incident-runbook
+    inputs:
+      principal_intent: from(principal_intent)
+      incident_signal: from(principal_intent.incident_signal, if_exists)
+    outputs: [severity, incident_id, affected_services, retro_window_deadline]
+    notes: Severity per incident-runbook (SEV1-5 mapped to P0/P1); a critical security patch with no live incident still classifies P1-equivalent. retro_window_deadline (default 5 business days) is what the retro gate checks against.
+
+  - id: expedited_eligibility_check
+    type: decision_node
+    predicate: severity in [P0, P1] OR principal_intent.change_class == critical_security_patch
+    branches:
+      true: [scope_containment]
+      false: [reroute_to_brownfield_enhancement]
+    notes: This is a pressure release valve for genuine emergencies, not a way to skip gates for ordinary work — anything below the bar routes back to workflows/brownfield-enhancement.yaml.
+
+  # ------------------------------------------------------------------
+  # Scope containment — smallest viable change, blast radius named
+  # ------------------------------------------------------------------
+  - id: scope_containment
+    type: agent_invocation
+    agent: delivery-lead
+    skill: incident-runbook
+    inputs:
+      severity: from(severity_classification.severity)
+      affected_services: from(severity_classification.affected_services)
+      principal_intent: from(principal_intent)
+    outputs: [containment_scope, blast_radius_note, smallest_viable_change]
+    notes: Scopes the smallest change that stops the bleeding or closes the vulnerability — not the "proper" fix. Blast radius is named explicitly. Anything beyond the smallest viable change becomes a tech-debt entry, not part of this slice.
+
+  # ------------------------------------------------------------------
+  # Targeted fix — specialist per touched area
+  # ------------------------------------------------------------------
+  - id: targeted_fix
+    type: parallel
+    branches:
+      - condition: containment_scope.touches_backend
+        id: backend_fix
+        agent: backend-developer
+        skill: secure-coding
+        inputs:
+          containment_scope: from(scope_containment.containment_scope)
+          stack_pack: from(planner.active_stack_backend)
+        outputs: [be_fix_diff, be_tests_added, be_tests_passing]
+
+      - condition: containment_scope.touches_frontend
+        id: frontend_fix
+        agent: frontend-developer
+        skill: secure-coding
+        inputs:
+          containment_scope: from(scope_containment.containment_scope)
+          stack_pack: from(planner.active_stack_frontend)
+        outputs: [fe_fix_diff, fe_tests_added, fe_tests_passing]
+
+      - condition: containment_scope.touches_data
+        id: data_fix
+        agent: data-engineer
+        skill: secure-coding
+        inputs:
+          containment_scope: from(scope_containment.containment_scope)
+        outputs: [data_fix_diff, data_tests_passing]
+
+    outputs: [fix_diffs, tests_passing]
+    notes: Each specialist consumes secure-coding (fix in existing patterns, no new debt) and the active stack pack. Only branches matching the containment scope fire.
+
+  # ------------------------------------------------------------------
+  # Expedited review — single combined pass, blocker-only bar
+  # ------------------------------------------------------------------
+  - id: expedited_review
+    type: agent_invocation
+    agent: code-reviewer
+    skill: code-review
+    inputs:
+      fix_diffs: from(targeted_fix.fix_diffs)
+      containment_scope: from(scope_containment.containment_scope)
+    outputs: [review_verdict, blocker_findings, major_findings_logged_as_debt]
+    notes: One combined pass, correctness + security — no separate Security Reviewer fire here. Bar is blocker-only; majors and below are logged as tech-debt now, fixed in the retroactive pass.
+
+  - id: expedited_review_check
+    type: decision_node
+    predicate: blocker_findings.count == 0
+    branches:
+      true: [rollback_readiness_prep]
+      false: [targeted_fix, with_blocker_findings_as_input]
+
+  # ------------------------------------------------------------------
+  # Rollback readiness — armed before the gate, not after
+  # ------------------------------------------------------------------
+  - id: rollback_readiness_prep
+    type: skill_invocation
+    skill: deploy-release
+    owner: platform-sre
+    inputs:
+      containment_scope: from(scope_containment.containment_scope)
+      fix_diffs: from(targeted_fix.fix_diffs)
+    outputs: [rollback_plan, rollback_trigger_conditions]
+
+  # ------------------------------------------------------------------
+  # Expedited gate — single approver, evidence-backed
+  # ------------------------------------------------------------------
+  - id: expedited_change_approval_gate
+    type: gate
+    name: expedited_change_approval
+    approver: governance.expedited_change_approval.approver
+    evidence:
+      - fix_diffs
+      - blast_radius_note
+      - tests_passing
+      - rollback_plan
+
+  # ------------------------------------------------------------------
+  # Deploy with rollback readiness
+  # ------------------------------------------------------------------
+  - id: deploy_with_rollback_readiness
+    type: agent_invocation
+    agent: platform-sre
+    skill: deploy-release
+    inputs:
+      fix_diffs: from(targeted_fix.fix_diffs)
+      rollback_plan: from(rollback_readiness_prep.rollback_plan)
+    outputs: [deployment_id, deploy_status]
+
+  - id: deploy_result_check
+    type: decision_node
+    predicate: deploy_status == succeeded
+    branches:
+      true: [retroactive_full_review]
+      false: [rollback]
+
+  # ------------------------------------------------------------------
+  # MANDATORY RETROACTIVE HALF — this is what keeps 2 a.m. fixes inside
+  # the system rather than outside it.
+  # ------------------------------------------------------------------
+  - id: retroactive_full_review
+    type: parallel
+    branches:
+      - id: retro_code_review
+        agent: code-reviewer
+        skill: code-review
+        inputs:
+          fix_diffs: from(targeted_fix.fix_diffs)
+          major_findings_logged_as_debt: from(expedited_review.major_findings_logged_as_debt)
+        outputs: [retro_code_review_verdict, retro_code_findings]
+
+      - id: retro_security_review
+        agent: security-reviewer
+        skill: secure-coding
+        inputs:
+          fix_diffs: from(targeted_fix.fix_diffs)
+        outputs: [retro_security_review_verdict, retro_security_findings]
+
+    outputs: [retro_review_complete]
+    notes: Full normal-bar review the emergency skipped, run within retro_window_deadline — not "eventually."
+
+  - id: postmortem
+    type: agent_invocation
+    agent: platform-sre
+    skill: incident-runbook
+    inputs:
+      incident_id: from(severity_classification.incident_id)
+      containment_scope: from(scope_containment.containment_scope)
+      deploy_status: from(deploy_with_rollback_readiness.deploy_status)
+    outputs: [postmortem_doc, action_items]
+    notes: Blameless postmortem per incident-runbook; action items feed tech-debt-management.
+
+  - id: tech_debt_logging
+    type: agent_invocation
+    agent: delivery-lead
+    skill: tech-debt-management
+    inputs:
+      major_findings_logged_as_debt: from(expedited_review.major_findings_logged_as_debt)
+      retro_code_findings: from(retroactive_full_review.retro_review_complete)
+      action_items: from(postmortem.action_items)
+    outputs: [tech_debt_entries]
+    notes: Every shortcut taken under time pressure — deferred majors, the "proper" fix scoped out at containment, anything the postmortem surfaces — gets a tracked tech-debt entry.
+
+  - id: expedited_change_retro_gate
+    type: gate
+    name: expedited_change_retro
+    approver: governance.expedited_change_retro.approver
+    evidence:
+      - retro_review_complete
+      - postmortem_doc
+      - action_items
+      - tech_debt_entries
+
+exit_criteria:
+  - deploy_status == succeeded
+  - expedited_change_retro_gate.cleared == true
+
+failure_paths:
+  rollback:
+    - revert_deployment_to_previous_image
+    - confirm_rollback_healthy_via_deploy-release
+    - re_enter: targeted_fix
+    - notify_principal_via_governance
+
+  retro_window_missed:
+    - escalate_to: principal
+    - notes: Missing the declared retro window is a governance violation, not a further shortcut — it escalates immediately rather than slipping quietly.
+
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+notes: |
+  This workflow exists so 2 a.m. fixes stay INSIDE the system instead of a
+  side channel governance never sees. The compression is real — one
+  reviewer, one approver, blocker-only bar — but it is a loan, not a
+  discount: the retroactive half (full review, postmortem, tech-debt entries
+  for every shortcut, and the retro gate verifying it happened) is mandatory.
+  Skipping the retro half is a governance violation, not a shortcut worth
+  taking twice.

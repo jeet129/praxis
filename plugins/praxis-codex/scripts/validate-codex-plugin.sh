@@ -57,6 +57,7 @@ required_agents = {
     "lead-developer",
     "backend-developer",
     "frontend-developer",
+    "mobile-developer",
     "data-engineer",
     "ml-ai-engineer",
     "platform-sre",

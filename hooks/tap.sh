@@ -99,6 +99,20 @@ record() {
     >/dev/null 2>&1 || true
 }
 
+
+# --------------------------------------------------------------------
+# Helper: append a structured event to .project/telemetry/agent-spawns.jsonl
+# This is the DETERMINISTIC half of routing telemetry: it captures what
+# actually happened (spawn + model, completion + status/usage) regardless
+# of whether the delivery-lead remembered to write its routing decision.
+# --------------------------------------------------------------------
+telemetry_event() {
+  local json="$1"
+  local tdir="$cwd/.project/telemetry"
+  mkdir -p "$tdir" 2>/dev/null || return 0
+  echo "$json" >> "$tdir/agent-spawns.jsonl" 2>/dev/null || true
+}
+
 # --------------------------------------------------------------------
 # Helper: lookup output path against output-skill-map.txt
 # Returns: skill name or empty if no match
@@ -210,6 +224,15 @@ case "$EVENT" in
         subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null)
         if [[ -n "$subagent" && "$subagent" != "null" ]]; then
           record agent "$subagent" spawn
+          # Structured spawn event with the resolved model (if the spawner
+          # passed one; empty means the agent frontmatter default applied).
+          spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
+          telemetry_event "$(jq -cn \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg session "$session_id" \
+            --arg agent "$subagent" \
+            --arg model "$spawn_model" \
+            '{ts:$ts, event:"spawn", session:$session, agent:$agent, model:(if $model=="" then null else $model end)}')"
           # Preload-skill capture: record each SKILL the agent canonically uses
           # as a preload entry. This catches cached use cases where the agent
           # applies SKILL knowledge from its system prompt without Read-ing it.
@@ -280,6 +303,20 @@ case "$EVENT" in
     subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
     if [[ -n "$subagent" ]]; then
+      # Structured completion event; includes token usage when the harness
+      # provides it in the payload (fields are null otherwise).
+      in_tok=$(echo "$payload" | jq -r '.usage.input_tokens // .usage.prompt_tokens // empty' 2>/dev/null)
+      out_tok=$(echo "$payload" | jq -r '.usage.output_tokens // .usage.completion_tokens // empty' 2>/dev/null)
+      telemetry_event "$(jq -cn \
+        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg session "$session_id" \
+        --arg agent "$subagent" \
+        --arg status "$status" \
+        --arg itok "$in_tok" \
+        --arg otok "$out_tok" \
+        '{ts:$ts, event:"complete", session:$session, agent:$agent, status:$status,
+          input_tokens:(if $itok=="" then null else ($itok|tonumber) end),
+          output_tokens:(if $otok=="" then null else ($otok|tonumber) end)}')"
       "$RECORDER" \
         --type        agent \
         --name        "$subagent" \

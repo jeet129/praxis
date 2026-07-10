@@ -244,8 +244,9 @@ Evidence to check:
 ## What this skill does not do
 
 - Detect incidents — that's `observability`.
-- Define resilience targets — that's `reliability-dr`.
-- Implement resilience patterns — that's `resilience-patterns`.
+- Define reliability targets and DR architecture (SLOs, RTO/RPO, redundancy, failover) — that's `reliability-dr`.
+- Implement in-process fault-handling patterns (timeouts, retries, circuit breakers, bulkheads) — that's `resilience-patterns`.
+- Design cross-service coordination and correctness (saga, outbox, consensus, consistency models) — that's `distributed-systems-patterns`.
 - Run on-call response — that's `incident-runbook`.
 - Fix the issues chaos finds — those flow to tech-debt-management for prioritized remediation.
 

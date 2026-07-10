@@ -189,3 +189,90 @@ This is schema version 1.0 (2026-06-28). Field additions are allowed in minor ve
 ## Validation
 
 Run `scripts/validate-factory-metrics.sh` to check all entries parse correctly and meet schema requirements. CI should run this on every PR that touches `.project/operational/factory-metrics/`.
+
+## Telemetry JSONL schemas
+
+Two append-only JSONL files under `.project/telemetry/` carry structured routing/cost telemetry. Unlike the markdown records above, these are one-JSON-object-per-line, machine-written, and never hand-edited. Both are optional — their absence just means the coverage-dependent tools (see below) fall back to prose logs and static defaults.
+
+### `.project/telemetry/agent-spawns.jsonl`
+
+Written by `hooks/tap.sh` on the `Task` (subagent spawn) and `SubagentStop` (completion) hook events. Two event shapes share the file:
+
+```jsonc
+// spawn — written when a sub-agent is launched
+{"ts": "2026-06-28T09:15:00Z", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
+
+// complete — written when a sub-agent finishes
+{"ts": "2026-06-28T09:42:00Z", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
+```
+
+| Field | Type | Present on | Description |
+|---|---|---|---|
+| `ts` | ISO 8601 UTC | both | When the event fired |
+| `event` | enum | both | `spawn` \| `complete` |
+| `session` | string | both | Session identifier |
+| `agent` | string | both | Agent name (matches `agents/*.md` filename) |
+| `model` | string \| null | spawn | Resolved model name if the spawner passed one explicitly; `null` means the agent frontmatter default applied |
+| `status` | string | complete | Outcome as reported by the harness (`success`, `failure`, etc.) |
+| `input_tokens` / `output_tokens` | number \| null | complete | Token usage when the harness provides it; `null` otherwise |
+
+This is the deterministic half of routing telemetry — it captures what actually happened (spawn + model, completion + status/usage) regardless of whether the delivery-lead remembered to log a routing decision.
+
+### `.project/telemetry/model-routing.jsonl`
+
+Written by the delivery-lead per `skills/adaptive-model-routing/SKILL.md`, before each agent spawn — the deliberate half of routing telemetry (the rubric decision, not just the outcome):
+
+```jsonc
+{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ts` | ISO 8601 UTC | When the routing decision was made |
+| `agent` | string | Agent the decision applies to |
+| `default_tier` | enum | `deep` \| `standard` \| `light` — the agent's baseline tier per `capability_tier:` in `agents/<agent>.md` |
+| `chosen_tier` | enum | `deep` \| `standard` \| `light` — the tier actually selected after scoring |
+| `score` | number | Rubric score (signals summed — see `skills/adaptive-model-routing/SKILL.md`) |
+| `reason` | string | Short rationale for the chosen tier, especially when it differs from `default_tier` |
+
+`scripts/factory-routing-report.py` also tolerates the richer field names shown in `skills/adaptive-model-routing/references/routing-examples.md` (`tier`/`resolved_tier` as aliases for `chosen_tier`, `default` as an alias for `default_tier`) — either shape parses correctly.
+
+### `.project/telemetry/drive.jsonl`
+
+Written by `scripts/praxis-drive.sh` (the outer drive runner), one line per drive iteration — the outer loop's telemetry layer, distinct from the per-agent `agent-spawns.jsonl` above. Copied here from `references/loop-contracts.md` section 4, the pinned spec:
+
+```jsonc
+{"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,
+ "slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard",
+ "outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ts` | ISO 8601 UTC | When the iteration completed |
+| `run_id` | string | Identifies one drive session (`drive-<YYYYMMDD-HHMMSS>`); stable across every iteration in that session |
+| `iteration` | number | 1-indexed iteration counter within the run |
+| `slice` | string | Slice id the ledger belongs to |
+| `task` | string | Task id processed this iteration |
+| `agent` | string | Agent dispatched for the task (matches `agents/*.md` filename) |
+| `tier` | enum | `deep` \| `standard` \| `light` — the task's tier at the time of this iteration |
+| `outcome` | string | The task's ledger `status` after the iteration (`done` \| `failed` \| `in_progress` \| `open` \| `blocked`, or `unknown` if unreadable) |
+| `ledger_hash` | string | sha256 of the ledger file after the iteration — the stall-detection signal |
+| `stop_flags` | array of strings | Ledger `stop_flags` observed after the iteration; empty when clear |
+| `cost_proxy` | number | Tier-weighted cost unit for this single iteration (`cost_weights` from `governance/model-routing.yaml`) |
+
+### `scripts/praxis-drive.sh` exit codes
+
+The runner is fail-safe: every stop is a clean exit with a human summary, never a crash.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Natural stop — `gate_reached`/`decision_required` stop_flag, the task queue drained, or the `stop_after` dial's boundary (`task`/`slice`) was reached |
+| `2` | No active task ledger found (and none named via `--slice`) — nothing to drive; run `/slice` first |
+| `3` | Stalled — ledger hash unchanged for `stall.max_iterations_without_ledger_change` consecutive iterations |
+| `4` | Run budget hit — `max_iterations_per_run`, `cost_ceiling_proxy`, or `max_slices_per_run` from `governance/autonomy.yaml` |
+| `5` | Blocked/exhausted — a task hit `max_task_attempts` and raised a `blocked` stop_flag, or no task in the ledger is drive-eligible |
+
+### Reading the telemetry: `scripts/factory-routing-report.py`
+
+Run `python3 scripts/factory-routing-report.py --project-dir <path-to-or-above-.project> --format md|json --out <file>` to aggregate both JSONL files above plus the prose `.project/working/routing-*.md` dispatch logs, `.project/operational/factory-metrics/` usage records, and `.project/telemetry/drive.jsonl` drive-run telemetry into one report: data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals (using `cost_weights` from `governance/model-routing.yaml`), routing-discipline coverage, drive-run summaries (iterations/slices/tasks/cost per run, stop reasons, human-touchpoint density), and heuristic recommendations. Zero dependencies beyond the Python 3 standard library; fails soft (exit 0) when telemetry is absent — every section just reports zero records and says so.

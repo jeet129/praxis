@@ -51,6 +51,7 @@ N_REMOVED=0      # tombstones (state: removed)
 N_ACTIVE=0       # what counts toward 70-90 health band
 FAILURES=()
 WARNINGS=()
+LINE_BUDGET_WARNINGS=()
 
 echo "Praxis — skill validator"
 echo "======================================="
@@ -62,6 +63,18 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
   skill_name=$(basename "$(dirname "$skill_md")")
   skill_failed=0
   skill_warned=0
+
+  # 0. Line budget: SKILL.md over 460 lines is an error (too large to load
+  #    efficiently as context), over 300 is a warning worth trimming.
+  line_count=$(wc -l < "$skill_md" | tr -d ' ')
+  if [[ "$line_count" -gt 460 ]]; then
+    FAILURES+=("$skill_name: SKILL.md is $line_count lines (over the 460-line hard limit)")
+    skill_failed=1
+  elif [[ "$line_count" -gt 300 ]]; then
+    WARNINGS+=("$skill_name: SKILL.md is $line_count lines (over the 300-line soft budget)")
+    LINE_BUDGET_WARNINGS+=("$skill_name: SKILL.md is $line_count lines (over the 300-line soft budget)")
+    skill_warned=1
+  fi
 
   # Extract frontmatter (between first two --- markers)
   frontmatter=$(awk '/^---$/{flag=!flag; if(!flag)exit; next} flag' "$skill_md")
@@ -193,6 +206,14 @@ if [[ ${#FAILURES[@]} -gt 0 ]]; then
   echo "Failures:"
   for f in "${FAILURES[@]}"; do
     echo "  ✗ $f"
+  done
+  echo ""
+fi
+
+if [[ ${#LINE_BUDGET_WARNINGS[@]} -gt 0 ]]; then
+  echo "Line-budget warnings (>300 lines; always printed):"
+  for w in "${LINE_BUDGET_WARNINGS[@]}"; do
+    echo "  ⚠ $w"
   done
   echo ""
 fi

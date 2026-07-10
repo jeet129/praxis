@@ -39,7 +39,8 @@ consumers:
   - platform-sre (runbooks for incidents)
   - incident-runbook (consumed by; runbooks live here)
   - api-design (consumes; API ref draws from API design)
-references: []
+references:
+  - references/examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -151,42 +152,7 @@ Owner: Tech Writer + Lead Developer. Cadence: refreshed quarterly + after onboar
 
 ## Release notes
 
-Per release. Format:
-
-```markdown
-# Release v4.7.0 — 2026-11-15
-
-## Highlights
-- [User-visible] New feature X.
-- [Operations] Migration Y deployed (see runbook ABC).
-- [Security] Auth library upgraded to patch CVE-2026-NNNN.
-
-## Breaking changes
-- API `GET /v1/foo` removes deprecated `legacy_id` field (deprecated 2026-09; sunset window expired).
-
-## New
-- {list}
-
-## Changed
-- {list}
-
-## Deprecated
-- {list}
-
-## Fixed
-- {list}
-
-## Security
-- {list}
-
-## Operational notes
-- Migration time estimated 15m; runs in pre-deploy window.
-- Rollback procedure: revert to v4.6.x; no data migration to reverse.
-
-## ADRs landed this release
-- ADR-091 (state-machine for order lifecycle).
-- ADR-092 (event bus partitioning by customer-tier).
-```
+Per release. Sections: highlights, breaking changes, new/changed/deprecated/fixed/security, operational notes, ADRs landed. Full worked example: `references/examples.md#release-notes--worked-example`.
 
 Owner: PM (highlights) + Lead Developer (changes) + Platform/SRE (operational notes). Generated semi-automatically from PR titles + ADRs landed; curated for readability.
 

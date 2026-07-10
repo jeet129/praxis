@@ -2,7 +2,7 @@
 # install.sh — Praxis installer
 #
 # Installs the library into a target project for any supported AI coding tool.
-# 80 SKILLs · 16 agents · 5 workflows · 7 slash commands · governance · hooks · validator.
+# 89 SKILLs · 17 agents · 9 workflows · 11 slash commands · governance · hooks · validator.
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
@@ -170,7 +170,7 @@ install_claude_code() {
   # slash commands land at <dest>/commands/ (Claude Code's .claude/commands/)
   if [[ -d "$LIBRARY_ROOT/.claude/commands" ]]; then
     cp -R "$LIBRARY_ROOT/.claude/commands" "$dest/"
-    say "✓ copied slash commands (7: /start /discover /architect /slice /release /audit /steward)"
+    say "✓ copied slash commands ($(ls "$dest/commands" | grep -c '\.md$'): /start /discover /refine-idea /architect /slice /review /release /audit /steward /factory-record)"
   fi
   # .claude-plugin for marketplace installation
   if [[ -d "$LIBRARY_ROOT/.claude-plugin" ]]; then
@@ -195,9 +195,9 @@ install_codex() {
 This repo ships the Praxis at `.team/`. Codex / OpenCode / Cursor / Antigravity should consult these files.
 
 ## Where things live
-- Role agents:    `.team/agents/` (16 agents)
-- Skills:         `.team/skills/<skill-name>/SKILL.md` (80 skills)
-- Workflows:      `.team/workflows/` (5 workflows)
+- Role agents:    `.team/agents/` (17 agents)
+- Skills:         `.team/skills/<skill-name>/SKILL.md` (89 skills)
+- Workflows:      `.team/workflows/` (9 workflows)
 - Governance:     `.team/governance/governance.yaml`
 - References:    `.team/references/`
 
@@ -235,8 +235,8 @@ install_cursor() {
   if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would create $dest with rule pointing to praxis/"; return; fi
   mkdir -p "$dest"
   # Copy our cursor rule
-  if [[ -f "$LIBRARY_ROOT/.cursor/rules/000-praxis.md" ]]; then
-    cp "$LIBRARY_ROOT/.cursor/rules/000-praxis.md" "$dest/"
+  if [[ -f "$LIBRARY_ROOT/.cursor/rules/000-ai-delivery-platform.md" ]]; then
+    cp "$LIBRARY_ROOT/.cursor/rules/000-ai-delivery-platform.md" "$dest/"
     say "✓ wrote cursor rule"
   fi
   # Copy the library to .cursor/praxis/

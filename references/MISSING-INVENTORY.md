@@ -2,7 +2,7 @@
 
 Searchable inventory of all reference files cited from SKILL frontmatter — both **shipping** (real content) and **missing** (cited but not yet written).
 
-**As of last update:** 124 references cited · 26 shipping · 98 missing.
+**As of last update:** 117 references cited · 37 shipping · 80 missing.
 
 Use `grep` to find what you need:
 - By SKILL: `grep "^| \`<skill>\`" MISSING-INVENTORY.md`
@@ -14,7 +14,7 @@ When you write a missing one, change its **Status** from `missing` to `shipping`
 
 ---
 
-## Shipping (26 files)
+## Shipping (37 files)
 
 These have real content. The SKILL that cites them can load them via its `references` field.
 
@@ -23,9 +23,20 @@ These have real content. The SKILL that cites them can load them via its `refere
 | `cicd-pipeline/references/github-actions.md` | `cicd-pipeline` | CI/CD | shipping |
 | `cicd-pipeline/references/gitlab-ci.md` | `cicd-pipeline` | CI/CD | shipping |
 | `cicd-pipeline/references/azure-devops.md` | `cicd-pipeline` | CI/CD | shipping |
-| `engineering-standards/references/java-spring.md` | `engineering-standards` | Stack standards | shipping |
-| `engineering-standards/references/node-ts.md` | `engineering-standards` | Stack standards | shipping |
-| `engineering-standards/references/python.md` | `engineering-standards` | Stack standards | shipping |
+| `engineering-standards/references/java-spring.md` | `engineering-standards`, `code-review`, `secure-coding` | Stack standards | shipping |
+| `engineering-standards/references/node-ts.md` | `engineering-standards`, `code-review`, `secure-coding` | Stack standards | shipping |
+| `engineering-standards/references/python.md` | `engineering-standards`, `code-review`, `secure-coding` | Stack standards | shipping |
+| `engineering-standards/references/web-frontend.md` | `engineering-standards`, `code-review`, `secure-coding` | Stack standards | shipping |
+| `api-design/references/rest-openapi.md` | `api-design` | API specs | shipping |
+| `performance-testing/references/k6.md` | `performance-testing` | Performance testing | shipping |
+| `secrets-config/references/hashicorp-vault.md` | `secrets-config` | Secret store | shipping |
+| `secrets-config/references/k8s-external-secrets.md` | `secrets-config` | Secret store | shipping |
+| `ml-feature-engineering/references/feast.md` | `ml-feature-engineering` | ML feature store | shipping |
+| `ml-monitoring-drift/references/evidently.md` | `ml-monitoring-drift` | ML monitoring | shipping |
+| `ml-serving-deployment/references/kserve.md` | `ml-serving-deployment` | ML serving | shipping |
+| `ml-serving-deployment/references/batch-online-streaming.md` | `ml-serving-deployment` | ML serving | shipping |
+| `deploy-release/references/kubernetes-rollouts.md` | `deploy-release` | Deploy / release | shipping |
+| `deploy-release/references/argo-rollouts.md` | `deploy-release` | Deploy / release | shipping |
 | `iac/references/terraform.md` | `iac` | IaC | shipping |
 | `iac/references/pulumi.md` | `iac` | IaC | shipping |
 | `stack-web-frontend/references/react-next.md` | `stack-web-frontend` | Frontend framework | shipping |
@@ -49,13 +60,12 @@ These have real content. The SKILL that cites them can load them via its `refere
 
 ---
 
-## Missing — by category (98 files)
+## Missing — by category (80 files)
 
 ### API specs
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `api-design/references/rest-openapi.md` | `api-design` | OpenAPI 3.x spec authoring, codegen patterns, versioning | high | missing |
 | `api-design/references/grpc-proto.md` | `api-design` | gRPC service definition, Proto3 idioms, breaking-change rules | medium | missing |
 | `api-design/references/graphql.md` | `api-design` | Schema design, federation, N+1 mitigations | medium | missing |
 | `api-design/references/asyncapi-events.md` | `api-design` | AsyncAPI spec for event-driven contracts | low | missing |
@@ -121,8 +131,6 @@ These have real content. The SKILL that cites them can load them via its `refere
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `deploy-release/references/kubernetes-rollouts.md` | `deploy-release` | K8s native deployment strategies | high (K8s) | missing |
-| `deploy-release/references/argo-rollouts.md` | `deploy-release` | Argo Rollouts: canary, blue-green, analysis | high (GitOps) | missing |
 | `deploy-release/references/aws-codedeploy.md` | `deploy-release` | CodeDeploy: appspec, lifecycle hooks | low (AWS) | missing |
 | `deploy-release/references/feature-flags.md` | `deploy-release` | LaunchDarkly/Unleash/OpenFeature; flag lifecycle | medium | missing |
 
@@ -146,7 +154,6 @@ These have real content. The SKILL that cites them can load them via its `refere
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `ml-feature-engineering/references/feast.md` | `ml-feature-engineering` | Feast OSS feature store | high (self-host ML) | missing |
 | `ml-feature-engineering/references/tecton.md` | `ml-feature-engineering` | Tecton managed feature store | low | missing |
 | `ml-feature-engineering/references/vertex-fs.md` | `ml-feature-engineering` | Vertex AI Feature Store | medium (GCP) | missing |
 | `ml-feature-engineering/references/databricks-fs.md` | `ml-feature-engineering` | Databricks Feature Store | medium | missing |
@@ -156,7 +163,6 @@ These have real content. The SKILL that cites them can load them via its `refere
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `ml-monitoring-drift/references/evidently.md` | `ml-monitoring-drift` | Evidently OSS drift + reports | high (self-host) | missing |
 | `ml-monitoring-drift/references/whylabs.md` | `ml-monitoring-drift` | WhyLabs managed observability | low | missing |
 | `ml-monitoring-drift/references/arize.md` | `ml-monitoring-drift` | Arize AI managed monitoring | low | missing |
 | `ml-monitoring-drift/references/vertex-model-monitoring.md` | `ml-monitoring-drift` | Vertex Model Monitoring (GCP) | medium (GCP) | missing |
@@ -168,11 +174,9 @@ These have real content. The SKILL that cites them can load them via its `refere
 | `ml-serving-deployment/references/sagemaker.md` | `ml-serving-deployment` | SageMaker endpoints, MMEs, async | medium (AWS) | missing |
 | `ml-serving-deployment/references/vertex-ai.md` | `ml-serving-deployment` | Vertex AI prediction (GCP) | medium (GCP) | missing |
 | `ml-serving-deployment/references/azure-ml.md` | `ml-serving-deployment` | Azure ML endpoints | medium (Azure) | missing |
-| `ml-serving-deployment/references/kserve.md` | `ml-serving-deployment` | KServe (K8s-native model serving) | high (K8s) | missing |
 | `ml-serving-deployment/references/triton.md` | `ml-serving-deployment` | NVIDIA Triton Inference Server | medium | missing |
 | `ml-serving-deployment/references/bentoml.md` | `ml-serving-deployment` | BentoML packaging + serving | low | missing |
 | `ml-serving-deployment/references/ray-serve.md` | `ml-serving-deployment` | Ray Serve scaling | low | missing |
-| `ml-serving-deployment/references/batch-online-streaming.md` | `ml-serving-deployment` | Decision axis: when to choose each | high | missing |
 
 ### ML — training tracking
 
@@ -196,24 +200,17 @@ These have real content. The SKILL that cites them can load them via its `refere
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `performance-testing/references/k6.md` | `performance-testing` | Grafana k6 load testing (recommended default) | high | missing |
 | `performance-testing/references/gatling.md` | `performance-testing` | Gatling load testing (Scala/JVM) | low | missing |
 | `performance-testing/references/locust.md` | `performance-testing` | Locust load testing (Python) | medium | missing |
 
 ### Per-language standards variants
 
-These are cited by `code-review`, `secure-coding`, `testing-strategy` and should redirect to the corresponding `engineering-standards/references/` (which exist).
+`code-review` and `secure-coding` previously cited own-directory `java-spring.md` / `node-ts.md` / `python.md` / `web-frontend.md` files that never existed; both SKILL.md files now cite `../engineering-standards/references/<file>.md` directly (all four now shipping — see Shipping table), so there is nothing left missing for those two skills in this category.
+
+`testing-strategy` cites genuinely distinct, still-missing testing-framework references (not a redirect — these need real test-framework-specific content):
 
 | File | Cited by | Description | Priority | Status |
 |---|---|---|---|---|
-| `code-review/references/java-spring.md` | `code-review` | (redirect to engineering-standards) | low | missing |
-| `code-review/references/node-ts.md` | `code-review` | (redirect to engineering-standards) | low | missing |
-| `code-review/references/python.md` | `code-review` | (redirect to engineering-standards) | low | missing |
-| `code-review/references/web-frontend.md` | `code-review` | (redirect to engineering-standards/web) | low | missing |
-| `secure-coding/references/java-spring.md` | `secure-coding` | Spring Security idioms; common Java pitfalls | medium | missing |
-| `secure-coding/references/node-ts.md` | `secure-coding` | Node/TS security patterns; common npm risks | medium | missing |
-| `secure-coding/references/python.md` | `secure-coding` | Python security; common pickle/eval risks | medium | missing |
-| `secure-coding/references/web-frontend.md` | `secure-coding` | Frontend security: XSS, CSRF, CSP, SRI | medium | missing |
 | `testing-strategy/references/java-junit5.md` | `testing-strategy` | JUnit 5 + AssertJ + Testcontainers patterns | medium | missing |
 | `testing-strategy/references/node-vitest.md` | `testing-strategy` | Vitest + supertest patterns | medium | missing |
 | `testing-strategy/references/python-pytest.md` | `testing-strategy` | pytest + fixtures + parametrize | medium | missing |
@@ -234,8 +231,6 @@ These are cited by `code-review`, `secure-coding`, `testing-strategy` and should
 |---|---|---|---|---|
 | `secrets-config/references/azure-key-vault.md` | `secrets-config` | Azure Key Vault | medium (Azure) | missing |
 | `secrets-config/references/gcp-secret-manager.md` | `secrets-config` | GCP Secret Manager | medium (GCP) | missing |
-| `secrets-config/references/k8s-external-secrets.md` | `secrets-config` | External Secrets Operator | high (K8s) | missing |
-| `secrets-config/references/hashicorp-vault.md` | `secrets-config` | HashiCorp Vault (self-host or HCP) | high | missing |
 
 ### Stack — backend frameworks
 
@@ -264,3 +259,15 @@ When you discover a new reference need:
 3. Don't write the content yet — keep it as "missing" until a real project needs it.
 
 This keeps the inventory honest: never aspirational citations without a tracked TODO; never missing references without visibility.
+
+## Missing — untracked citations reconciled 2026-07-09
+
+| Reference | Cited by | Priority | Status | Notes |
+|---|---|---|---|---|
+| `adaptive-model-routing/references/llm-cost-optimization.md` | adaptive-model-routing | low | missing | Likely should cite the llm-cost-optimization SKILL instead of a reference file |
+| `factory-evaluation/references/factory-metrics-catalog.md` | factory-evaluation | medium | missing | Metrics catalog backing the factory scorecard |
+| `stack-flutter/references/riverpod.md` | stack-flutter | medium | missing | State management reference |
+| `stack-flutter/references/streaming-voice.md` | stack-flutter | low | missing | Streaming/voice UI patterns |
+| `stack-flutter/references/senior-first-ui.md` | stack-flutter | low | missing | Accessibility-first UI patterns |
+| `stack-node-ts/references/nestjs.md` | stack-node-ts | medium | missing | Framework variant reference |
+| `stack-java-spring/references/quarkus.md` | stack-java-spring | low | missing | Framework variant reference |

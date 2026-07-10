@@ -1,0 +1,165 @@
+# Workflow: spike
+# Time-boxed exploration to answer a question or test feasibility. Gates are
+# relaxed because the code is throwaway; the report is not. A spike NEVER
+# merges to a production branch — see the hard rule in notes.
+
+name: spike
+version: 1
+description: |
+  Time-boxed exploration: a question to answer or a feasibility bet to test,
+  with a declared time box (default 3 days). The build-to-learn loop produces
+  evidence, not production code. The spike report is the only artifact that
+  is allowed to outlive the spike; disposition (archive or promote) is an
+  explicit principal call, not an automatic outcome.
+
+entry_criteria:
+  - spike_question_or_feasibility_bet_identified == true
+  - time_box_declared == true   # default 3 days if not specified
+  - principal_intent_captured == true
+
+steps:
+  # ------------------------------------------------------------------
+  # Spike brief — what question, what evidence would answer it
+  # ------------------------------------------------------------------
+  - id: spike_topic_check
+    type: decision_node
+    predicate: spike_topic_class == product_or_market
+    branches:
+      true: [spike_brief_product]
+      false: [spike_brief_architecture]
+
+  - id: spike_brief_product
+    type: agent_invocation
+    agent: product-manager
+    skill: product-discovery
+    inputs:
+      principal_intent: from(principal_intent)
+      time_box: from(principal_intent.time_box)
+    outputs: [spike_brief]
+    notes: For market/product-shaped questions ("will users do X"). The brief names the question and what evidence would count as an answer — vague spikes never converge.
+
+  - id: spike_brief_architecture
+    type: agent_invocation
+    agent: solution-architect
+    skill: architecture-pattern-selection
+    inputs:
+      principal_intent: from(principal_intent)
+      time_box: from(principal_intent.time_box)
+    outputs: [spike_brief]
+    notes: For technical/feasibility questions ("can this library sustain our throughput"). Same brief discipline — question + evidence bar.
+
+  # ------------------------------------------------------------------
+  # Build-to-learn loop — bounded, evidence-exit, non-negotiable cap
+  # ------------------------------------------------------------------
+  - id: build_to_learn_loop
+    type: bounded_loop
+    agent: lead-developer
+    skill: source-grounded-coding
+    inputs:
+      spike_brief_from_product: from(spike_brief_product.spike_brief, if_exists)
+      spike_brief_from_architecture: from(spike_brief_architecture.spike_brief, if_exists)
+      time_box: from(principal_intent.time_box)
+    loop_contract:
+      exit_criteria:
+        - question_answered: "an evidence artifact exists and directly addresses the spike brief's question"
+        - time_box_expired: "the declared time box (default 3 days) has elapsed"
+      max_iterations: 5
+      on_no_progress: stop_and_flag
+      on_exhaustion: escalate_to_human
+    loop_state:
+      evidence_artifact:
+        initial: null
+        updated_by: build_to_learn_loop
+    outputs: [evidence_artifact, spike_learnings, iteration_count]
+    notes: |
+      Lead Developer dispatches whichever specialist fits the topic
+      (backend-developer, frontend-developer, ml-ai-engineer, data-engineer)
+      to write throwaway code that answers the question fastest. No PR, no
+      code-review or security-review gate — the code never goes to
+      production. The loop exits the moment the question is answered OR the
+      time box runs out, whichever comes first.
+
+  # ------------------------------------------------------------------
+  # Findings write-up
+  # ------------------------------------------------------------------
+  - id: findings_writeup
+    type: agent_invocation
+    agent: tech-writer
+    skill: technical-documentation
+    inputs:
+      spike_brief_from_product: from(spike_brief_product.spike_brief, if_exists)
+      spike_brief_from_architecture: from(spike_brief_architecture.spike_brief, if_exists)
+      evidence_artifact: from(build_to_learn_loop.evidence_artifact)
+      spike_learnings: from(build_to_learn_loop.spike_learnings)
+    outputs: [spike_report]
+    notes: |
+      The spike report contains: the answer to the brief's question, the
+      supporting evidence, what we'd do differently if this were built for
+      production (the throwaway code is never the answer to that), and an
+      estimated real cost to build it properly.
+
+  # ------------------------------------------------------------------
+  # Disposition — principal call, evidence-backed
+  # ------------------------------------------------------------------
+  - id: spike_disposition_gate
+    type: gate
+    name: spike_disposition
+    approver: governance.spike_disposition.approver
+    evidence:
+      - spike_report
+      - disposition_call   # explicit archive | promote, recorded at the gate
+
+  - id: disposition_decision
+    type: decision_node
+    predicate: spike_disposition_gate.disposition_call == promote
+    branches:
+      true: [promote_to_discovery]
+      false: [archive_spike]
+
+  - id: promote_to_discovery
+    type: agent_invocation
+    agent: delivery-lead
+    action: initiate_discovery_with_spike_report
+    inputs:
+      spike_report: from(findings_writeup.spike_report)
+    outputs: [discovery_entry_point]
+    notes: |
+      Promotion means the spike REPORT becomes an input to greenfield or
+      brownfield discovery — not that the spike code enters that codebase.
+      A fresh implementation is built from the requirements the report
+      informs, going through the full gate set from scratch.
+
+  - id: archive_spike
+    type: agent_invocation
+    agent: delivery-lead
+    action: archive_spike
+    inputs:
+      spike_report: from(findings_writeup.spike_report)
+    outputs: [archived_path]
+
+exit_criteria:
+  - spike_disposition_gate.cleared == true
+
+failure_paths:
+  time_box_exhausted_without_answer:
+    - force_findings_writeup_with_partial_evidence
+    - route_to: spike_disposition_gate
+    - notes: An inconclusive spike is still a spike; the report says so honestly.
+
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+notes: |
+  HARD RULE: spike code NEVER merges to a production branch. There is no
+  step in this workflow that opens a PR against a production repo, and none
+  should ever be added. Promotion means the spike report becomes an input to
+  greenfield/brownfield discovery — the code is deleted or left in a
+  throwaway branch/sandbox.
+
+  Relaxed by design: no code-review or security-review gate fires on spike
+  code. The build_to_learn_loop's loop_contract is the only hard control —
+  it caps iterations and forces an exit on evidence or time box, whichever
+  comes first. The spike_report is the one artifact this workflow insists
+  on: a spike with code but no report is an unfinished spike.

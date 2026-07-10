@@ -9,9 +9,9 @@ For any non-trivial task, consult `skills/using-praxis/SKILL.md` first. It conta
 Read `.project/semantic/project-charter.md` to know the project's flags (G/B mode, has_data_plane, has_ml, has_agentic_ai, compliance regimes, scale, availability).
 
 ## Library content
-- 80 SKILLs in `skills/<name>/SKILL.md`
-- 16 role agents in `agents/`
-- 5 workflows in `workflows/`
+- 89 SKILLs in `skills/<name>/SKILL.md`
+- 17 role agents in `agents/`
+- 9 workflows in `workflows/`
 - Governance in `governance/governance.yaml`
 - References in `references/`
 

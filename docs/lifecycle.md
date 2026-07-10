@@ -132,14 +132,16 @@ This is the self-improvement loop. **Today it's a structured manual review, not 
 
 | Gate | When fires | Closes with |
 |---|---|---|
-| `requirements_freeze` | End of Discovery | PM evidence pack approved |
-| `architecture_sign_off` | End of Architecture | SA + Challenger evidence approved |
-| `production_go_live` | Each release | 10-item evidence pack approved |
-| `responsible_ai_review` | If ML / agentic AI | 5 always + 5 conditional items |
-| `steward_promotion` | Quarterly | Per-proposal evidence packs |
-| `tenant_isolation_review` | If multi-tenant | Tenancy model + isolation evidence |
-| `hipaa_control_review` / `pci_scope_review` | Per regime | Regime-specific control matrices |
-| `capacity_stress_test` | If high QPS / availability | Load test + bottleneck analysis |
+| `requirements_freeze` (core) | End of Discovery | PM evidence pack approved |
+| `architecture_sign_off` (core) | End of Architecture | SA + Challenger evidence approved |
+| `challenger_objection_override` (core) | SA overrides a Challenger finding | ADR with rationale approved |
+| `security_finding_waiver` (core) | Security Reviewer finding risk-accepted, not fixed | Waiver + rationale approved |
+| `production_go_live` (core) | Each release | 10-item evidence pack approved |
+| `steward_promotion` (core) | Quarterly | Per-proposal evidence packs |
+| `responsible_ai_review` (conditional) | If ML / agentic AI | 5 always + 5 conditional items |
+| `tenant_isolation_review` (conditional) | If multi-tenant | Tenancy model + isolation evidence |
+| `hipaa_control_review` / `pci_scope_review` (conditional) | Per regime | Regime-specific control matrices |
+| `capacity_stress_test` (conditional) | If high QPS / availability | Load test + bottleneck analysis |
 
 Plus per-slice quality gates (Code Review, Security Review, QA) — these don't have evidence packs at the same level; they're verdicts that gate merge.
 

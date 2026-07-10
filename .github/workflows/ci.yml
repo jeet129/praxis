@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Shell syntax check (scripts/*.sh)
+        run: |
+          set -e
+          for f in scripts/*.sh; do
+            echo "bash -n $f"
+            bash -n "$f"
+          done
+
+      - name: Validate skills (structure + line budget)
+        run: bash scripts/validate-skills.sh
+
+      - name: Validate manifests
+        run: bash scripts/validate-manifests.sh
+
+      - name: Validate model routing (--check)
+        run: python3 scripts/apply-model-routing.py --check
+
+      - name: Build registry (--check)
+        run: python3 scripts/build-registry.py --check
+
+      - name: Validate workflows
+        run: python3 scripts/validate-workflows.py
+
+      - name: Validate references
+        run: python3 scripts/validate-references.py
+
+      - name: Factory routing report smoke test (fail-soft on repos with no telemetry)
+        run: python3 scripts/factory-routing-report.py --project-dir . --format json --out /tmp/ci-report.json
+
+      - name: Drive runner dry-run smoke test (scripts/praxis-drive.sh)
+        run: |
+          set -e
+          FIXTURE=/tmp/drive-test
+          rm -rf "$FIXTURE"
+          mkdir -p "$FIXTURE/.project/working"
+          cat > "$FIXTURE/.project/working/slice-T1-tasks.yaml" <<'EOF'
+          slice: T1
+          packet: .project/working/slice-T1-packet.md
+          opened: 2026-07-10
+          tasks:
+            - id: T1-1
+              summary: "CI fixture task"
+              agent: backend-developer
+              tier: standard
+              ac:
+                - "placeholder"
+              verify: "true"
+              depends_on: []
+              status: open
+              attempts: 0
+              notes: ""
+          gates:
+            code_review: pending
+            security_review: n/a
+            qa: pending
+          state: open
+          stop_flags: []
+          EOF
+
+          set +e
+          bash scripts/praxis-drive.sh --project-dir "$FIXTURE" --dry-run --max-iterations 1
+          rc=$?
+          set -e
+
+          echo "praxis-drive.sh exit code: $rc"
+          # A single-iteration dry-run always hits the run-budget cap on the
+          # next loop check (no harness actually ran to advance the ledger),
+          # which is exit 4 (run_budget). Any other exit code is a regression.
+          if [ "$rc" -ne 4 ]; then
+            echo "ERROR: expected exit code 4 (run budget reached), got $rc"
+            exit 1
+          fi
+
+          if [ ! -f "$FIXTURE/.project/telemetry/drive.jsonl" ]; then
+            echo "ERROR: $FIXTURE/.project/telemetry/drive.jsonl was not created"
+            exit 1
+          fi
+
+          lines=$(wc -l < "$FIXTURE/.project/telemetry/drive.jsonl")
+          if [ "$lines" -lt 1 ]; then
+            echo "ERROR: drive.jsonl has no telemetry records"
+            exit 1
+          fi
+          echo "OK: drive.jsonl has $lines record(s)"
+
+      - name: Executable bits present on scripts and hooks
+        run: |
+          set -e
+          fail=0
+          for f in install.sh try-as-plugin.sh scripts/*.sh scripts/*.py hooks/*.sh .githooks/pre-commit; do
+            [ -e "$f" ] || continue
+            if [ ! -x "$f" ]; then echo "NOT EXECUTABLE: $f"; fail=1; fi
+          done
+          exit $fail
+
+      - name: Codex plugin package is fresh (rebuild must produce no diff)
+        run: |
+          set -e
+          bash scripts/build-codex-plugin.sh
+          if ! git diff --quiet plugins/praxis-codex/; then
+            echo "ERROR: plugins/praxis-codex/ is stale — run scripts/build-codex-plugin.sh and commit the result."
+            git diff --stat plugins/praxis-codex/ | tail -20
+            exit 1
+          fi
+          bash scripts/validate-codex-plugin.sh
+
+      - name: Telemetry path consistency (single source of truth)
+        run: |
+          set -e
+          # The only sanctioned routing-log path is .project/telemetry/model-routing.jsonl.
+          if grep -rn "model-routing-log\.yaml\|working/model-routing" \
+               --include="*.md" --include="*.yaml" --include="*.sh" --include="*.py" \
+               agents/ skills/ commands/ docs/ governance/ hooks/ scripts/ README.md PLAYBOOK.md INSTALLATION.md 2>/dev/null; then
+            echo "ERROR: stale model-routing log path found (use .project/telemetry/model-routing.jsonl)."
+            exit 1
+          fi
+
+      - name: Installer references resolve (files install.sh copies must exist)
+        run: |
+          set -e
+          # Every quoted repo path that install.sh copies must exist.
+          fail=0
+          for p in $(grep -oE '"\$LIBRARY_ROOT/[^"]+"' install.sh | sed 's|"\$LIBRARY_ROOT/||; s|"$||' | sort -u); do
+            case "$p" in *'$'*) continue;; esac   # skip paths built from shell variables
+            if [ ! -e "$p" ]; then echo "MISSING (referenced by install.sh): $p"; fail=1; fi
+          done
+          exit $fail

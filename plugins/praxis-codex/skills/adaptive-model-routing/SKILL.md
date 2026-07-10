@@ -1,6 +1,6 @@
 ---
 name: adaptive-model-routing
-description: "Routes tasks to the right OpenAI reasoning-effort tier (high / medium / low) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
+description: "Routes tasks to the right reasoning-effort tier (high / medium / low — the Codex resolution of Praxis capability tiers deep / standard / light per governance/model-routing.yaml) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
 ---
 
 # Adaptive Model Routing (Codex variant)
@@ -26,7 +26,7 @@ outputs:
   - reasoning-effort selection (per session or specialist launch)
   - complexity score + rationale
   - escalation recommendation (when prior attempt fails)
-  - routing log entry at .project/working/model-routing-log.yaml
+  - routing log entry at .project/telemetry/model-routing.jsonl
 consumers:
   - delivery-lead (primary — runs this SKILL before every specialist launch)
   - using-praxis (consumes routing decision when selecting reasoning effort for orchestration)
@@ -141,35 +141,29 @@ Per-agent defaults are captured in each specialist's `codex-agents/<name>.toml` 
 
 ## Per-agent default assignments
 
-Each Codex agent has a canonical reasoning tier declared in `codex-agents/<name>.toml` via `model_reasoning_effort`. The current defaults:
+Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasoning_effort` GENERATED from the canonical agent's `capability_tier` via `governance/model-routing.yaml`:
 
-| Agent | Default `model_reasoning_effort` | Why |
-|---|---|---|
-| delivery-lead | medium | Orchestration is mostly routing decisions; escalate for cross-cutting routing calls |
-| product-manager | **high** | Discovery + elicitation depth-of-questioning benefits from high reasoning on ambiguous briefs |
-| solution-architect | **high** | Architecture decisions are irreversible |
-| architecture-challenger | **high** | Adversarial depth is the role's value |
-| lead-developer | **high** | Task decomposition across specialists surfaces cross-cutting risks; high reasoning catches more |
-| backend-developer | medium | Implementation is pattern-matching |
-| frontend-developer | medium | Same |
-| data-engineer | **high** | Data-plane design (models + pipelines + quality) has high blast radius; conservative default |
-| ml-ai-engineer | **high** | Research-heavy, novel problems, eval design |
-| code-reviewer | **high** | Missing a bug in review is expensive |
-| security-reviewer | **high** | Adversarial + high-stakes; false negatives catastrophic |
-| qa-engineer | medium | Test writing is mechanical translation |
-| tech-writer | medium | Translation task |
-| platform-sre | **high** | Infra + reliability + secrets + observability wiring — mistakes cost incidents |
-| ux-designer | medium | Structured design |
-| system-steward | **high** | Library evolution decisions across projects |
+| Agent | Tier | `model_reasoning_effort` | Why |
+|---|---|---|---|
+| delivery-lead | deep | high | Orchestration routing compounds; wrong routes waste hours |
+| product-manager | standard | medium | Structured elicitation is mechanical after first pass; escalate on vague briefs per fast-path |
+| solution-architect | deep | high | Architecture decisions are irreversible |
+| architecture-challenger | deep | high | Adversarial depth is the role's value |
+| lead-developer | standard | medium | Task decomposition against defined spec is execution |
+| backend-developer | standard | medium | Implementation is pattern-matching against the packet |
+| frontend-developer | standard | medium | Same |
+| mobile-developer | standard | medium | Same — implementation against the packet and stack-flutter |
+| data-engineer | standard | medium | Pipeline implementation is mostly mechanical; escalate high-blast-radius designs |
+| ml-ai-engineer | deep | high | Research-heavy, novel problems, eval design |
+| code-reviewer | deep | high | Missing a bug in review is expensive |
+| security-reviewer | deep | high | Adversarial + high-stakes; false negatives catastrophic |
+| qa-engineer | standard | medium | Test code is mechanical; test design stays standard |
+| tech-writer | light | low | Translation/formatting task; promote for novel architecture docs |
+| platform-sre | standard | medium | Mostly execution; escalate for incidents per fast-path |
+| ux-designer | standard | medium | Structured design |
+| system-steward | standard | medium | Digest + proposal work; promotions are human-gated anyway |
 
-Result: **10 high / 6 medium.** More conservative than the Claude Code variant (which is 7 opus / 9 sonnet).
-
-**Why the Codex defaults are more high-heavy than the Claude Code defaults:**
-- Codex CLI cost varies with reasoning effort; the previous configuration prioritized quality on higher-blast-radius roles (data-engineer, platform-sre, product-manager, lead-developer) rather than saving cost on them.
-- These are all roles where a wrong decision costs multi-day cleanup; the routing rubric would have scored them 6-7 on stakes anyway.
-- Users on tighter Codex budgets can override in `.project/procedural/model-routing-overrides.md` — the routing SKILL will honor the override.
-
-To change a default, edit the corresponding `.toml` in `codex-plugin-assets/codex-agents/` AND this table, then re-run `scripts/build-codex-plugin.sh` to regenerate the plugin package.
+Result: **6 high / 10 medium / 1 low** — identical tier assignments to every other harness, resolved from each agent's `capability_tier` by `scripts/apply-model-routing.py`. Do not edit `codex-agents/*.toml` reasoning efforts by hand; change the tier in the canonical agent or the mapping in `governance/model-routing.yaml` and re-run the script.
 
 ---
 
@@ -191,7 +185,7 @@ codex --agent codex-agents/backend-developer.toml --model-reasoning-effort high
 The routing decision is made BEFORE the `codex` invocation. Log it:
 
 ```yaml
-# .project/working/model-routing-log.yaml (append each entry)
+# .project/telemetry/model-routing.jsonl (append each entry)
 - timestamp: 2026-07-02T10:00:00
   agent: solution-architect
   task: "architecture-pattern-selection for payment service"
@@ -254,7 +248,7 @@ Escalation logs feed the fast-path rules above. Three escalations on the same ta
 
 Codex API cost scales roughly linearly with reasoning effort. When API spend is running high:
 
-1. Audit what's been using high. Check `.project/working/model-routing-log.yaml`.
+1. Audit what's been using high. Check `.project/telemetry/model-routing.jsonl`.
 2. Identify tasks that could have been medium (score ≤ 6 that were routed to high by habit).
 3. Tighten the default: treat score 7 as "medium with elevated review" rather than automatic high, reserving high for 8+.
 4. **Never downgrade these regardless of cost:** threat-modeling, architecture sign-off for systems > 2 flags, P0 post-mortems, escalations after medium failure.
@@ -320,7 +314,7 @@ Steps where reasoning tier is always fixed (no evaluation needed):
 
 | Output | Location |
 |---|---|
-| Per-session routing decision | `.project/working/model-routing-log.yaml` |
+| Per-session routing decision | `.project/telemetry/model-routing.jsonl` |
 | Escalation log | `.project/episodic/model-escalations.md` |
 | Fast-path overrides (project-local) | `.project/procedural/model-routing-overrides.md` |
 

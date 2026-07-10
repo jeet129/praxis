@@ -52,6 +52,24 @@ The planner consumes:
 
 The planner can be invoked with partial inputs — it produces the *most-instantiated* workflow possible given what's available, and the orchestrator re-plans when more inputs arrive.
 
+## Workflow-selection table
+
+Which template to instantiate, keyed off the scenario signal:
+
+| Scenario signal | Template |
+|---|---|
+| Vague idea, nothing scoped yet | `ideation-refinement-loop` |
+| New API service, requirements clear | `greenfield-api-service` |
+| New product / SaaS | `greenfield-saas` |
+| Feature on an existing system | `brownfield-enhancement` |
+| P0/P1 emergency (or critical security patch) | `expedited-change` |
+| Feasibility / "can we even do X" question | `spike` |
+| Legacy system replacement | `modernization` |
+| Per-slice execution (any template above) | `implementation-slice` (sub-workflow) |
+| Ready to ship | `production-release` |
+
+Selection signals come from `requirements-intake`, incident severity, or characterization flags (e.g. brownfield comprehension's characterization output); when two templates fit, gate topology decides — see `skills/using-praxis/SKILL.md`'s Workflow composition policy.
+
 ## Outputs
 
 The output is a workflow *instance* — same shape as a template but with:

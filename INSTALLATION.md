@@ -12,19 +12,19 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 
 Before installing, calibrate expectations. The library ships with:
 
-✅ **83 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
-✅ **16 role agents** the AI can adopt, each with a `model:` default (7 Opus / 9 Sonnet).
-✅ **5 workflows** orchestrating multi-step delivery.
-✅ **8 slash commands** that map intent to skill sequences (including `/factory-record` for rich telemetry observations).
+✅ **88 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
+✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 6 `deep`, 10 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
+✅ **6 workflows** orchestrating multi-step delivery.
+✅ **10 slash commands** that map intent to skill sequences: `/start /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record`.
 ✅ **6 hook subscriptions** (SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop) driving a universal artifact tap.
-✅ **Adaptive model routing** (`adaptive-model-routing` SKILL + per-agent frontmatter) — routes each specialist to Opus or Sonnet (or in Codex, high/medium reasoning-effort) based on task complexity.
-✅ **Telemetry capture pipeline** — every SKILL / agent / workflow / command invocation logs to `.project/operational/factory-metrics/` via `scripts/factory-record.sh`. ~97% capture rate on Claude Code.
+✅ **Capability-tier routing** — `governance/model-routing.yaml` resolves each agent's tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/flash/flash-lite), applied by `scripts/apply-model-routing.py`. At runtime `delivery-lead` shifts ±1 tier per task via the `adaptive-model-routing` rubric.
+✅ **Telemetry stack, three layers** — (a) usage records: `hooks/tap.sh` → `scripts/factory-record.sh` → `.project/operational/factory-metrics/`; (b) structured spawn events: `.project/telemetry/agent-spawns.jsonl` (deterministic, hook-written); (c) routing decisions: `.project/telemetry/model-routing.jsonl` + `.project/working/routing-*.md` (written by delivery-lead discipline). Full explanation in `docs/telemetry.md`.
 ✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry.
-✅ **Frequency reporter** — `scripts/factory-frequency.sh` aggregates usage per SKILL / period.
+✅ **Frequency + routing reporters** — `scripts/factory-frequency.sh` aggregates usage per SKILL / period; `scripts/factory-aging.sh` checks coverage; `scripts/factory-routing-report.py` cross-checks spawn events against logged routing decisions.
 ✅ **Governance gates** with evidence packs.
 ✅ **Project memory taxonomy** (six types).
-✅ **Skill validator script.**
-✅ **Pre-commit hook** that auto-rebuilds the Codex plugin package (`plugins/praxis-codex/`) whenever canonical source changes.
+✅ **Validator suite** — `scripts/validate-skills.sh`, `validate-workflows.py`, `validate-references.py`, `validate-manifests.sh`, `validate-codex-plugin.sh`. See `CONTRIBUTING.md` for what each checks.
+✅ **Git hooks** — `scripts/install-git-hooks.sh` wires `.githooks/pre-commit`, which auto-rebuilds the Codex plugin package (`plugins/praxis-codex/`), validates it, and reminds you to update docs when core artifacts change.
 
 The library does NOT ship with:
 
@@ -100,8 +100,8 @@ ls agents/
 
 Expected:
 - README.md, PLAYBOOK.md (this file too), install.sh, uninstall.sh are present
-- `skills/` has 84 subdirectories (83 active + 1 tombstone)
-- `agents/` has 16 .md files
+- `skills/` has 88 subdirectories (all active)
+- `agents/` has 17 .md files
 
 If anything is missing, re-download or restore.
 
@@ -128,9 +128,9 @@ Expected output:
 ```
 ==> Installing Claude Code layout → /home/you/dev/test-aidp/.claude
   [dry-run] would create /home/you/dev/test-aidp/.claude
-  [dry-run] would copy agents/ (16 files)
-  [dry-run] would copy skills/ (83 active; skipped 1 tombstones)
-  [dry-run] would copy workflows/ (5 files)
+  [dry-run] would copy agents/ (17 files)
+  [dry-run] would copy skills/ (88 active; skipped 0 tombstones)
+  [dry-run] would copy workflows/ (6 files)
   ...
 ==> Creating project memory tree → /home/you/dev/test-aidp/.project
   [dry-run] would create /home/you/dev/test-aidp/.project (17 subdirs)
@@ -169,16 +169,16 @@ ls -la .claude/
 #           hooks/ scripts/ commands/ .claude-plugin/ README.md PLAYBOOK.md
 
 find .claude/skills -name SKILL.md | wc -l
-# Expected: 83
+# Expected: 88
 
 find .claude/agents -name '*.md' | wc -l
-# Expected: 16
+# Expected: 17
 
 find .claude/workflows -name '*.yaml' | wc -l
-# Expected: 5
+# Expected: 6
 
 ls .claude/commands/
-# Expected: 8 .md files (start, discover, architect, slice, release, audit, steward, factory-record)
+# Expected: 10 .md files (start, discover, architect, audit, slice, release, review, steward, refine-idea, factory-record)
 
 find .project -type d | wc -l
 # Expected: 18 (the root + 17 subdirs)
@@ -187,7 +187,7 @@ find .project -type d | wc -l
 **Check 2 — Validator passes:**
 ```bash
 bash .claude/scripts/validate-skills.sh ~/dev/test-aidp/.claude
-# Expected: "✓ Library health: 83 active skills in target 70-90 band."
+# Expected: "✓ Library health: 88 active skills in target 70-90 band."
 # Failures = 0
 ```
 
@@ -235,9 +235,9 @@ The bundled `try-as-plugin.sh` script:
 Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `--help`.
 
 **What you get with plugin-dir loading:**
-- All 83 SKILLs available.
-- All 16 agents available.
-- All 8 slash commands available (`/start`, `/discover`, etc.).
+- All 88 SKILLs available.
+- All 17 agents available.
+- All 10 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
 - Governance gates accessible.
 
@@ -262,15 +262,15 @@ Confirm you can see the Praxis. Specifically:
 1. List the slash commands available in .claude/commands/.
 2. Read .claude/skills/using-praxis/SKILL.md and summarize the
    intent → workflow routing.
-3. Read .claude/governance/governance.yaml and list the 7 active gates +
-   4 conditional gates.
+3. Read .claude/governance/governance.yaml and list the 6 core gates +
+   5 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 8 slash commands, 83 SKILLs, 16 agents, governance gates as listed.
+Expected: 10 slash commands, 88 SKILLs, 17 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 8 slash commands, the workflow routing tree, 7+4 gates, 83 SKILLs, 16 agents.
+Expected response from Claude: lists 10 slash commands, the workflow routing tree, 6+5 gates (11 total), 88 SKILLs, 17 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 
@@ -366,12 +366,12 @@ If you can't get auto-firing to work, you can still paste the hook output manual
 
 ### Problem: Slash commands not recognized
 
-Claude Code reads commands from `.claude/commands/*.toml`.
+Claude Code reads commands from `.claude/commands/*.md` (Markdown with YAML frontmatter; the TOML variants live in `.gemini/commands/` for Gemini CLI).
 
 **Diagnosis:**
 ```bash
 ls .claude/commands/
-# Should show: start.toml architect.toml audit.toml discover.toml release.toml slice.toml steward.toml
+# Should show: architect.md audit.md discover.md factory-record.md refine-idea.md release.md review.md slice.md start.md steward.md
 ```
 
 **Fixes:**
@@ -618,10 +618,10 @@ For quick reference when you're looking at the installed `.claude/` tree:
 | Artifact | What it does | When you'd touch it |
 |---|---|---|
 | `.claude/agents/*.md` | Role-agent definitions. | Customize an agent's working style. |
-| `.claude/skills/*/SKILL.md` | The 83 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
+| `.claude/skills/*/SKILL.md` | The 88 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
 | `.claude/workflows/*.yaml` | Multi-step orchestrations. | Customize phase ordering or add a new workflow for a recurring pattern. |
 | `.claude/governance/governance.yaml` | Gate definitions + approver matrix. | Customize gate evidence requirements or approver routing. |
-| `.claude/commands/*.toml` | Slash commands. | Add a slash command for a recurring activity. |
+| `.claude/commands/*.md` | Slash commands. | Add a slash command for a recurring activity. |
 | `.claude/hooks/session-start.sh` | The SessionStart hook. | Add additional context surfacing. |
 | `.claude/scripts/validate-skills.sh` | Skill validator. | Extend with project-specific frontmatter checks. |
 | `.claude/references/*.md` | Cross-cutting references. | Add a checklist that multiple SKILLs reference. |

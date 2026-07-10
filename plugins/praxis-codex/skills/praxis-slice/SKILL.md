@@ -36,19 +36,33 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
    2. Launch lead-developer FIRST (codex-agents/lead-developer.toml).
       Give it the slice spec, AC, and touched modules. Wait for its
       output — the implementation packet at
-      .project/working/slice-<slice-id>-packet.md, which includes:
+      .project/working/slice-<slice-id>-packet.md AND the task ledger
+      at .project/working/slice-<slice-id>-tasks.yaml, which include:
         - decomposed tasks per specialist
-        - dependencies between tasks
+        - dependencies between tasks (on ARTIFACTS, not on agents
+          finishing: FE depends on the API contract task, not on the
+          backend implementation; test scaffolding depends on AC +
+          contract, not on code)
         - relevant NFRs
         - test-plan skeleton
 
-   3. ONLY AFTER the packet exists, launch specialist sessions
-      (backend-developer, frontend-developer, data-engineer,
-      ml-ai-engineer) per the decomposition. For each, pass the
-      specialist's portion of the packet as its input. Launch in
-      parallel where the decomposition allows.
+   3. ONLY AFTER the packet + ledger exist, dispatch specialists.
+      PREFERRED (two-tier, canonical): lead-developer dispatches the
+      specialist sessions itself per the ledger DAG, launching
+      parallel-safe tasks concurrently (FE + BE + mobile + test
+      scaffolding all start once the contract tasks land), and runs
+      integration validation when they report back, then reports
+      slice completion to you.
+      FALLBACK (only if this Codex environment cannot nest session
+      launches from the lead-developer session): you launch the
+      specialist sessions yourself — but strictly per lead-developer's
+      ledger DAG and parallelism plan, never your own decomposition,
+      and you hand lead-developer the specialists' outputs for
+      integration validation before proceeding.
 
-   4. When every specialist has produced a PR, launch (in parallel):
+   4. When lead-developer reports integration-validated completion
+      (every specialist task done, slice composes end-to-end),
+      launch (in parallel):
         - code-reviewer for every PR
         - security-reviewer if the slice is security-bearing
           (touches auth, data-handling, public surface, deps,
@@ -71,7 +85,8 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 ## What you must not do
 
 - Do NOT launch backend-developer, frontend-developer, data-engineer, or ml-ai-engineer sessions directly. Delegate through delivery-lead.
-- Do NOT launch code-reviewer, security-reviewer, or qa-engineer sessions directly. delivery-lead launches them at the review-gate step.
+- Do NOT launch code-reviewer, security-reviewer, or qa-engineer sessions directly. delivery-lead launches them at the review-gate step, after lead-developer reports integration-validated completion.
+- Do NOT serialize frontend/test work on backend implementation completion. The dependency is the contract artifact (OpenAPI spec, schema), which lands early; parallelize from that point.
 - Do NOT skip lead-developer. The implementation packet is the artifact reviewers consume; without it, review can't happen.
 - Do NOT collapse owner and reviewer roles.
 

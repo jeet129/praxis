@@ -181,55 +181,7 @@ Cost estimation runs in CI on every IaC PR (Infracost, Pulumi's cost preview, cl
 
 ## Module composition pattern
 
-Environments compose modules with environment-specific parameters:
-
-```
-# Conceptual — see references for Terraform / Pulumi specifics
-
-environment "production" {
- network = module "network" {
- cidr = "10.0.0.0/16"
- az_count = 3
- }
-
- cluster = module "cluster" {
- network_id = network.id
- node_pool_size = 10
- node_instance_type = "m5.2xlarge"
- autoscaler_max = 50
- }
-
- secret_store = module "secret-store" {
- network_id = network.id
- rotation_enabled = true
- }
-
- database = module "database" {
- network_id = network.id
- instance_class = "db.r5.2xlarge"
- multi_az = true
- backup_retention_days = 30
- }
-}
-
-environment "dev" {
- network = module "network" {
- cidr = "10.10.0.0/16"
- az_count = 1
- }
-
- cluster = module "cluster" {
- network_id = network.id
- node_pool_size = 2
- node_instance_type = "t3.medium"
- autoscaler_max = 5
- }
-
- # ... smaller / cheaper variants
-}
-```
-
-Same modules; different parameters per environment.
+Environments compose modules with environment-specific parameters (same modules; different parameters per environment). See `references/terraform.md` (State backend / Workspaces sections) and `references/pulumi.md` (Stack composition / Stack config sections) for the full worked production vs. dev examples.
 
 ## Outputs
 

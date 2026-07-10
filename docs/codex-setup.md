@@ -108,3 +108,17 @@ For maintainer build and release details, see `docs/plugin-builds.md`.
 ## Legacy Installer
 
 `install.sh --tool=codex` is the older `.team/` + `AGENTS.md` copy-based setup. Prefer the plugin marketplace path above for Codex distribution.
+
+## Verify your install
+
+```text
+/plugins
+```
+
+Confirm `praxis-codex` shows as installed. Then, in a Codex session:
+
+```text
+$praxis-start
+```
+
+You should see the delivery-planner bootstrap questions (mode, data plane, ML, compliance, scale, stack) — the same interview Claude Code's `/start` runs. If `$praxis-*` commands aren't recognized, re-run `$praxis-setup-subagents` and start a new Codex session (subagent profiles only load at session start).

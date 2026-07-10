@@ -104,16 +104,25 @@ steps:
     inputs:
       implementation_packet: from(build_implementation_packet.implementation_packet)
       ux_handoff: from(ux_handoff.outputs, if_exists)
-    outputs: [task_dag, specialist_assignments, dependency_graph]
+    outputs: [task_dag, specialist_assignments, dependency_graph, task_ledger]
     notes: |
       Lead Developer maps the slice to per-specialist tasks with inputs/outputs/AC
-      mapping and dependency sequencing.
+      mapping and dependency sequencing. Also emits the machine-readable task_ledger
+      (.project/working/slice-<id>-tasks.yaml, per references/loop-contracts.md §2) —
+      the fuel for drive-mode execution of this slice.
 
   # ------------------------------------------------------------------
-  # Parallel implementation by active specialists
+  # Parallel implementation by active specialists.
+  # DISPATCH OWNERSHIP: lead-developer dispatches these branches per its
+  # ledger DAG and validates integration when they complete (two-tier
+  # hierarchy). delivery-lead dispatches only as a fallback on harnesses
+  # that cannot nest agent spawns — and then strictly per the ledger.
+  # Parallelism rule: branch dependencies are on CONTRACT ARTIFACTS
+  # (API spec, schema), not on sibling implementations finishing.
   # ------------------------------------------------------------------
   - id: implementation_parallel
     type: parallel
+    owner: lead-developer
     branches:
       - condition: task_dag.has_backend_tasks
         id: backend_implementation
@@ -232,7 +241,7 @@ steps:
     inputs:
       image_digest: from(cicd_pipeline_run.signed_image_digest)
       environment: staging
-      strategy: from(release_strategy_adr.staging_strategy)   # typically rolling for staging
+      strategy: from(parent.release_strategy_adr.staging_strategy)   # release-strategy ADR from .project/decision memory; typically rolling for staging
     outputs:
       - staging_deployment_id
       - staging_rollout_state   # progressing | succeeded | failed
@@ -387,6 +396,18 @@ failure_paths:
         cycles without resolution, escalates to the principal — repeated failures
         usually mean the slice is over-scoped, the AC is unclear, or there's a
         deeper architectural issue.
+    # This implement→review→fix cycle is a failure-path primitive (retry_n), not a
+    # `bounded_loop` step type — the loop_contract below still applies per
+    # references/loop-contracts.md §1, so drive-mode iterations can enforce it.
+    - loop_contract:
+        exit_criteria:
+          - tests_pass: "verify command exits 0"
+          - no_blocker_findings: "review verdict file contains no BLOCK"
+          - dod_met: "definition-of-done checklist satisfied for the slice"
+        max_iterations: 3
+        on_no_progress: stop_and_flag
+        on_exhaustion: escalate_to_human
+        escalation: promote_one_tier_and_retry_once
 
   escalate:
     - pause_workflow

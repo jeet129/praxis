@@ -34,12 +34,15 @@ agy plugin install ./praxis
 
 ## Slash commands
 
-Same 7 as Claude Code, copied to `commands/` at repo root:
-`/start /discover /architect /slice /release /audit /steward`
+Same 10 as Claude Code, copied to `commands/` at repo root:
+`/start /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record`
 
-## Sanity check
+## Verify your install
 
+Type:
 ```
 "Confirm plugin.json is loaded and the Praxis is available.
 Read skills/using-praxis/SKILL.md and summarize the routing tree."
 ```
+
+You should see: a routing summary mapping intents to workflows, agents, and skills. List `commands/` — you should see 10 `.md` files. If `plugin.json` isn't picked up, confirm it's at repo root next to `agents/`, `skills/`, `commands/`.

@@ -2,6 +2,8 @@
 
 The Praxis is **tool-agnostic content** (skills, agents, workflows, governance, references) wrapped in **tool-specific addressing** for 8 AI coding tools.
 
+New here? Start with [`quickstart.md`](quickstart.md) instead — the 5-minute path to a first `/discover` run on Claude Code. This page is the wider tool-by-tool map.
+
 ## Choose your tool
 
 | Tool | Setup guide |
@@ -37,16 +39,16 @@ Flags: `--dry-run` (preview), `--force` (overwrite), `--user` (Claude Code user-
 
 Same content, different addressing:
 
-- **83 active SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
-- **16 role agents** with per-role model defaults (7 Opus / 9 Sonnet) — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML/AI specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, UX Designer, System Steward.
-- **5 workflows** — greenfield-api-service, greenfield-saas, brownfield-enhancement, implementation-slice, production-release.
-- **Governance** — 7 active gates + 4 conditional gates with approver matrix and evidence packs.
-- **Adaptive model routing** — `adaptive-model-routing` SKILL uses a 5-signal complexity rubric to route each specialist to Opus / Sonnet / Haiku (Claude Code) or high / medium / low reasoning effort (Codex).
-- **8 slash commands** — `/start /discover /architect /slice /release /audit /steward /factory-record`.
+- **88 active SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
+- **17 role agents**, each declaring an abstract `capability_tier` (`deep | standard | light`) instead of a hardcoded model — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML-AI / Mobile specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, UX Designer, System Steward.
+- **6 workflows** — greenfield-api-service, greenfield-saas, brownfield-enhancement, implementation-slice, production-release, ideation-refinement-loop.
+- **Governance** — 11 gates (6 core + 5 conditional) with approver matrix and evidence packs.
+- **Capability-tier model routing** — `governance/model-routing.yaml` maps each tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/-flash/-flash-lite); `adaptive-model-routing` SKILL shifts the tier ±1 per task at runtime. See [`model-routing.md`](model-routing.md).
+- **10 slash commands** — `/start /discover /architect /slice /release /audit /steward /review /refine-idea /factory-record`.
 - **6 hook subscriptions** — SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop; drive a universal artifact tap that captures ~97% of plugin-artifact invocations to `.project/operational/factory-metrics/`.
-- **Telemetry helpers** — `factory-record.sh`, `factory-aging.sh` (coverage gate), `factory-frequency.sh` (usage aggregation).
-- **Skill validator** — checks all SKILL.md frontmatter; passes 83/83.
-- **Pre-commit hook** — auto-rebuilds `plugins/praxis-codex/` when canonical source changes. Install with `scripts/install-git-hooks.sh`.
+- **Telemetry, three layers** — usage records, structured spawn events, and routing decisions. `factory-record.sh`, `factory-aging.sh` (coverage gate), `factory-frequency.sh` (usage aggregation), `factory-routing-report.py` (cost/routing report). See [`telemetry.md`](telemetry.md).
+- **Validator suite** — `validate-skills.sh`, `validate-manifests.sh`, `validate-workflows.py`, `validate-references.py`, `apply-model-routing.py --check`, `build-registry.py --check`, `validate-codex-plugin.sh`. All run in CI.
+- **Pre-commit hook** — auto-rebuilds `plugins/praxis-codex/` when canonical source changes and reminds you to update docs when core artifacts change without a doc change. Install with `scripts/install-git-hooks.sh`.
 - **Project memory tree** — 17 directories under `.project/` for six-type memory taxonomy.
 - **README.md** + **PLAYBOOK.md** — operating documentation.
 

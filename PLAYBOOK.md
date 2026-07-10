@@ -6,6 +6,18 @@ This playbook assumes you've read the `README.md` at least once.
 
 ---
 
+## 0. Looking for a specific scenario?
+
+If you already know which situation you're in — greenfield from an idea,
+brownfield first week, overnight drive run, hotfix, release, quarterly
+review, cost tuning, and so on — go straight to
+[`docs/scenarios.md`](docs/scenarios.md). It's a scenario-by-scenario index:
+entry point, what runs, where you approve something, and what lands where.
+This playbook is the deeper narrative version of the same material; the
+scenario doc is the fast lookup.
+
+---
+
 ## 1. What this playbook is
 
 A hands-on operating guide. It answers questions you'll have during use:
@@ -113,7 +125,7 @@ and skills, and tell me which roles and which skills are available. Then read
 the governance.yaml and summarize the active gates.
 ```
 
-You should see Claude Code list **16 agents**, **77 skills**, and the **7 active governance gates** (plus 4 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
+You should see Claude Code list **17 agents**, **89 skills**, and the **6 core governance gates** (plus 11 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
 
 ---
 
@@ -141,7 +153,7 @@ Four layers. Each invocation flows top-down.
 └────────────────────────┬────────────────────────────────┘
                          │ consume
 ┌────────────────────────▼────────────────────────────────┐
-│ SKILLS — the 83 SKILL.md bundles                        │
+│ SKILLS — the 89 SKILL.md bundles                        │
 │   (foundation, lifecycle, discovery, architecture,      │
 │    stack packs, quality+security, build+deploy,         │
 │    infra, ops, data, ml, agentic-ai, maintenance, ...)  │
@@ -159,7 +171,9 @@ Two cross-cutting layers wrap around these four:
 
 ```
        ↕ before every sub-agent spawn: adaptive-model-routing
-         (5-signal score → opus / sonnet / haiku model choice)
+         (5-signal score → ±1 shift from the agent's default capability_tier:
+          deep / standard / light, resolved to a concrete model per harness
+          via governance/model-routing.yaml)
 
        ↕ after every artifact use: hooks/tap.sh + factory-record.sh
          (writes .project/operational/factory-metrics/<type>/<name>/*.md)
@@ -173,7 +187,7 @@ Both fire automatically without you invoking them explicitly. The routing SKILL 
 - **Agent (by name)** when you want a specific role's perspective: "Architecture Challenger, review this." "Security Reviewer, audit this PR." For most work, the Delivery Lead picks the agent.
 - **Skill (by name)** when you want a specific discipline applied: "Apply `threat-modeling` to this design." For most work, the agent picks the skill.
 - **Governance gate** never invoked directly — gates fire from workflow steps; you approve when they reach you.
-- **Model routing** never invoked directly — the Delivery Lead runs `adaptive-model-routing` before each spawn. Reach into it only when: (a) you're opening a session and need to pick a model up-front, (b) a spawn's route looks wrong, (c) Opus quota is running low.
+- **Model routing** never invoked directly — the Delivery Lead runs `adaptive-model-routing` before each spawn. Reach into it only when: (a) you're opening a session and need to pick a tier up-front, (b) a spawn's route looks wrong, (c) `deep`-tier usage is running high and needs to be conserved for the work that actually needs it.
 - **Telemetry** never invoked directly — the tap fires on every tool use. Reach in only when: (a) writing a rich per-use observation via `/praxis:factory-record`, (b) reading `.project/operational/factory-metrics/` for weekly / quarterly review.
 
 Default: invoke the workflow. Let it orchestrate. Model routing + telemetry fire underneath. Specialize only when needed.
@@ -550,6 +564,15 @@ The library has rhythms beyond per-slice work. Knowing them prevents drift.
 - Boy-scout fixes go in the slice; bigger items go in `debt-register.md`.
 - Memory artifacts updated per `memory-management`.
 
+The steps above describe the manual, one-slice-at-a-time cadence (`/slice`,
+watched by hand). It isn't the only mode: once a slice has run cleanly this
+way at least once, `/drive` (or `scripts/praxis-drive.sh` headless) automates
+the loop between human touchpoints — it still stops at every governance gate,
+decision point, and budget/stall condition, just without you re-prompting
+each task in between. See [`docs/autonomous-drive.md`](docs/autonomous-drive.md)
+for the autonomy dial and run budgets, and [`docs/scenarios.md`](docs/scenarios.md)
+scenarios 6-7 for the overnight-run and resume-after-stop walkthroughs.
+
 ### 7.2 Per cycle (every 2-4 weeks)
 
 - Cycle planning: feature slices + debt-payoff allocation (15-25% default).
@@ -571,14 +594,23 @@ The library has rhythms beyond per-slice work. Knowing them prevents drift.
 
 ### 7.5 Per session — model routing
 
-Every session now interacts with the model-routing layer at least twice: on entry (pick session model) and on each sub-agent spawn (pick specialist model).
+Every session now interacts with the model-routing layer at least twice: on entry (pick session tier) and on each sub-agent spawn (pick specialist tier).
 
-- **Session start:** Read the session's title / first task. If it fires an "always-Opus" trigger (architecture, threat model, cross-cutting ADR, P0 post-mortem), open on Opus. Otherwise, open on Sonnet. `adaptive-model-routing`'s "Session-level model selection" section gives the shortlist.
-- **Each `Task` sub-agent spawn:** The Delivery Lead consults `adaptive-model-routing` before spawning. The routing SKILL scores 5 signals, honors fast-path rules, and returns a model string. The Delivery Lead passes that as the `model:` argument to the Agent tool call.
-- **Escalation:** If a Sonnet attempt fails a quality check, the Delivery Lead does NOT retry on Sonnet. It re-scores with `prior_failure = 2`, opens on Opus with the failure context, and logs the escalation at `.project/episodic/model-escalations.md`.
-- **Logging:** Every routing decision writes one entry to `.project/working/model-routing-log.yaml`. That log feeds the weekly review below.
+Agents carry an abstract `capability_tier` (`deep | standard | light`) in
+frontmatter, not a hardcoded model name. `governance/model-routing.yaml` is
+the one file that resolves a tier to a concrete model per harness — `opus /
+sonnet / haiku` on Claude Code, `model_reasoning_effort: high / medium / low`
+on Codex, `gemini-2.5-pro / -flash / -flash-lite` on Gemini CLI —
+and `scripts/apply-model-routing.py` applies that mapping into agent
+frontmatter / Codex TOML. Nothing below should be read as Claude-specific;
+substitute your harness's tier mapping.
 
-If Opus quota is running low, the Delivery Lead reads the routing log to identify Opus tasks that were probably Sonnet-worthy in retrospect — those become future fast-path corrections.
+- **Session start:** Read the session's title / first task. If it fires an "always-`deep`" trigger (architecture, threat model, cross-cutting ADR, P0 post-mortem), open at the `deep` tier. Otherwise, open at `standard`. `adaptive-model-routing`'s "Session-level model selection" section gives the shortlist.
+- **Each `Task` sub-agent spawn:** The Delivery Lead consults `adaptive-model-routing` before spawning. The routing SKILL scores 5 signals, honors fast-path rules, and shifts the agent's default tier by at most ±1 step. The Delivery Lead resolves the chosen tier to the harness's concrete model/effort setting via `governance/model-routing.yaml` and passes that as the `model:` argument to the Agent tool call.
+- **Escalation:** If a `standard`-tier attempt fails a quality check, the Delivery Lead does NOT retry at the same tier. It re-scores with `prior_failure = 2`, promotes one tier (typically to `deep`) with the failure context, and logs the escalation at `.project/episodic/model-escalations.md`.
+- **Logging:** Every routing decision writes one entry to `.project/telemetry/model-routing.jsonl` (agent, default tier, chosen tier, rubric score, reason). That log feeds the weekly review below.
+
+If usage at the `deep` tier is running high, the Delivery Lead reads the routing log to identify `deep`-tier tasks that were probably `standard`-worthy in retrospect — those become future fast-path corrections.
 
 ### 7.6 Weekly — telemetry review (10 minutes)
 
@@ -595,7 +627,7 @@ scripts/factory-aging.sh --strict-window 30
 Read the output for three signals:
 - Frequency imbalance — is one SKILL disproportionately over/under-used vs. expectation for this project's phase?
 - Missing experimental telemetry — the aging gate flags them. If a SKILL has zero uses in 30 days but is still marked `experimental`, ask whether the project actually needs it, or whether the SKILL's triggers are wrong.
-- Model routing surprises — read `.project/working/model-routing-log.yaml`. Any Opus routes for tasks that scored 3-5? Any escalations that recurred on the same task type?
+- Model routing surprises — read `.project/telemetry/model-routing.jsonl`. Any `deep`-tier routes for tasks that scored low on the rubric? Any escalations that recurred on the same task type?
 
 Any of these warrant a note in `.project/operational/library-evolution/YYYY-MM-DD-observations.md` for the next quarterly steward pass.
 
@@ -736,8 +768,10 @@ evidence pack.
 You: Delivery Lead, apply adaptive-model-routing before spawning the
 next specialist. Task: <what you're about to delegate>. Score all 5
 signals (novelty / interdependency / stakes / ambiguity / prior_failure),
-check fast-path rules, decide model. Log the decision to
-.project/working/model-routing-log.yaml. Then spawn with the chosen
+check fast-path rules, decide the ±1 tier shift from the agent's default
+capability_tier. Resolve the chosen tier to a concrete model via
+governance/model-routing.yaml. Log the decision to
+.project/telemetry/model-routing.jsonl. Then spawn with the resolved
 model: string.
 ```
 
@@ -745,18 +779,20 @@ model: string.
 
 ```
 You: About to open a new session on <task>. Before I choose the session
-model, apply adaptive-model-routing's session-level rules. Which triggers
-fire? Which model should I open on? Give me the specific /model command.
+tier, apply adaptive-model-routing's session-level rules. Which triggers
+fire? Which capability_tier (deep / standard / light) should I open on?
+Resolve it to this harness's concrete model via governance/model-routing.yaml
+and give me the specific command to open with it.
 ```
 
-**Escalation after a Sonnet failure:**
+**Escalation after a standard-tier failure:**
 
 ```
-You: A Sonnet attempt on <task> just failed with <failure reason>. Apply
-adaptive-model-routing's escalation protocol: score prior_failure = 2,
+You: A standard-tier attempt on <task> just failed with <failure reason>.
+Apply adaptive-model-routing's escalation protocol: score prior_failure = 2,
 re-score, log the escalation to .project/episodic/model-escalations.md.
-Then open the Opus session with the failure context prepended so it
-doesn't start cold.
+Then open the next tier up (typically deep) with the failure context
+prepended so it doesn't start cold.
 ```
 
 ### 8.4 Telemetry review prompts
@@ -909,7 +945,7 @@ should consult the files below per task type.
 
 ```
 You: Read AGENTS.md and confirm you can navigate to .team/agents/ and
-.team/skills/. Then list the 16 agents and the 83 skills you can see.
+.team/skills/. Then list the 17 agents and the 89 skills you can see.
 Read governance.yaml and summarize active gates.
 ```
 
@@ -974,22 +1010,22 @@ You can, but record it. Every skip becomes an ADR. The library catches up later 
 
 Skill count > 90 = review zone; > 101 = mandatory consolidation. System Steward owns this in steady state. Manually: run a capability balance check; identify the largest area; look for consolidation candidates.
 
-### "Opus quota exhausted mid-week"
+### "`deep`-tier usage exhausted mid-week"
 
-Diagnose which tasks burned it. Read `.project/working/model-routing-log.yaml` and filter for `model: claude-opus-4-8` entries. For each, look at the 5-signal score — anything ≤ 6 that was routed to Opus is a habit-forming waste. The routing rubric would have selected Sonnet.
+Diagnose which tasks burned it. Read `.project/telemetry/model-routing.jsonl` and filter for `chosen_tier: deep` entries (or the harness's resolved model, e.g. `opus` / `high` reasoning effort, per `governance/model-routing.yaml`). For each, look at the 5-signal score — anything low that was still routed to `deep` is a habit-forming waste. The routing rubric would have selected `standard`.
 
 Fix paths:
-- **Short-term:** open new sessions on Sonnet only for the rest of the week; escalate individual tasks per `adaptive-model-routing`'s escalation protocol if you hit a genuinely hard problem.
-- **Structural:** if the same task type keeps scoring 4-6 but you kept routing it to Opus, add a fast-path Sonnet override for that task type in `.project/procedural/model-routing-overrides.md`.
-- **Never:** downgrade threat-modeling, architecture sign-off, or P0 post-mortems to save quota. The routing rubric flags these as fast-path Opus for a reason.
+- **Short-term:** open new sessions at the `standard` tier only for the rest of the week; escalate individual tasks per `adaptive-model-routing`'s escalation protocol if you hit a genuinely hard problem.
+- **Structural:** if the same task type keeps scoring low but you kept routing it to `deep`, add a fast-path `standard`-tier override for that task type in `.project/procedural/model-routing-overrides.md`.
+- **Never:** downgrade threat-modeling, architecture sign-off, or P0 post-mortems to save quota. The routing rubric flags these as fast-path `deep` for a reason.
 
-### "Sonnet keeps failing a specific task class"
+### "`standard` tier keeps failing a specific task class"
 
-Escalation-worthy. Read `.project/episodic/model-escalations.md` — if the same class appears 3+ times, that class should be a project-local fast-path override to Opus. Add it to `.project/procedural/model-routing-overrides.md` and stop wasting Sonnet cycles on the first attempt.
+Escalation-worthy. Read `.project/episodic/model-escalations.md` — if the same class appears 3+ times, that class should be a project-local fast-path override to `deep`. Add it to `.project/procedural/model-routing-overrides.md` and stop wasting `standard`-tier cycles on the first attempt.
 
 ### "adaptive-model-routing suggestions look wrong"
 
-The routing rubric is trained on general engineering patterns. Every project has quirks. If the SKILL keeps suggesting Sonnet for a task that in your project always needs Opus (or vice versa), the fix is a per-project override, not a SKILL edit. Add a project-local fast-path in `.project/procedural/model-routing-overrides.md`. The routing SKILL honors overrides before applying the rubric.
+The routing rubric is trained on general engineering patterns. Every project has quirks. If the SKILL keeps suggesting `standard` for a task that in your project always needs `deep` (or vice versa), the fix is a per-project override, not a SKILL edit. Add a project-local fast-path in `.project/procedural/model-routing-overrides.md`. The routing SKILL honors overrides before applying the rubric.
 
 If the same override recurs across 3+ projects, propose a SKILL update via System Steward at quarterly review.
 

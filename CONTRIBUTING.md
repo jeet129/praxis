@@ -32,6 +32,29 @@ New SKILLs must pass the **four-condition Skill Creation Policy** (per `skills/s
 
 If a new idea fails any condition, consider contributing as a **reference** or **pattern** instead (see below).
 
+**House template.** New SKILL.md files should follow the shape of an existing
+one rather than inventing a new structure — `skills/threat-modeling/SKILL.md`
+and `skills/definition-of-done/SKILL.md` are good references. That means: the
+eight-field frontmatter block, a pushy trigger-laden `description`, the body
+sections in the order Common rationalizations → Verification → What this
+skill does NOT do → Anti-patterns, and — where the skill needs deep
+tool-specific detail — that detail pushed into `references/<topic>.md`
+rather than inlined.
+
+**Length ceiling: ≤300 lines per SKILL.md.** This is enforced by convention,
+not a validator check, but it's load-bearing — the library did a
+progressive-disclosure pass (see `CHANGELOG.md`) moving embedded templates,
+worked examples, and long code blocks out of SKILL.md bodies and into
+`references/`. If your SKILL is pushing past 300 lines, that's the signal to
+split the depth into a reference and cite it from frontmatter, not to keep
+writing in the main file.
+
+**New SKILLs start `state: experimental`**, not `active`. A SKILL only
+graduates to `active` once it has real usage telemetry behind it (see
+`docs/telemetry.md`) — `scripts/factory-aging.sh` flags experimental SKILLs
+whose telemetry has gone stale, which is one of the signals the System
+Steward uses to decide promote vs. prune at the quarterly review.
+
 ### References
 
 References are tool-specific or framework-specific drill-downs cited from SKILL frontmatter. They live at `skills/<skill>/references/<topic>.md`.
@@ -56,7 +79,7 @@ Patterns live at `patterns/` (currently empty — see `patterns/README.md`). Use
 
 ### Agents
 
-Agent definitions live at `agents/<name>.md`. New agents are rare — the 16-agent roster covers the standard delivery team. Propose via issue first.
+Agent definitions live at `agents/<name>.md`. New agents are rare — the 17-agent roster covers the standard delivery team. Propose via issue first.
 
 ### Workflows
 
@@ -116,6 +139,35 @@ Evidence to check:
 
 7-10 items. Each item should be objectively verifiable (someone can confirm yes/no).
 
+## Generated surfaces — never hand-edit these
+
+Some files in the repo are **derived** from canonical source by a script.
+Editing them directly will get silently overwritten (or will drift out of
+sync and fail CI). Know which is which:
+
+| Generated surface | Source of truth | Regenerate with |
+|---|---|---|
+| `plugins/praxis-codex/` (the whole tree) | `skills/`, `agents/`, `workflows/`, `governance/`, `references/`, `patterns/`, `scripts/` + Codex overlays in `codex-plugin-assets/` | `scripts/build-codex-plugin.sh`, checked by `scripts/validate-codex-plugin.sh` |
+| Skill / agent / workflow / gate **counts** quoted in `README.md`, `.claude-plugin/*.json`, `GEMINI.md`, `.cursor/rules/`, and a few SKILL bodies | the actual directory contents | `scripts/build-registry.py` (`--check` for CI drift-detection, no-write) |
+| `model:` / `model_reasoning_effort:` fields in `agents/*.md` frontmatter and `codex-plugin-assets/codex-agents/*.toml` | `governance/model-routing.yaml` (tier → model map) | `scripts/apply-model-routing.py` (`--check` for CI) |
+
+Rules that follow from this:
+
+- **Never edit `plugins/praxis-codex/` by hand.** If you need a Codex-side
+  change, edit the canonical source or the relevant file in
+  `codex-plugin-assets/`, then rebuild. The pre-commit hook does this for you
+  automatically on relevant commits (see below); manual rebuilds use
+  `scripts/build-codex-plugin.sh`.
+- **Never hand-edit a count.** If you add or remove a SKILL/agent/workflow/gate,
+  run `scripts/build-registry.py` (no flag) to rewrite the count-bearing
+  surfaces, and run it with `--check` before committing to confirm nothing is
+  left stale. CI runs the `--check` form and fails the build on drift.
+- **Never hand-edit a `model:` field.** Change the tier→model mapping in
+  `governance/model-routing.yaml` instead and run
+  `scripts/apply-model-routing.py`. Hand-editing an agent's `model:` field
+  works locally but `apply-model-routing.py --check` in CI will flag it as
+  out of sync with the routing table and fail.
+
 ## One-time setup: install git hooks
 
 After cloning, activate the repo-tracked pre-commit hook:
@@ -128,29 +180,56 @@ This points git at `.githooks/` so every commit automatically:
 - Rebuilds `plugins/praxis-codex/` when canonical source (`skills/`, `agents/`, `workflows/`, etc.) or Codex overlays (`codex-plugin-assets/`) change.
 - Runs `scripts/validate-codex-plugin.sh` on the result.
 - Auto-stages regenerated files so source + built package land in one atomic commit.
+- **Reminds you (non-blocking) to check docs.** If the commit touches
+  `agents/`, `skills/`, `workflows/`, `commands/`, `governance/`, `scripts/`,
+  or `hooks/` but touches none of `README.md`, `INSTALLATION.md`,
+  `PLAYBOOK.md`, `CHANGELOG.md`, `ROADMAP.md`, or `docs/`, the hook prints a
+  warning asking you to double-check the docs still match the behavior you
+  just changed. It does not fail the commit — it's a nudge, not a gate.
 
-Skip in emergencies with `git commit --no-verify`. Restore with the same install command.
+Skip the rebuild/validate in emergencies with `git commit --no-verify` — but that also skips the docs reminder, so re-check documentation manually if you do. Restore normal behavior with the same install command.
 
 ## Pull request workflow
 
 1. **Fork** the repo + create a branch from `main`.
 2. **Install git hooks** if you haven't: `scripts/install-git-hooks.sh` (see section above).
 3. **Write your changes** following the conventions above.
-4. **Run the validator**: `bash scripts/validate-skills.sh` — must pass with zero failures.
+4. **Run the relevant validators** from the suite below — must pass with zero failures. At minimum `bash scripts/validate-skills.sh`; add the others per what you touched.
 5. **Run YAML parse check**: every SKILL.md frontmatter must parse cleanly.
 6. **Cross-reference check**: if you added a SKILL, update `consumers:` lists of any SKILL it consumes; if you added a reference, cite it from the SKILL's frontmatter.
 7. **Commit** with descriptive messages (per `references/git-workflow-checklist.md` if you want). The pre-commit hook rebuilds the Codex plugin package automatically — do not bypass with `--no-verify` unless the build itself is broken (in which case fix the build first).
 8. **Open a PR** with: what changed, why, how to test, any breaking changes.
 9. **Address review** within reasonable time.
 
-## Validator
+## Validator suite
 
-`bash scripts/validate-skills.sh` checks:
-- Required frontmatter fields present.
-- Declared `name` matches directory.
-- `state` is a valid enum.
-- Cited references files exist (warning).
-- Library health band (70-90 SKILLs).
+There are seven validators. Run the ones relevant to what you touched before
+opening a PR; CI runs all of them plus a routing-report smoke test on every
+push.
+
+| Script | Checks | Run when you touch |
+|---|---|---|
+| `bash scripts/validate-skills.sh` | Required frontmatter fields present; declared `name` matches directory; `state` is a valid enum; cited reference files exist (warning); library health band (70-90 SKILLs). | `skills/` |
+| `bash scripts/validate-manifests.sh` | Claude Code plugin + marketplace manifests (`.claude-plugin/*.json`) are valid JSON and reference real paths. | `.claude-plugin/`, `commands/`, top-level manifest files |
+| `python3 scripts/validate-workflows.py` | Workflow YAML parses; referenced agents/gates/skills in each `workflows/*.yaml` actually exist. | `workflows/` |
+| `python3 scripts/validate-references.py` | Every `references:` path cited from a SKILL's frontmatter resolves to a real file. | `skills/*/references/`, SKILL frontmatter `references:` lists |
+| `bash scripts/validate-codex-plugin.sh` | The generated `plugins/praxis-codex/` package is structurally valid and in sync with canonical source. | `codex-plugin-assets/`, or anything that changes canonical source (run after rebuilding) |
+| `python3 scripts/apply-model-routing.py --check` | Every agent's `model:` (or Codex `model_reasoning_effort:`) field matches what `governance/model-routing.yaml` resolves for its `capability_tier`. Exits 1 on drift, writes nothing. | `agents/*.md` frontmatter, `governance/model-routing.yaml` |
+| `python3 scripts/build-registry.py --check` | Skill/agent/workflow/gate counts quoted across `README.md`, plugin manifests, `GEMINI.md`, `.cursor/rules/`, and a few SKILL bodies match the actual directory contents. Exits 1 on drift, writes nothing. | Anything that adds/removes a SKILL, agent, workflow, or gate |
+
+Two additional scripts aggregate telemetry rather than validate structure —
+not required for a PR to pass, but useful when working on telemetry-adjacent
+changes: `scripts/factory-frequency.sh` (usage aggregation) and
+`scripts/factory-aging.sh` (experimental-SKILL coverage gate). See
+`docs/telemetry.md` for the full telemetry picture and
+`scripts/factory-routing-report.py` for the cost/routing reporter that CI
+smoke-tests.
+
+Fix-forward, don't drop the flag: if `apply-model-routing.py --check` or
+`build-registry.py --check` reports drift, run the same script **without**
+`--check` to have it rewrite the derived surfaces, then commit the result —
+don't hand-edit the counts or model fields yourself (see "Generated
+surfaces" above).
 
 ## What we won't accept
 

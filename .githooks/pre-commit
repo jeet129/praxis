@@ -91,6 +91,24 @@ if [[ -n "$(git diff --name-only plugins/praxis-codex/ 2>/dev/null)" ]] \
   git add plugins/praxis-codex/
 fi
 
+# ----------------------------------------------------------------------
+# Documentation reminder (non-blocking).
+# If behavior-defining artifacts changed but no documentation surface did,
+# remind the committer to double-check the docs before shipping.
+# ----------------------------------------------------------------------
+staged=$(git diff --cached --name-only)
+core_changed=$(echo "$staged" | grep -E '^(agents/|skills/|workflows/|commands/|governance/|scripts/|hooks/)' || true)
+docs_changed=$(echo "$staged" | grep -E '^(README\.md|INSTALLATION\.md|PLAYBOOK\.md|CHANGELOG\.md|ROADMAP\.md|docs/)' || true)
+if [[ -n "$core_changed" && -z "$docs_changed" ]]; then
+  echo ""
+  echo "⚠  praxis pre-commit: you changed agents/skills/workflows/commands/scripts"
+  echo "   but no documentation surface (README, INSTALLATION, PLAYBOOK, CHANGELOG,"
+  echo "   ROADMAP, docs/). Double-check that the documentation still matches the"
+  echo "   behavior you just changed — stale docs are the fastest way to lose users."
+  echo "   (This is a reminder, not a block.)"
+  echo ""
+fi
+
 echo ""
 echo "praxis pre-commit: build + validation passed. Proceeding with commit."
 echo ""

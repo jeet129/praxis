@@ -1,0 +1,36 @@
+---
+description: Start or resume autonomous drive — iterate the drive protocol (skills/autonomous-drive) against the active task ledger, unattended or in-session, honoring the non-negotiable stops.
+---
+
+Start or resume autonomous drive.
+
+## Step 1 — Check the dial
+
+Read `governance/autonomy.yaml`. Note `stop_after` (task | slice | phase | gate), `run_budget`, and `stall.max_iterations_without_ledger_change`. This is the OPTIONAL human boundary — the three non-negotiable stops (decision points, governance gates, budget/stall/exhaustion) fire regardless of this setting.
+
+## Step 2 — Locate or confirm the active ledger
+
+Look for `.project/working/slice-<id>-tasks.yaml` for the current slice (per `.project/working/active-workflow.md`). If none exists, there's nothing to drive yet — route through `/slice`, which delegates to `delivery-lead` → `lead-developer` to produce the packet AND the task ledger (per `references/loop-contracts.md` §2) before drive can start. Do not fabricate a ledger yourself.
+
+If a ledger exists, confirm it against the user: slice id, task count, how many are already `done`, and any existing `stop_flags`.
+
+## Step 3 — Explain the budget and stops once
+
+Before iterating, tell the user (once, not every iteration):
+- the `stop_after` dial and what it means for this run
+- `run_budget` caps (`max_slices_per_run`, `max_iterations_per_run`, `max_task_attempts`, `cost_ceiling_proxy`)
+- the three non-negotiable stops that fire regardless of the dial
+- that slice-close summaries post to `.project/telemetry/summaries/` even when the loop doesn't wait
+
+## Step 4 — Run it
+
+Offer both paths; let the user pick (or infer from context — a long-running/background request implies unattended):
+
+- **Unattended:** instruct the user to run `scripts/praxis-drive.sh`, which invokes the harness headlessly per `governance/autonomy.yaml`'s `harnesses` block, enforcing iteration caps and stall detection outside the agent's own context.
+- **In-session:** iterate the drive protocol yourself, continuously, within this session — each iteration is `delivery-lead` executing exactly one `autonomous-drive` pass (see `agents/delivery-lead.md`'s Drive mode section) and reporting the outcome, honoring the same stops as the unattended path. Stop cleanly the moment any non-negotiable stop or the dial's boundary is reached.
+
+## What you do NOT do
+
+- Do NOT invent a task ledger to make a slice appear drive-eligible — route through `/slice` first.
+- Do NOT loop past a decision point, governance gate, or budget/stall condition because "it's close to done."
+- Do NOT skip explaining the stops because the user seems eager to proceed — say it once, then go.

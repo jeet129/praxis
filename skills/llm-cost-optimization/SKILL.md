@@ -39,6 +39,7 @@ references:
   - litellm.md
   - portkey.md
   - helicone.md
+  - cost-playbooks.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -88,32 +89,7 @@ The decision tree:
 
 ## Routing strategy
 
-For systems handling diverse requests:
-
-```yaml
-routing:
-  - condition: "intent == 'classify'"
-    model: fast/cheap
-    reason: "Classification doesn't need a frontier model."
-
-  - condition: "intent == 'extract' AND input_tokens < 1000"
-    model: fast/cheap
-    reason: "Extraction is constrained; small model suffices."
-
-  - condition: "intent == 'generate' AND complexity == 'simple'"
-    model: general
-    reason: "Default for generation."
-
-  - condition: "intent == 'generate' AND complexity == 'complex'"
-    model: frontier
-    reason: "Hard generation needs frontier."
-
-  - condition: "previous_attempt_failed_eval"
-    model: frontier
-    escalate_from: general
-```
-
-Implementations: LiteLLM, Portkey, OpenRouter all provide routing infrastructure.
+For systems handling diverse requests, route per-condition (e.g., classification/extraction → fast/cheap; simple generation → general; complex generation → frontier; failed-eval retries → escalate to frontier). Load `references/cost-playbooks.md` for a worked routing-policy YAML example. Implementations: LiteLLM, Portkey, OpenRouter all provide routing infrastructure.
 
 ## Caching
 
@@ -169,25 +145,7 @@ vLLM, TensorRT-LLM, SGLang all support KV-cache reuse.
 
 ## Token budgets
 
-Per use case, set explicit budgets:
-
-```yaml
-budgets:
-  simple_query:
-    max_input_tokens: 2000
-    max_output_tokens: 500
-    expected_cost: $0.002 per request
-
-  rag_answer:
-    max_input_tokens: 10000
-    max_output_tokens: 800
-    expected_cost: $0.025 per request
-
-  long_conversation:
-    max_input_tokens: 30000
-    max_output_tokens: 1500
-    expected_cost: $0.10 per request
-```
+Per use case, set explicit budgets (max input tokens, max output tokens, expected cost per request). Load `references/cost-playbooks.md` for a worked token-budgets YAML example across simple-query / RAG-answer / long-conversation use cases.
 
 Budgets enforced:
 
@@ -206,37 +164,11 @@ Per `observability`, treat cost as a first-class signal:
 - **Anomaly detection** on cost trends (sudden spike → investigate).
 - **Budget alerts** per feature monthly cost.
 
-Sample dashboard:
-
-```markdown
-# LLM Cost Dashboard
-
-## This month (so far)
-- Total: $32,450 (budget: $50,000) — on track.
-- Top feature: Customer Support Chat — $18,200.
-- Top tenant: Acme Corp — $4,500.
-- Top model: Claude Sonnet 4.6 — $19,800.
-
-## Trends
-- Day-over-day cost: +12% (investigate spike on 2026-11-14).
-- Cache hit rate: 67% (target: 70%).
-- Avg input tokens per request: 4,200 (last week: 3,100 — investigate).
-```
-
-Cost regressions are caught quickly with dashboards + alerts.
+Load `references/cost-playbooks.md` for a sample cost-dashboard markdown template. Cost regressions are caught quickly with dashboards + alerts.
 
 ## Self-hosted vs managed
 
-For predictable load + sensitive data + cost predictability:
-
-| | Managed (OpenAI, Anthropic, Google) | Self-hosted (vLLM + Llama / Mistral / etc.) |
-|---|---|---|
-| **Per-token cost** | Pay-per-use; transparent. | Compute + ops cost; fixed. |
-| **Scaling** | Effortless. | Operational. |
-| **Latency** | Predictable; managed. | Tunable; can be lower. |
-| **Quality** | Frontier available. | Open-source models; gap shrinking. |
-| **Data control** | Sent to provider (with API terms). | On-prem / VPC. |
-| **Break-even** | High variable; low fixed. | High fixed; low variable. |
+For predictable load + sensitive data + cost predictability, weigh managed (pay-per-use, effortless scaling, frontier quality, data sent to provider, low fixed/high variable cost) against self-hosted (fixed compute + ops cost, operational scaling, tunable latency, on-prem data control, high fixed/low variable cost). Load `references/cost-playbooks.md` for the full comparison table.
 
 Self-hosting becomes economic above some volume threshold. The threshold depends on the model:
 
@@ -250,29 +182,7 @@ Default: **managed for new projects**; revisit at meaningful scale.
 
 ## Cost-vs-quality trade-offs
 
-Explicit documentation:
-
-```markdown
-# Cost-vs-Quality — Customer Support Chat
-
-## Current configuration
-- Model: Claude Sonnet 4.6 for all requests.
-- Cost: $0.025 per request.
-- Quality eval: 0.89.
-
-## Alternative considered
-- Routing: Haiku for classification + simple queries; Sonnet for complex.
-- Estimated cost: $0.012 per request (-52%).
-- Quality eval: 0.86 (-3 points).
-- Decision: ADOPT. The 3-point quality regression is acceptable per the eval slice analysis (regression is on edge cases; common queries unaffected). Cost savings projected $130K/year.
-
-## Future option (not yet)
-- Self-hosted Llama 3.x for high-volume queries.
-- Estimated infra: $40K/month + ops.
-- Break-even at 200K requests/month (currently 80K).
-```
-
-Trade-offs documented per ADR. Reviewed quarterly.
+Document explicitly: current configuration + cost + quality eval, the alternative considered (cost delta, quality delta, adopt/reject decision with rationale), and future options not yet taken with their break-even conditions. Load `references/cost-playbooks.md` for a worked Cost-vs-Quality writeup. Trade-offs documented per ADR. Reviewed quarterly.
 
 ## Tool / library refs
 
