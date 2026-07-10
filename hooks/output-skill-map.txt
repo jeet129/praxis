@@ -48,3 +48,6 @@
 */library-backlog/proposed-skills/*.md                      | system-steward
 */library-backlog/proposed-references/*.md                  | system-steward
 */library-backlog/proposed-patterns/*.md                    | system-steward
+*/design-brief.md            | frontend-design
+*/design-tokens.json         | design-system
+*/telemetry/summaries/*.md   | autonomous-drive

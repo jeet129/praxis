@@ -83,6 +83,7 @@ tasks:
 gates:                                  # populated as gate verdicts land
   code_review: pending                  # pending | pass | fail
   security_review: n/a                  # n/a when not triggered
+  visual_review: n/a                    # n/a when the slice has no UI tasks
   qa: pending
 state: open                             # open | draining | gates | closed
 stop_flags: []                          # drive stops when non-empty: decision_required |

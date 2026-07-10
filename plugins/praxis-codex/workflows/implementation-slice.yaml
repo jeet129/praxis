@@ -90,9 +90,14 @@ steps:
       slice: from(parent.current_slice)
       journey_maps: from(parent.journey_maps)
       design_system: from(parent.design_system)
-    outputs: [wireframes, interaction_notes, a11y_expectations, i18n_requirements, performance_budget]
+    outputs: [wireframes, design_tokens, design_plan, interaction_notes, a11y_expectations, i18n_requirements, performance_budget]
     notes: |
-      UX Designer assembles the FE-facing portion of the implementation packet.
+      UX Designer assembles the FE-facing portion of the implementation packet,
+      including design-tokens.json (the contract artifact FE tasks depend on)
+      and the frontend-design plan (palette/type/layout/signature) that the
+      visual review will score against. Uses the design-tool chain in
+      frontend-design/references/design-tooling.md at the highest tier the
+      project has (design_fidelity per planner characterization).
 
   # ------------------------------------------------------------------
   # Lead Developer decomposes the slice
@@ -157,7 +162,10 @@ steps:
         inputs:
           tasks: from(lead_developer_decompose.task_dag.ml_tasks)
 
-    outputs: [all_prs_opened, all_tests_passing]
+    outputs: [all_prs_opened, all_tests_passing, ui_screenshots]
+    # ui_screenshots: FE/mobile branches capture their implemented screens
+    # (Playwright/Storybook where available) as evidence for visual_review;
+    # empty for slices with no UI tasks.
 
   # ------------------------------------------------------------------
   # Pre-merge gate: Code Review + Security Review (parallel)
@@ -183,9 +191,28 @@ steps:
         # Security Reviewer fires only on PRs touching auth/data/public-surface/deps;
         # for non-security-bearing PRs, Code Reviewer's security dimension is sufficient.
 
+      - id: visual_review
+        agent: ux-designer
+        inputs:
+          screenshots: from(implementation_parallel.ui_screenshots)
+          design_plan: from(ux_handoff.design_plan)
+          design_tokens: from(ux_handoff.design_tokens)
+          wireframes: from(ux_handoff.wireframes)
+        outputs: [visual_review_verdict, visual_findings]
+        condition: slice_has_ui_tasks(task_dag)
+        # Visual design review — fires only when the slice produced user-facing
+        # pixels. Evidence: screenshots at 2-3 viewports incl. empty/loading/error
+        # states (Playwright/Storybook or harness browser tools; see
+        # frontend-design/references/design-tooling.md). Scored against the
+        # design plan, the token system, and frontend-design's calibration
+        # (references/design-craft.md): hierarchy, spacing rhythm, contrast,
+        # state coverage, anti-generic check, copy rules. Severity-tagged
+        # findings; blockers feed the same fix loop as code review. Tier:
+        # promote to deep (multimodal judgment) per adaptive-model-routing.
+
   - id: review_findings_resolved
     type: decision_node
-    predicate: all_blocker_findings_resolved(code_review_findings, security_findings)
+    predicate: all_blocker_findings_resolved(code_review_findings, security_findings, visual_findings)
     branches:
       true: [merge_prs]
       false: [implementation_parallel, with_findings_as_input]
@@ -195,7 +222,7 @@ steps:
   # ------------------------------------------------------------------
   - id: merge_prs
     type: decision_node
-    predicate: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped)
+    predicate: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped) AND (visual_review_verdict == PASS OR visual_review_skipped)
     branches:
       true: [cicd_pipeline_run]
       false: [implementation_parallel, with_review_failures_as_input]

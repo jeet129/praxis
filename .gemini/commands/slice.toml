@@ -23,7 +23,7 @@ The specialist runs the AOP (Understand → Clarify → Plan → Execute → Val
 - Domain-specific SKILLs per the slice
 
 Then in order:
-- Code Reviewer runs (per `code-review`). Stop at gate for my approval.
+- Code Reviewer runs (per `code-review`); UX Designer runs the visual review (screenshots vs design plan + tokens, per `frontend-design`) when the slice has UI tasks. Stop at gate for my approval.
 - Security Reviewer runs (per `secure-coding` + slice-specific security SKILLs). Stop at gate.
 - QA Engineer runs (per `testing-strategy`). Stop at acceptance check.
 

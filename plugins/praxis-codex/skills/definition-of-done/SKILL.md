@@ -1,6 +1,6 @@
 ---
 name: definition-of-done
-description: "The per-slice Definition of Done contract — the explicit set of gates a slice must clear before it counts as merged and shippable: code review verdict, security verdict (when triggered), tests at the layers the test plan names, acceptance criteria demonstrably met, docs updated, telemetry/observability hooks present, no unresolved blocker findings, and tech-debt entries filed for any accepted shortcuts. Use whenever a slice is nearing completion and needs to be checked against the merge bar, when the Lead Developer assembles the implementation packet's closure criteria, or when a reviewer/QA needs the authoritative checklist for what 'done' means on this slice. Distinct from `testing-strategy` (which defines the test plan) and `code-review` (which produces one of the verdicts this skill checks for) — this skill is the aggregation contract that ties every gate together."
+description: "The per-slice Definition of Done contract — the explicit set of gates a slice must clear before it counts as merged and shippable: code review verdict, security verdict (when triggered), visual review verdict (when the slice has UI tasks), tests at the layers the test plan names, acceptance criteria demonstrably met, docs updated, telemetry/observability hooks present, no unresolved blocker findings, and tech-debt entries filed for any accepted shortcuts. Use whenever a slice is nearing completion and needs to be checked against the merge bar, when the Lead Developer assembles the implementation packet's closure criteria, or when a reviewer/QA needs the authoritative checklist for what 'done' means on this slice. Distinct from `testing-strategy` (which defines the test plan) and `code-review` (which produces one of the verdicts this skill checks for) — this skill is the aggregation contract that ties every gate together."
 ---
 
 # Definition of Done
@@ -27,6 +27,7 @@ consumers:
   - code-review (contributes verdict; reads checklist to know the bar)
   - qa-engineer (verifies AC + test-layer coverage against the checklist)
   - security-reviewer (contributes verdict when security review is triggered)
+  - ux-designer (contributes the visual-review verdict on UI-bearing slices)
   - tech-debt-management (receives filed entries for accepted shortcuts)
 references: []
 ```
@@ -47,16 +48,17 @@ A slice is **Done** only when every applicable gate below is satisfied. Gates th
 
 1. **Code review verdict.** `code-review` has run and returned an `approve` (or `approve with follow-ups`, with follow-ups filed) verdict. No open blocker findings.
 2. **Security verdict, when triggered.** If the slice touches auth, data handling, external input, dependencies, or infra — per `security-review`'s trigger criteria — a security verdict exists and is clear of unresolved blockers.
-3. **Tests at the layers the test plan names.** `testing-strategy` defines which layers apply to this slice (unit / integration / component / E2E / contract / etc.). Each named layer has tests written, passing, and committed. A test plan that names a layer with zero tests is not satisfied by omission.
-4. **Acceptance criteria demonstrably met.** Every AC from the slice's user stories (`requirements-elicitation`) has been exercised — by a test, a demo, or an explicit verification note — not just implemented and assumed correct.
-5. **Docs updated.** User-facing docs, API docs, README/runbook entries, or ADRs affected by the change are updated in the same slice, not deferred.
-6. **Telemetry/observability hooks present.** Per `observability`: structured logs, RED-metric instrumentation, and any manual spans the slice's operations require are in the code, not planned for later.
-7. **No unresolved blocker findings.** Across code review, security review, and QA — every finding tagged blocker is resolved or explicitly waived via ADR. Non-blocker findings may be deferred but must be tracked.
-8. **Tech-debt entries filed for accepted shortcuts.** Anything deliberately cut to hit the slice boundary (skipped edge case, deferred refactor, temporary workaround) is filed via `tech-debt-management` with a reason and a suggested follow-up slice — not left undocumented.
+3. **Visual review verdict, when the slice has UI tasks.** The `visual_review` pass (ux-designer, per `frontend-design`) has run against implementation screenshots and returned a verdict clear of blockers. N/A for slices with no user-facing pixels.
+4. **Tests at the layers the test plan names.** `testing-strategy` defines which layers apply to this slice (unit / integration / component / E2E / contract / etc.). Each named layer has tests written, passing, and committed. A test plan that names a layer with zero tests is not satisfied by omission.
+5. **Acceptance criteria demonstrably met.** Every AC from the slice's user stories (`requirements-elicitation`) has been exercised — by a test, a demo, or an explicit verification note — not just implemented and assumed correct.
+6. **Docs updated.** User-facing docs, API docs, README/runbook entries, or ADRs affected by the change are updated in the same slice, not deferred.
+7. **Telemetry/observability hooks present.** Per `observability`: structured logs, RED-metric instrumentation, and any manual spans the slice's operations require are in the code, not planned for later.
+8. **No unresolved blocker findings.** Across code review, security review, visual review, and QA — every finding tagged blocker is resolved or explicitly waived via ADR. Non-blocker findings may be deferred but must be tracked.
+9. **Tech-debt entries filed for accepted shortcuts.** Anything deliberately cut to hit the slice boundary (skipped edge case, deferred refactor, temporary workaround) is filed via `tech-debt-management` with a reason and a suggested follow-up slice — not left undocumented.
 
 ## Assembling the checklist
 
-The Lead Developer produces the DoD checklist as part of the implementation packet, instantiating the eight gates above against the specific slice:
+The Lead Developer produces the DoD checklist as part of the implementation packet, instantiating the nine gates above against the specific slice:
 
 ```markdown
 ## Definition of Done — <slice-id>
@@ -88,9 +90,9 @@ Each checkbox needs evidence, not a checkmark on faith — a link to the review 
 
 ## Mode handling (G/B)
 
-**Greenfield.** All eight gates apply from the first slice; there's no legacy baseline to reconcile against.
+**Greenfield.** All nine gates apply from the first slice; there's no legacy baseline to reconcile against.
 
-**Brownfield.** The same eight gates apply, plus: any characterization tests required by `requirements-elicitation`'s `changes_existing_behavior` flag must exist before the slice counts as tested. Pre-existing tech debt encountered but not caused by this slice is *not* this slice's responsibility to file — only debt introduced or knowingly deepened by the slice itself.
+**Brownfield.** The same nine gates apply, plus: any characterization tests required by `requirements-elicitation`'s `changes_existing_behavior` flag must exist before the slice counts as tested. Pre-existing tech debt encountered but not caused by this slice is *not* this slice's responsibility to file — only debt introduced or knowingly deepened by the slice itself.
 
 ## What this skill does not do
 

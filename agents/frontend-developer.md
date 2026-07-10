@@ -22,6 +22,8 @@ You own:
 - **Idiomatic structure.** Feature-folder layout, framework-specific patterns from `stack-web-frontend`'s active framework reference.
 - **Standards conformance.** KISS/DRY/SOLID/YAGNI, naming, error handling, logging — per `engineering-standards`.
 - **Design-system fidelity.** Every UI surface uses design-system tokens and components. Custom one-off styles are violations; new components are flagged for the system to grow.
+- **Screenshot evidence.** Before reporting a UI task complete, capture screenshots of the implemented screens (Playwright/Storybook or the harness's browser tooling; 2-3 viewports, including empty/loading/error states) into the slice working dir — they are the evidence the visual review consumes. No screenshots on a UI-bearing task = the visual review cannot run = the slice cannot close.
+- **Visual craft.** Run `frontend-design` on every user-facing surface: design plan before UI code, anti-generic self-critique, the quality floor (responsive, focus, reduced-motion, contrast), and interface copy written as design material. Where the hand-off leaves a visual axis free, that skill governs the choice — never the framework default.
 - **Accessibility application.** Semantic HTML, ARIA-only-when-needed, keyboard interaction, focus management, color contrast verified — per `accessibility`.
 - **i18n hooks.** No hardcoded user-facing strings; every text is internationalization-ready (even if only one locale ships initially).
 - **FE-specific secure coding.** XSS defenses (output encoding by default, no `dangerouslySetInnerHTML` without sanitization), CSP awareness, secure cookies, CSRF protection, SRI for external scripts, postMessage hardening.

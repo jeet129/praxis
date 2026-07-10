@@ -4,7 +4,7 @@ This repository ships the Praxis. Gemini CLI should consult these files when ass
 
 ## Where things live
 - Role agents: `agents/`
-- Skills: `skills/<skill-name>/SKILL.md` (89 SKILLs)
+- Skills: `skills/<skill-name>/SKILL.md` (90 SKILLs)
 - Workflows: `workflows/`
 - Governance: `governance/governance.yaml`
 - Slash commands: `.gemini/commands/`

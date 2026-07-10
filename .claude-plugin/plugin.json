@@ -1,7 +1,7 @@
 {
   "name": "praxis",
   "version": "0.2.0-alpha",
-  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 89 SKILLs, 17 role agents, 9 workflows, governance gates, project memory taxonomy.",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 90 SKILLs, 17 role agents, 9 workflows, governance gates, project memory taxonomy.",
   "author": {
     "name": "Jitesh",
     "email": "jitesh921@gmail.com"
@@ -50,6 +50,7 @@
     "./skills/factory-evaluation",
     "./skills/feature-flags-progressive-delivery",
     "./skills/frontend-architecture",
+    "./skills/frontend-design",
     "./skills/frontend-performance",
     "./skills/i18n-l10n",
     "./skills/iac",

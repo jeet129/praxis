@@ -64,6 +64,10 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
       (every specialist task done, slice composes end-to-end),
       launch (in parallel):
         - code-reviewer for every PR
+        - ux-designer for visual review when the slice has UI tasks
+          (evidence: implementation screenshots at 2-3 viewports incl.
+          empty/loading/error states, scored against the design plan +
+          tokens per the frontend-design skill)
         - security-reviewer if the slice is security-bearing
           (touches auth, data-handling, public surface, deps,
           compliance)
@@ -85,7 +89,7 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 ## What you must not do
 
 - Do NOT launch backend-developer, frontend-developer, data-engineer, or ml-ai-engineer sessions directly. Delegate through delivery-lead.
-- Do NOT launch code-reviewer, security-reviewer, or qa-engineer sessions directly. delivery-lead launches them at the review-gate step, after lead-developer reports integration-validated completion.
+- Do NOT launch code-reviewer, security-reviewer, qa-engineer, or ux-designer (visual review) sessions directly. delivery-lead launches them at the review-gate step, after lead-developer reports integration-validated completion.
 - Do NOT serialize frontend/test work on backend implementation completion. The dependency is the contract artifact (OpenAPI spec, schema), which lands early; parallelize from that point.
 - Do NOT skip lead-developer. The implementation packet is the artifact reviewers consume; without it, review can't happen.
 - Do NOT collapse owner and reviewer roles.

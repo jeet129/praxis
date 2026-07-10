@@ -18,7 +18,8 @@ product-manager           | product-discovery,requirements-elicitation,requireme
 solution-architect        | architecture-pattern-selection,architecture-documentation,adr-decision-records,nfr-definition,codebase-comprehension,distributed-systems-patterns,api-design,data-modeling
 lead-developer            | engineering-standards,source-grounded-coding,api-design,impact-analysis
 backend-developer         | engineering-standards,source-grounded-coding,api-design,secure-coding,testing-strategy
-frontend-developer        | engineering-standards,source-grounded-coding,frontend-architecture,frontend-performance,design-system,accessibility,i18n-l10n
+frontend-developer        | engineering-standards,source-grounded-coding,frontend-architecture,frontend-performance,design-system,frontend-design,accessibility,i18n-l10n
+mobile-developer          | engineering-standards,source-grounded-coding,stack-flutter,design-system,frontend-design,accessibility,i18n-l10n
 data-engineer             | data-pipeline,data-modeling,data-quality,data-warehouse-modeling,data-governance
 ml-ai-engineer            | ml-problem-framing,ml-feature-engineering,ml-training-evaluation,ml-serving-deployment,ml-monitoring-drift,rag-design,evaluation-engineering,llm-safety,llm-cost-optimization,responsible-ai,agentic-architecture
 code-reviewer             | code-review,engineering-standards,source-grounded-coding
@@ -26,5 +27,5 @@ security-reviewer         | secure-coding,threat-modeling,authn-authz,compliance
 qa-engineer               | testing-strategy,performance-testing,evaluation-engineering
 tech-writer               | technical-documentation,adr-decision-records,architecture-documentation
 platform-sre              | observability,reliability-dr,resilience-patterns,chaos-engineering,incident-runbook,cicd-pipeline,iac,containerization,deploy-release,environments,secrets-config,capacity-resource-estimation,cost-finops
-ux-designer               | user-research,ux-journey-mapping,wireframing-prototyping,design-system,accessibility
+ux-designer               | user-research,ux-journey-mapping,wireframing-prototyping,design-system,frontend-design,accessibility
 system-steward            | system-steward,factory-evaluation,skill-registry,memory-management

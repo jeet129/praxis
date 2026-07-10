@@ -38,6 +38,8 @@ Task({
 
   4. When every specialist has produced a PR, spawn (in parallel):
        - code-reviewer for every PR
+       - ux-designer for visual review when the slice has UI tasks
+         (screenshots vs design plan + tokens, per frontend-design)
        - security-reviewer if the slice is security-bearing
          (touches auth, data-handling, public surface, deps, or
          compliance-bearing code)

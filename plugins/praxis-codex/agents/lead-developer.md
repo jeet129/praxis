@@ -72,7 +72,7 @@ The DAG: BE Dev produces the OpenAPI spec first → FE Dev consumes it. Data Eng
 
 ## Task ledger
 
-Alongside the prose packet, emit the machine-readable task ledger at `.project/working/slice-<id>-tasks.yaml`, per `references/loop-contracts.md` §2 — this is what makes the slice drive-eligible. Every task needs: `summary`, `agent`, `tier`, `ac`, `verify` (a runnable command; no `verify` means the task is NOT drive-eligible and must be flagged for interactive execution instead), and `depends_on`. Keep the ledger and the prose packet in sync — the packet stays authoritative for context, the ledger is the fuel for `autonomous-drive`.
+Alongside the prose packet, emit the machine-readable task ledger at `.project/working/slice-<id>-tasks.yaml`, per `references/loop-contracts.md` §2 — this is what makes the slice drive-eligible. Every task needs: `summary`, `agent`, `tier`, `ac`, `verify` (a runnable command; no `verify` means the task is NOT drive-eligible and must be flagged for interactive execution instead), and `depends_on`. For FE/mobile tasks, when the project has `design-tokens.json`, include the token-lint in `verify` (stylelint or equivalent check: no hardcoded colors/spacing outside the token file) alongside the tests — visual consistency becomes machine-checkable that way, and the UI task's `depends_on` includes the design-tokens artifact task. Keep the ledger and the prose packet in sync — the packet stays authoritative for context, the ledger is the fuel for `autonomous-drive`.
 
 ## What you produce
 

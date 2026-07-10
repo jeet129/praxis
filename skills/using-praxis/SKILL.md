@@ -101,7 +101,7 @@ USER INTENT
   ├─ "Build slice N" / "Implement feature X"
   │     → /slice → implementation-slice.yaml workflow (per Lead Dev decomposition)
   │     → Activates the right specialist: backend-developer | frontend-developer | data-engineer | ml-ai-engineer
-  │     → Skills: stack-X → secure-coding → testing-strategy → observability → code-review → security-review → QA
+  │     → Skills: stack-X → frontend-design (UI tasks) → secure-coding → testing-strategy → observability → code-review → visual review (UI) → security-review → QA
   ├─ "Ship to production" / "Release v..."
   │     → /release → production-release.yaml workflow
   │     → Assembles 10-item evidence pack

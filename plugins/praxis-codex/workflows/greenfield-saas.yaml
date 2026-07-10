@@ -45,8 +45,11 @@ steps:
       personas: from(discovery.personas)
       opportunity_brief: from(discovery.opportunity_brief)
       mvp_scope_hypothesis: from(discovery.mvp_scope_hypothesis)
-    outputs: [journey_maps_per_persona, critical_moments, unhappy_paths, touchpoints]
+    outputs: [journey_maps_per_persona, critical_moments, unhappy_paths, touchpoints, design_brief]
     notes: |
+      Also produces .project/semantic/design-brief.md (brand adjectives,
+      reference products, density, tone — per frontend-design) at this first
+      UX engagement; every later FE/mobile task reads it.
       Runs early — journeys inform requirements + NFRs (per-flow latency,
       per-flow availability) before architecture decisions lock in.
 
@@ -275,13 +278,14 @@ implementation_slice_saas_definition:
             - source-grounded-coding
             - stack-web-frontend
             - design-system
+            - frontend-design
             - accessibility
             - frontend-performance
             - i18n-l10n   # if i18n_target_locales > 1
             - secure-coding   # XSS / CSRF / CSP for FE
             - testing-strategy
             - observability   # FE RUM + error tracking
-          outputs: [fe_pr_opened, fe_tests_passing, a11y_scan_pass, lighthouse_pass, bundle_within_budget]
+          outputs: [fe_pr_opened, fe_tests_passing, a11y_scan_pass, lighthouse_pass, bundle_within_budget, ui_screenshots]
 
     - id: integration_validation
       type: agent_invocation
@@ -306,6 +310,22 @@ implementation_slice_saas_definition:
         - agent: code-reviewer
           inputs: { pr: from(backend_frontend_parallel.frontend.fe_pr_opened) }
           outputs: [fe_review_verdict, fe_findings]
+
+    - id: visual_review
+      type: agent_invocation
+      agent: ux-designer
+      condition: slice_has_ui_tasks
+      inputs:
+        screenshots: from(backend_frontend_parallel.frontend.ui_screenshots)
+        design_plan: from(parent.design_plan, if_exists)
+        design_tokens: from(parent.design_tokens, if_exists)
+      consumes_skills:
+        - frontend-design
+      outputs: [visual_review_verdict, visual_findings]
+      notes: |
+        Fires only on UI-bearing slices. Screenshots at 2-3 viewports incl.
+        empty/loading/error states, scored against the design plan, tokens,
+        and frontend-design's calibration. Blockers feed the same fix loop.
 
     - id: security_review
       type: agent_invocation

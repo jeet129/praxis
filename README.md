@@ -66,7 +66,7 @@ Counts are CI-checked against `scripts/build-registry.py` — see [CONTRIBUTING.
 
 | Layer | Content |
 |---|---|
-| **Skills** | 89 active SKILLs covering 16 capability areas: foundation, lifecycle, discovery, architecture, UX, stacks, quality + security, build + deploy, ops, data, ML, agentic AI, maintenance. Each with an anti-rationalization table + verification checklist. |
+| **Skills** | 90 active SKILLs covering 16 capability areas: foundation, lifecycle, discovery, architecture, UX, stacks, quality + security, build + deploy, ops, data, ML, agentic AI, maintenance. Each with an anti-rationalization table + verification checklist. |
 | **Agents** | 17 role personas, each declaring an abstract `capability_tier` (`deep \| standard \| light`) rather than a hardcoded model: Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML-AI / Mobile specialists, Code Reviewer, Security Reviewer, QA Engineer, Tech Writer, Platform / SRE, UX Designer, System Steward. |
 | **Workflows** | 9 named compositions: `greenfield-api-service`, `greenfield-saas`, `brownfield-enhancement`, `implementation-slice`, `production-release`, `ideation-refinement-loop`, `expedited-change`, `spike`, `modernization`. |
 | **Governance** | 17 gates with evidence packs + approver matrix: 6 core (`requirements_freeze`, `architecture_sign_off`, `challenger_objection_override`, `security_finding_waiver`, `production_go_live`, `steward_promotion`) + 11 conditional, activated per project charter flags or workflow (`responsible_ai_review`, `tenant_isolation_review`, `hipaa_control_review`, `pci_scope_review`, `capacity_stress_test`, `expedited_change_approval`, `expedited_change_retro`, `spike_disposition`, `modernization_strategy_sign_off`, `parallel_run_verification`, `legacy_decommission_approval`). |
@@ -207,7 +207,7 @@ For the full operating guide, see [`PLAYBOOK.md`](PLAYBOOK.md).
 ### What this is
 
 - A structured discipline for AI-augmented software delivery, encoding what senior engineers do.
-- A library that activates conditionally — a small greenfield Node API project triggers ~89 SKILLs; an ML-heavy regulated SaaS triggers ~50.
+- A library that activates conditionally — a small greenfield Node API project triggers ~90 SKILLs; an ML-heavy regulated SaaS triggers ~50.
 - Tool-portable — same content works in 8 AI coding tools.
 - Patterns + scaffolding for the full lifecycle, not just the coding part.
 
@@ -229,7 +229,7 @@ WORKFLOWS — named compositions (greenfield-api-service, brownfield-enhancement
        orchestrate
 AGENTS — role personas (delivery-lead, product-manager, solution-architect, ...)
        consume
-SKILLS — 89 SKILL.md bundles (the disciplines)
+SKILLS — 90 SKILL.md bundles (the disciplines)
        produce evidence for
 GOVERNANCE — 17 gates (6 core + 11 conditional) with evidence packs + approver matrix
 ```
@@ -294,7 +294,7 @@ praxis/
 ├── codex-plugin-assets/      Codex-only command skills + subagent templates
 ├── .claude-plugin/           Claude Code plugin + marketplace manifests
 ├── agents/                   17 role agents (count is CI-checked, see scripts/build-registry.py)
-├── skills/                   89 active SKILLs (+ 1 tombstone, skipped by installer)
+├── skills/                   90 active SKILLs (+ 1 tombstone, skipped by installer)
 ├── workflows/                9 named workflows
 ├── governance/               governance.yaml (6 core + 11 conditional gates) + model-routing.yaml
 ├── commands/                 11 slash commands (plugin-root location)

@@ -13,6 +13,12 @@ minor versions until it stabilizes.
 
 ### Added
 
+- UI-quality enforcement wired end-to-end: `visual_review` branch in the pre-merge gate of `implementation-slice.yaml` (ux-designer reviews implementation screenshots against the design plan/tokens/frontend-design calibration; fires only on UI-bearing slices; blockers feed the same fix loop), UX hand-off now emits `design_tokens` + `design_plan`, FE/mobile branches capture `ui_screenshots` as evidence, task ledgers gain a `visual_review` gate key and token-lint in FE task `verify`, ux-designer produces `.project/semantic/design-brief.md` at first engagement, and delivery-planner gains a `design_fidelity` flag.
+
+
+- `frontend-design` skill (experimental): harness-portable visual-design craft adapted from Anthropic's open frontend-design skill — subject-grounded direction, two-pass plan-then-critique process, anti-generic calibration (the three AI-default looks), interface-copy rules, and a free-first design-tooling fallback chain (Figma MCP -> community/Penpot -> Stitch/v0 free tiers -> token-themed shadcn baseline -> text-only floor). Consumed by frontend-developer, mobile-developer, and ux-designer.
+
+
 - **Three new workflows + six conditional governance gates.** `workflows/expedited-change.yaml`
   (P0/P1 incident or critical-security-patch fast path: compressed gates now —
   scope containment, blocker-only combined review, rollback readiness —
@@ -80,6 +86,9 @@ minor versions until it stabilizes.
 - **Repo governance docs** — `CHANGELOG.md` (this file), `SECURITY.md`, `ROADMAP.md`.
 
 ### Fixed
+
+- Visual review propagated to ALL harness surfaces after double-check: greenfield-saas's inline review cluster (visual_review step + FE branch screenshots + frontend-design skill), Codex praxis-slice command skill, /slice command in all four copies, autonomous-drive drain step, definition-of-done (now nine gates incl. visual review), using-praxis slice chain, output-skill-map telemetry patterns, and screenshot-capture duty in frontend/mobile developer agents. Found and fixed real drift: .claude/commands/{slice,release}.md had fallen behind the canonical commands/ copies — now synced, and CI gains a command-copy drift check so it cannot recur. Brownfield-enhancement and modernization inherit visual review via the implementation-slice sub-workflow.
+
 
 - Cleared remaining line-budget warnings: Codex adaptive-model-routing overlay slimmed 369 -> 298 (examples/tables to references/), using-praxis 330 -> 299 (gate-topology and agent-mapping tables to references/); validate-skills.sh now counts `capability: command` adapter skills separately from the 70-90 knowledge-skill health band.
 
