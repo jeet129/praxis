@@ -168,3 +168,25 @@ To wire up a harness Praxis doesn't yet support:
 - `PLAYBOOK.md` §7.5 — the per-session operating cadence for model routing.
 - `CONTRIBUTING.md` — "Generated surfaces" section, on why you never
   hand-edit a `model:` field.
+
+## Per-project overrides
+
+`governance/model-routing.yaml` and `governance/autonomy.yaml` ship inside
+the plugin. On Claude Code, the SessionStart hook seeds copies into your
+project at `.project/governance/` automatically (once, if missing), and
+`/start` asks whether you want to tune them for the engagement. On other
+harnesses — or if the hook hasn't run yet — seed them manually:
+
+```bash
+mkdir -p .project/governance
+cp "$PRAXIS_ROOT/governance/model-routing.yaml" .project/governance/
+cp "$PRAXIS_ROOT/governance/autonomy.yaml"      .project/governance/
+```
+
+Never edit the installed plugin's own copies — updates overwrite them.
+
+Resolution order (consumed by `praxis-drive.sh`, `factory-routing-report.py`,
+and the delivery-lead's runtime routing): `.project/governance/<file>` if
+present, else the plugin's copy. Typical per-project tunings: `force_tier`
+for compliance-critical engagements, `cost_weights` for your org's actual
+model pricing, `stop_after` and `run_budget` for drive-mode autonomy.

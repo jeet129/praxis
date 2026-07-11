@@ -20,7 +20,7 @@ references: [../../workflows/brownfield-enhancement.yaml]
 
 Run the brownfield first-pass audit.
 
-1. Read `.project/semantic/project-charter.md` and confirm `mode == brownfield`.
+1. Read `.project/semantic/project-charter.md` and confirm `mode == brownfield`. Initialize the `.project/` memory tree if absent, and seed per-project governance overrides (copy the plugin's `governance/model-routing.yaml` + `governance/autonomy.yaml` to `.project/governance/` if missing); ask the user ONE question set — keep default adaptive routing/autonomy or tune `force_tier`, `cost_weights`, `stop_after`, `run_budget` — applying answers to the PROJECT copies only. Brownfield suggestion: `stop_after: slice` until characterization coverage is trusted.
 2. Run `codebase-comprehension` and produce `.repo-intel/` artifacts.
 3. Reconcile architecture docs and ADRs against actual deployed/code reality.
 4. Run `tech-debt-management` and produce `.project/operational/debt-register.md`.

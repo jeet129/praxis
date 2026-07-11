@@ -33,7 +33,7 @@ references:
 ```
 <!-- praxis:metadata:end -->
 
-One iteration, one task. This SKILL is what the Delivery Lead runs inside a drive session — `governance/autonomy.yaml` sets the dial for how often a human is consulted; this SKILL is what happens between those touchpoints. No contract, no loop: every claim here traces back to `references/loop-contracts.md`.
+One iteration, one task. This SKILL is what the Delivery Lead runs inside a drive session — ``.project/governance/autonomy.yaml` when the project carries an override, else the plugin's governance/autonomy.yaml` sets the dial for how often a human is consulted; this SKILL is what happens between those touchpoints. No contract, no loop: every claim here traces back to `references/loop-contracts.md`.
 
 ## When this SKILL fires
 

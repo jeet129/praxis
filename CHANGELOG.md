@@ -13,6 +13,15 @@ minor versions until it stabilizes.
 
 ### Added
 
+- Brownfield parity for governance seeding: /audit (all copies + Codex praxis-audit) gains a Day-0 setup step — initialize the .project tree, seed .project/governance/ overrides, and ask the same routing/autonomy tuning question as /start, with a brownfield-specific suggestion of stop_after: slice until characterization-test coverage is trusted.
+
+
+- Governance overrides now seed automatically: the SessionStart hook copies model-routing.yaml + autonomy.yaml into `.project/governance/` on first session (project copies win, survive plugin updates), and `/start` (all harnesses incl. Codex praxis-start) asks the user once whether to keep default adaptive routing/autonomy or tune force_tier / cost_weights / stop_after / run_budget for the engagement — answers applied to project copies only. build-registry.py now also maintains the /start count line.
+
+
+- Per-project governance overrides: `.project/governance/model-routing.yaml` and `.project/governance/autonomy.yaml` now win over the plugin-shipped copies (consumed by praxis-drive.sh, factory-routing-report.py, and delivery-lead's runtime routing) — engagements can tune force_tier / cost_weights / stop_after / budgets without editing the installed plugin; documented in docs/model-routing.md.
+
+
 - UI-quality enforcement wired end-to-end: `visual_review` branch in the pre-merge gate of `implementation-slice.yaml` (ux-designer reviews implementation screenshots against the design plan/tokens/frontend-design calibration; fires only on UI-bearing slices; blockers feed the same fix loop), UX hand-off now emits `design_tokens` + `design_plan`, FE/mobile branches capture `ui_screenshots` as evidence, task ledgers gain a `visual_review` gate key and token-lint in FE task `verify`, ux-designer produces `.project/semantic/design-brief.md` at first engagement, and delivery-planner gains a `design_fidelity` flag.
 
 
@@ -86,6 +95,9 @@ minor versions until it stabilizes.
 - **Repo governance docs** — `CHANGELOG.md` (this file), `SECURITY.md`, `ROADMAP.md`.
 
 ### Fixed
+
+- Routing-decision logging made resilient: delivery-lead now embeds the tier decision (agent/default_tier/chosen_tier/score/reason) in every routing-*.md frontmatter as part of the routing-transparency discipline it demonstrably follows, with the model-routing.jsonl append folded into the same step; factory-routing-report.py recovers frontmatter decisions as decided records when the JSONL is missing; session-start hook pre-creates .project/telemetry/ so appends cannot fail on a missing directory.
+
 
 - Visual review propagated to ALL harness surfaces after double-check: greenfield-saas's inline review cluster (visual_review step + FE branch screenshots + frontend-design skill), Codex praxis-slice command skill, /slice command in all four copies, autonomous-drive drain step, definition-of-done (now nine gates incl. visual review), using-praxis slice chain, output-skill-map telemetry patterns, and screenshot-capture duty in frontend/mobile developer agents. Found and fixed real drift: .claude/commands/{slice,release}.md had fallen behind the canonical commands/ copies — now synced, and CI gains a command-copy drift check so it cannot recur. Brownfield-enhancement and modernization inherit visual review via the implementation-slice sub-workflow.
 

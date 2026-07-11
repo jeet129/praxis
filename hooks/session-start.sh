@@ -13,6 +13,24 @@ set -u
 # Locate the project root + the platform install
 # ----------------------------------------------------------------------
 
+
+# Ensure the telemetry tree exists so agent-side appends never fail silently.
+PROJ="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+mkdir -p "$PROJ/.project/telemetry/summaries" 2>/dev/null || true
+
+# Seed per-project governance overrides from the plugin defaults (once).
+# These are the engagement-tunable configs (force_tier, cost_weights,
+# stop_after, run budgets); the project copies win over the plugin copies,
+# survive plugin updates, and belong in the project's git history.
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+if [[ -d "$PROJ/.project" ]]; then
+  mkdir -p "$PROJ/.project/governance" 2>/dev/null || true
+  for gf in model-routing.yaml autonomy.yaml; do
+    if [[ ! -f "$PROJ/.project/governance/$gf" && -f "$PLUGIN_ROOT/governance/$gf" ]]; then
+      cp "$PLUGIN_ROOT/governance/$gf" "$PROJ/.project/governance/$gf" 2>/dev/null || true
+    fi
+  done
+fi
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 PROJECT_DIR="$PROJECT_ROOT/.project"
 

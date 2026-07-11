@@ -288,7 +288,7 @@ def ingest_prose_routing(working_dir: Path, known_slugs: set) -> dict:
         {slice, agent, raw_agent, source: 'explicit'|'inferred', kind, file, event, status}
       unresolved_raw_agents: raw strings that couldn't be canonicalized
     """
-    out = {"files": 0, "dispatches": [], "unresolved_raw_agents": []}
+    out = {"files": 0, "dispatches": [], "decisions": [], "unresolved_raw_agents": []}
     if not working_dir.is_dir():
         return out
     paths = sorted(working_dir.glob("routing-*.md"))
@@ -302,6 +302,27 @@ def ingest_prose_routing(working_dir: Path, known_slugs: set) -> dict:
         slice_id = fm.get("slice", "unknown")
         event = fm.get("event", "")
         fname = path.name
+
+        # --- Structured routing decision in frontmatter (routing: block) ---
+        # delivery-lead's routing-transparency discipline embeds the tier
+        # decision in the routing-*.md frontmatter; treat it as a decided
+        # record equivalent to a model-routing.jsonl line (source: prose).
+        # parse_frontmatter is flat: the nested `routing:` block's keys land
+        # as flat keys (agent, default_tier, chosen_tier, score, reason).
+        # The presence of the `routing` parent key signals the block exists.
+        if "routing" in fm and fm.get("agent"):
+            r_agent = fm["agent"]
+            agent = canonicalize_agent(r_agent, known_slugs) or r_agent
+            out["decisions"].append({
+                "agent": agent,
+                "default_tier": fm.get("default_tier"),
+                "chosen_tier": fm.get("chosen_tier"),
+                "score": fm.get("score"),
+                "reason": fm.get("reason", ""),
+                "source": "prose-frontmatter",
+                "file": fname,
+                "slice": slice_id,
+            })
 
         # --- Explicit "## Dispatch N — <agent>" / "## Dispatched: <agent>" headings ---
         explicit_agents_this_file = set()
@@ -477,7 +498,11 @@ def build_drive_runs(drive_events: list[dict]) -> dict:
 def build_report(project_dir: Path) -> dict:
     known_slugs = set(load_agent_defaults(AGENTS_DIR).keys())
     agent_defaults = load_agent_defaults(AGENTS_DIR)
-    gov = load_governance(GOVERNANCE_FILE)
+    # Project-level override wins over the plugin-shipped routing table, so
+    # an engagement can tune cost_weights / force_tier without editing the
+    # installed plugin. project_dir here is the .project dir.
+    project_gov = project_dir / "governance" / "model-routing.yaml"
+    gov = load_governance(project_gov if project_gov.exists() else GOVERNANCE_FILE)
 
     telemetry_dir = project_dir / "telemetry"
     working_dir = project_dir / "working"
@@ -488,6 +513,21 @@ def build_report(project_dir: Path) -> dict:
     drive_events = read_jsonl(telemetry_dir / "drive.jsonl")
     prose = ingest_prose_routing(working_dir, known_slugs)
     fmetrics = ingest_factory_metrics(fm_dir)
+
+    # Prose-frontmatter routing decisions (routing: block in routing-*.md)
+    # count as decided records, same as model-routing.jsonl lines — the
+    # frontmatter is the authoritative fallback when the JSONL append was
+    # skipped. Normalize to the JSONL record shape and merge.
+    for d in prose.get("decisions", []):
+        routing_events.append({
+            "agent": d.get("agent"),
+            "default_tier": d.get("default_tier"),
+            "chosen_tier": d.get("chosen_tier"),
+            "tier": d.get("chosen_tier"),
+            "score": d.get("score"),
+            "reason": d.get("reason"),
+            "source": "prose-frontmatter",
+        })
 
     # ---- Data coverage --------------------------------------------------
     coverage = {
@@ -507,6 +547,7 @@ def build_report(project_dir: Path) -> dict:
             "present": prose["files"] > 0,
             "files": prose["files"],
             "dispatch_records": len(prose["dispatches"]),
+            "frontmatter_decisions": len(prose.get("decisions", [])),
         },
         "factory_metrics_usage": {
             "present": fmetrics["count"] > 0,
@@ -515,11 +556,17 @@ def build_report(project_dir: Path) -> dict:
     }
     coverage_notes = []
     if not coverage["model_routing_jsonl"]["present"]:
-        coverage_notes.append(
-            "telemetry/model-routing.jsonl is absent — no structured routing "
-            "decisions have been logged yet; tier resolution below falls back "
-            "to observed spawn models or agent defaults."
-        )
+        if prose.get("decisions"):
+            coverage_notes.append(
+                "telemetry/model-routing.jsonl is absent, but routing decisions "
+                f"were recovered from routing-*.md frontmatter ({len(prose['decisions'])} decided records)."
+            )
+        else:
+            coverage_notes.append(
+                "telemetry/model-routing.jsonl is absent — no structured routing "
+                "decisions have been logged yet; tier resolution below falls back "
+                "to observed spawn models or agent defaults."
+            )
     if not coverage["agent_spawns_jsonl"]["present"]:
         coverage_notes.append(
             "telemetry/agent-spawns.jsonl is absent — no structured spawn/complete "

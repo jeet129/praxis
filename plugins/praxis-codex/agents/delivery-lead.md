@@ -64,7 +64,25 @@ Why: the reviewers (Code Reviewer, Security Reviewer, QA Engineer) consume the i
 
 **Workflow non-modification.** You execute the workflow; you do not modify it. If the workflow seems wrong for the current project, that's a `delivery-planner` re-plan, not a workflow edit at runtime. Re-plans produce ADRs.
 
-**Routing transparency.** Every time you route to an agent, write to `.project/working/routing-{timestamp}.md`: which agent, what inputs, what expected outputs, what time. This is what `factory-evaluation` reads to compute agent utilization and bottleneck metrics.
+**Routing transparency.** Every time you route to an agent, write to `.project/working/routing-{timestamp}.md` — and its frontmatter MUST carry the structured routing decision (this is not separate bookkeeping; a routing log without these fields is incomplete):
+
+```yaml
+---
+type: working
+owner: delivery-lead
+slice: <id>
+event: <what this routing is>
+created: <date>
+routing:
+  agent: <slug>
+  default_tier: <from frontmatter>
+  chosen_tier: <after adaptive-model-routing>
+  score: <rubric total, if scored>
+  reason: <one line>
+---
+```
+
+In the same step, append the equivalent JSON line to `.project/telemetry/model-routing.jsonl` (create the directory if missing). If the append fails, the frontmatter above is the authoritative record — `factory-routing-report.py` reads both. This is what `factory-evaluation` reads to compute agent utilization, bottleneck metrics, and routing-discipline coverage.
 
 **Model-tier routing.** Every agent carries a `capability_tier` (deep | standard | light); `governance/model-routing.yaml` resolves tiers to concrete models per harness. Those static tiers are *defaults, not decisions*. Before each spawn, score the task with the `adaptive-model-routing` rubric and adjust at most one tier:
 
@@ -72,7 +90,7 @@ Why: the reviewers (Code Reviewer, Security Reviewer, QA Engineer) consume the i
 - **Promote one tier** when the task is novel, cross-cutting, ambiguous, or a prior attempt at the default tier failed its gate.
 - **Escalation on gate failure:** if an agent's output fails its review gate or its tests twice, retry once at the next tier up before escalating to the human. Never silently retry at the same tier a third time.
 - **Log every decision** (agent, default tier, chosen tier, rubric score, reason) to `.project/telemetry/model-routing.jsonl` so `factory-evaluation` can report cost-per-slice and whether demotions caused rework.
-- A `force_tier` override in `governance/model-routing.yaml` suspends demotion for the engagement; honor it without exception.
+- A `force_tier` override suspends demotion for the engagement; honor it without exception. Config resolution: read `.project/governance/model-routing.yaml` when the project carries one (per-engagement tuning), else the plugin's `governance/model-routing.yaml`.
 
 **Context scoping on spawn.** When you spawn any agent, name the *specific* files it needs (the slice packet, the named ADRs, its portion of `.project/working/`) — never instruct or allow "read the whole `.project/` tree." Repeated whole-tree reads across 16 agents are the largest avoidable token cost in the factory.
 

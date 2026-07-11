@@ -289,7 +289,9 @@ def process_text_count_surfaces(counts, drift, check):
         (re.compile(r"\d+ slash commands\b"), f"{n_commands} slash commands"),
         (re.compile(r"\d+ (?:active )?governance gates\b"), f"{len(counts['gates']) if isinstance(counts['gates'], list) else counts['gates']} governance gates"),
     ]
-    for rel in ("README.md", "install.sh"):
+    for rel in ("README.md", "install.sh",
+                "commands/start.md", ".claude/commands/start.md",
+                "commands/start.toml", ".gemini/commands/start.toml"):
         path = ROOT / rel
         if not path.exists():
             continue

@@ -33,6 +33,10 @@ PRAXIS_ROOT="${PRAXIS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 AUTONOMY_YAML="$PRAXIS_ROOT/governance/autonomy.yaml"
 MODEL_ROUTING_YAML="$PRAXIS_ROOT/governance/model-routing.yaml"
+# Project-level overrides win over the plugin-shipped defaults, so an
+# engagement can tune stop_after / budgets / force_tier / cost_weights
+# without editing the installed plugin (which updates would overwrite).
+# Resolved after --project-dir parsing below.
 
 # --------------------------------------------------------------------------
 # Defaults + arg parsing
@@ -66,6 +70,16 @@ case "$HARNESS" in
   claude-code|codex|gemini-cli) ;;
   *) echo "praxis-drive.sh: unsupported --harness '$HARNESS' (want claude-code|codex|gemini-cli)" >&2; exit 1 ;;
 esac
+
+# Apply project-level overrides now that PROJECT_DIR is resolved.
+if [[ -f "$PROJECT_DIR/.project/governance/autonomy.yaml" ]]; then
+  AUTONOMY_YAML="$PROJECT_DIR/.project/governance/autonomy.yaml"
+  echo "praxis-drive: using project override $AUTONOMY_YAML"
+fi
+if [[ -f "$PROJECT_DIR/.project/governance/model-routing.yaml" ]]; then
+  MODEL_ROUTING_YAML="$PROJECT_DIR/.project/governance/model-routing.yaml"
+  echo "praxis-drive: using project override $MODEL_ROUTING_YAML"
+fi
 
 if [[ ! -f "$AUTONOMY_YAML" ]]; then
   echo "praxis-drive.sh: missing governance/autonomy.yaml at $AUTONOMY_YAML (PRAXIS_ROOT=$PRAXIS_ROOT)" >&2

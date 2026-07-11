@@ -179,3 +179,15 @@ diff them quarter over quarter to see whether tier usage is drifting.
   applies before each spawn, which is what layer (c) is recording.
 - `PLAYBOOK.md` §7.5–7.6 — the per-session and weekly telemetry-review
   cadences in the operating guide.
+
+## If model-routing.jsonl is empty
+
+The JSONL is agent-written and the most commonly skipped discipline. Two
+mitigations are built in: delivery-lead embeds the same decision in every
+`routing-*.md` frontmatter (`routing:` block), which the report recovers as
+decided records; and `hooks/session-start.sh` pre-creates
+`.project/telemetry/` so appends never fail on a missing directory. Check
+the report's coverage note — "recovered from routing-*.md frontmatter"
+means routing is happening but the JSONL append was skipped; zero decisions
+in both forms means adaptive routing is not being practiced and the
+delivery-lead discipline needs attention.

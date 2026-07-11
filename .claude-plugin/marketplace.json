@@ -5,15 +5,15 @@
     "email": "jitesh921@gmail.com",
     "url": "https://github.com/jeet129"
   },
-  "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
   "metadata": {
-    "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
+    "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "praxis",
-      "description": "90 SKILLs \u00b7 17 role agents \u00b7 9 workflows \u00b7 17 governance gates \u00b7 11 slash commands \u00b7 SessionStart hook.",
+      "description": "90 SKILLs · 17 role agents · 9 workflows · 17 governance gates · 11 slash commands · SessionStart hook.",
       "source": "./",
       "homepage": "https://github.com/jeet129/praxis",
       "license": "MIT"

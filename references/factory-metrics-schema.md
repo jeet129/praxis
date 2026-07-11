@@ -192,6 +192,16 @@ Run `scripts/validate-factory-metrics.sh` to check all entries parse correctly a
 
 ## Telemetry JSONL schemas
 
+### Routing-decision fallback: routing-*.md frontmatter
+
+`model-routing.jsonl` is agent-written and can be skipped under load. The
+authoritative fallback is the `routing:` block delivery-lead embeds in every
+`routing-{timestamp}.md` frontmatter (agent, default_tier, chosen_tier,
+score, reason). `scripts/factory-routing-report.py` merges these as decided
+records (source: `prose-frontmatter`), so routing-discipline coverage
+reflects either form. If BOTH are missing while spawns occurred, adaptive
+routing is genuinely not being practiced.
+
 Two append-only JSONL files under `.project/telemetry/` carry structured routing/cost telemetry. Unlike the markdown records above, these are one-JSON-object-per-line, machine-written, and never hand-edited. Both are optional — their absence just means the coverage-dependent tools (see below) fall back to prose logs and static defaults.
 
 ### `.project/telemetry/agent-spawns.jsonl`

@@ -25,6 +25,7 @@ Run the Praxis bootstrap flow for Codex.
 3. Create or update `.project/semantic/project-charter.md` with project mode, data/ML/AI flags, compliance regimes, scale, availability, tenancy, stack, and cloud.
 4. Create the `.project/` memory tree if missing.
 5. Summarize active governance gates from `governance/governance.yaml`.
+6. Seed per-project governance overrides: copy the plugin's `governance/model-routing.yaml` and `governance/autonomy.yaml` to `.project/governance/` if not already present, then ask the user ONE concise question set — keep default adaptive routing/autonomy, or tune `force_tier`, `cost_weights`, `stop_after`, `run_budget` for this engagement. Apply answers to the PROJECT copies only; never edit the plugin's files.
 6. Recommend `$praxis-discover` for greenfield or `$praxis-audit` for brownfield.
 
 Do not modify Claude Code plugin files.

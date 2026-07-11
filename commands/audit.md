@@ -4,6 +4,8 @@ description: "Brownfield kickoff: comprehension + architecture reconciliation + 
 
 Brownfield engagement first-week sequence. Run in order:
 
+Day 0 — Setup. Initialize the `.project/` memory tree if absent (semantic / decision / episodic / operational / procedural / working / telemetry). Seed the per-project governance overrides: copy the plugin's `governance/model-routing.yaml` and `governance/autonomy.yaml` to `.project/governance/` if not present. Then ask me ONE concise question set: keep default adaptive routing and autonomy, or tune for this engagement — `force_tier`, `cost_weights`, drive `stop_after` + `run_budget`. Apply answers to the PROJECT copies only. (Brownfield default worth suggesting: `stop_after: slice` until characterization-test coverage is trusted.)
+
 Day 1 — `codebase-comprehension` SKILL.
 Activate Tech Writer (narrate) + Lead Developer (structure). Produce `.repo-intel/` outputs:
 - System map (Level 1 + 2 of C4 derived from actual deployed system, not aspirational diagrams).
