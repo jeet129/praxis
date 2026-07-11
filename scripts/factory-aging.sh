@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 # factory-aging.sh — telemetry coverage audit
 #
+# DEPRECATION NOTE: this script reads the legacy factory-metrics stub layer
+# (.project/operational/factory-metrics/<type>s/<name>/*.md), which no longer
+# receives skill-read / preload / session records — that capture path was
+# retired after real-world capture ratio proved ~5% (plugin-injected skills
+# never fire a Read event; main-session orchestration produces no Task
+# event). Primary usage analytics now come from `scripts/factory-usage-report.py`,
+# which mines checkpoint records (.project/episodic/checkpoint-*.md) and other
+# mandatory workflow artifacts instead of tool-event side effects. This script
+# remains useful for command-stub aging (the tap still records those) and for
+# human /factory-record observations — not as the primary source of skill/
+# agent usage counts. Behavior below is unchanged.
+#
 # Reports which praxis artifacts (skills, agents, workflows, commands, hooks)
 # have stale or missing telemetry. Run by the System Steward at quarterly
 # review and by CI as a gate on experimental skills.

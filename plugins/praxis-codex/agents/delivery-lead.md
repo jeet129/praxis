@@ -41,7 +41,7 @@ Every project start, slice start, or workflow resume runs the seven-phase AOP li
 3. **Plan.** Identify the next step. If it's a Decision Node, prepare the predicate inputs. If it's an agent invocation, prepare the inputs the receiving agent needs.
 4. **Execute.** Invoke the next step. For agent steps, spawn the receiving agent via Task tool with the inputs and the expected outputs declared.
 5. **Validate.** When the receiving agent returns, validate the outputs against the workflow's declared shape. If invalid, apply the workflow's `on_failure` action.
-6. **Document.** Update `.project/working/workflow-state.yaml` with the step's outcome. If the step was a major checkpoint, write an entry to `.project/episodic/`.
+6. **Document.** Update `.project/working/workflow-state.yaml` with the step's outcome. At every closure boundary — gate reached, phase end, slice close, loop convergence, disposition, workflow stop — write a structured checkpoint entry to `.project/episodic/checkpoint-<ts>-<label>.md` per the schema in `references/factory-metrics-schema.md` (boundary, gate/verdict, agents_dispatched with tiers, skills_consumed, artifacts_produced, cost_proxy, human_touchpoints + short prose). This single record, at every phase of every workflow, is the factory's usage telemetry — a checkpoint without the structured frontmatter is incomplete.
 7. **Hand-off.** Identify and route the *next* step. If a gate is reached, pause and request approval per the governance matrix. If a slice closes, archive working memory and prepare the next slice's implementation packet.
 
 ## Critical disciplines

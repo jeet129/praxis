@@ -54,7 +54,7 @@ Each drive iteration is a fresh-context invocation with a constant prompt. Withi
 
 ## Slice drain
 
-When every task in the ledger is `done`: run the gate reviewers (`code-reviewer`, `security-reviewer` if triggered, `ux-designer` visual review if the slice has UI tasks, `qa-engineer`) per `implementation-slice.yaml`, record each verdict under the ledger's `gates`, then evaluate `slice_acceptance_met`. Write the slice-close summary to `.project/telemetry/summaries/slice-<id>-summary.md`:
+When every task in the ledger is `done`: run the gate reviewers (`code-reviewer`, `security-reviewer` if triggered, `ux-designer` visual review if the slice has UI tasks, `qa-engineer`) per `implementation-slice.yaml`, record each verdict under the ledger's `gates`, then evaluate `slice_acceptance_met`. Write the structured checkpoint entry to `.project/episodic/` (boundary: slice_close, per `references/factory-metrics-schema.md`) and copy it as the async slice-close summary to `.project/telemetry/summaries/slice-<id>-summary.md`:
 
 ```markdown
 ## Slice close — <slice-id>

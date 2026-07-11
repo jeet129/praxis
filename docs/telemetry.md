@@ -2,131 +2,191 @@
 
 Praxis captures three layers of telemetry, with deliberately different
 reliability guarantees. Read this before trusting a number from a report —
-two of the three layers are deterministic (hook-written, no agent
-cooperation required); the third depends on the delivery-lead actually
-following the routing discipline. The report tool labels every figure by
-which layer it came from so you're never guessing.
+one layer is agent-written but mandatory (near-100% capture because it's a
+required workflow output, not a tool-event side effect); one is hook/runner-
+written and deterministic; the third is a thin stub layer that no longer
+carries the weight it used to. The report tools label every figure by which
+layer it came from so you're never guessing.
 
 ## The three layers
 
-### Layer (a) — usage records (deterministic)
+### Layer (a) — checkpoint records (primary usage source; mandatory, not hook-triggered)
 
-**What:** One markdown file per artifact invocation (SKILL read, agent
-spawn, workflow step, command run, gate evaluation, reference read).
+**What:** One structured episodic entry per closure boundary — slice close,
+requirements_freeze, architecture_sign_off, ideation convergence, spike
+disposition, release, expedited retro, steward review, or any other
+gate/phase/slice/loop/disposition/workflow-end boundary. Frontmatter carries
+`agents_dispatched`, `skills_consumed`, `artifacts_produced`, `cost_proxy`,
+`human_touchpoints`, and `deviations` accumulated since the previous
+checkpoint, plus a few lines of prose on what closed and what carries
+forward.
 
-**Path:** `.project/operational/factory-metrics/<type>s/<name>/<date>-<rand>.md`
-— for example `.project/operational/factory-metrics/skills/threat-modeling/2026-06-28-a1b2.md`.
+**Path:** `.project/episodic/checkpoint-<YYYYMMDD-HHMM>-<label>.md`.
 
-**How it's written:** `hooks/tap.sh` fires on Claude Code's PostToolUse /
-SubagentStart / SubagentStop / UserPromptSubmit / SessionStart /SessionEnd
-hooks, reads the event payload, and calls `scripts/factory-record.sh --type
-<type> --name <name> ...` to write the file. This requires no cooperation
-from the agent — it's wired at the tool layer. Session-based de-duplication
-means re-reading the same SKILL file repeatedly within a session doesn't
-spam the directory with near-identical records.
+**How it's written:** delivery-lead (single writer) at the AOP Document step
+of every closure boundary, per `references/factory-metrics-schema.md`
+("Checkpoint records"). This is *agent-written*, not hook-fired — but unlike
+the retired read/preload stubs, it isn't optional instrumentation riding on
+a tool event that may or may not fire. It's a required output of the
+workflow itself, costing a few dozen tokens per phase, not per event.
 
-**Reliability:** Deterministic. Captures roughly 97% of invocations — the
-residual gap is SKILL uses that involve neither a file read, an observable
-output, nor a sub-agent spawn (rare in practice).
+**Reliability:** Near-100% capture in a workflow that's actually being
+followed, because skipping it means skipping a mandatory AOP step — but it
+is still discipline-dependent in the sense that a delivery-lead who
+short-circuits the AOP can skip it. This replaced an earlier tool-event
+capture approach (hook-fired stubs for every SKILL read/preload/session)
+that measured out at roughly 5% real-world capture — plugin-injected skills
+never fire a `Read` event, and main-session orchestration produces no `Task`
+event. Checkpoints don't have that gap because they're not watching for a
+tool event; they're a workflow deliverable.
 
-**Schema:** `references/factory-metrics-schema.md` — required/optional
-frontmatter fields, trigger/invocation enum semantics, worked examples
-(auto-stub from PostToolUse, rich workflow-step observation, gate
-evaluation, SubagentStart capture).
+**Read by:** `scripts/factory-usage-report.py` — the primary usage-analytics
+tool. See "Running the reports" below.
 
-### Layer (b) — structured spawn events (deterministic)
+### Layer (b) — structured JSONL streams (hook/runner-written, deterministic)
 
-**What:** Two JSON-object-per-line event shapes appended to one file:
+**What:** Four append-only, one-JSON-object-per-line files under
+`.project/telemetry/`:
 
 ```jsonc
-// spawn — written when a sub-agent is launched
+// agent-spawns.jsonl — spawn, written when a sub-agent is launched
 {"ts": "2026-06-28T09:15:00Z", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
 
-// complete — written when a sub-agent finishes
+// agent-spawns.jsonl — complete, written when a sub-agent finishes
 {"ts": "2026-06-28T09:42:00Z", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
-```
 
-**Path:** `.project/telemetry/agent-spawns.jsonl`
-
-**How it's written:** `hooks/tap.sh`, on the `Task` (spawn) and
-`SubagentStop` (completion) hook events. Same deterministic guarantee as
-layer (a) — no agent cooperation needed.
-
-**Reliability:** Deterministic for the fact of the spawn/completion and
-status. `model`, `input_tokens`, and `output_tokens` are `null` whenever the
-harness doesn't expose them — that's expected, not a bug; the report tool
-treats `null` as "unknown," never as zero.
-
-### Layer (c) — routing decisions (discipline-dependent)
-
-**What:** The delivery-lead's own record of *why* it chose a tier for a
-given spawn — the deliberate half of routing telemetry, not just the
-outcome:
-
-```jsonc
+// model-routing.jsonl — the delivery-lead's routing-decision rationale
 {"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+
+// drive.jsonl — one line per scripts/praxis-drive.sh iteration
+{"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,"slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard","outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
+
+// sessions.jsonl — one line per session boundary
+{"ts": "2026-06-28T09:00:00Z", "event": "session_start", "session": "8f3c-a1b2"}
 ```
 
-**Path:** `.project/telemetry/model-routing.jsonl` (structured) plus prose
-dispatch notes at `.project/working/routing-*.md` (delivery-lead's own
-working notes, not machine-parsed line-by-line but scanned for coverage).
+**Paths:** `.project/telemetry/agent-spawns.jsonl`, `model-routing.jsonl`,
+`drive.jsonl`, `sessions.jsonl`.
 
-**How it's written:** The delivery-lead writes this itself, per
+**How it's written:** `hooks/tap.sh` fires on the `Task` (spawn) and
+`SubagentStop` (completion) hook events for `agent-spawns.jsonl`, and on
+`SessionStart`/`SessionEnd` for `sessions.jsonl` — no agent cooperation
+needed, same deterministic guarantee either way. `scripts/praxis-drive.sh`
+appends to `drive.jsonl` once per iteration it runs, also deterministic
+(runner-written, not agent-written). **`model-routing.jsonl` is the one
+exception in this layer**: the delivery-lead writes it itself, per
 `skills/adaptive-model-routing/SKILL.md`, before each spawn — it is
 discipline, not hook-enforced automation. If the delivery-lead skips logging
-a decision (distraction, a fast-path shortcut, a bug), there's no
-lower-level mechanism catching the gap. This is the layer to treat with
-appropriate skepticism.
+a decision, there's no lower-level mechanism catching the gap; treat that
+one stream with appropriate skepticism even though it lives alongside three
+deterministic ones.
 
-**Reliability:** Discipline-dependent. The routing report surfaces a
-"routing-discipline coverage %" figure specifically so you can see how much
-of layer (b)'s spawn volume has a matching layer (c) decision — low coverage
-means the delivery-lead is routing off default tiers without logging the
-override reasoning, which is worth flagging in the quarterly steward review.
+**Reliability:** Deterministic for `agent-spawns.jsonl`, `drive.jsonl`, and
+`sessions.jsonl` (the fact of the event, and any fields the harness
+exposes — `model`/`input_tokens`/`output_tokens` are `null`, never a
+guessed zero, when the harness doesn't expose them). Discipline-dependent
+for `model-routing.jsonl`. delivery-lead also embeds the same routing
+decision in every `.project/working/routing-*.md` frontmatter (`routing:`
+block) as a fallback the report tools recover as an equivalent "decided"
+record when the JSONL append was skipped.
+
+**Read by:** `scripts/factory-routing-report.py` (routing/cost/drive
+aggregation) and `scripts/factory-usage-report.py` (sessions, plus
+`routing-*.md` for dispatch/skill evidence).
+
+### Layer (c) — stub layer (commands + human observations only; supplementary)
+
+**What:** One markdown file per event, written under
+`.project/operational/factory-metrics/<type>s/<name>/<date>-<rand>.md`.
+
+**What's still written:** `command` stubs (`UserPromptSubmit` parsed for
+`/praxis:<cmd>` or `/cmd`) and human-authored `/praxis:factory-record`
+observations. Both remain live.
+
+**What's retired, and why:** `skill`-read, `agent`-preload, and per-session
+stub types used to be written on `PostToolUse(Read)`, `SubagentStart`
+(preload-mapping lookup), and `SessionStart`/`SessionEnd`. They're retired —
+measured real-world capture was ~5%, because plugin-injected skills are
+never `Read` into context as a discrete tool call, and main-session
+orchestration (no sub-agent spawned) never fires a `Task` event either. Any
+skill/agent/hook/workflow/gate/reference stub files still on disk predate
+the slimdown; the report tools count them under a "legacy stub layer" label
+for continuity but don't treat them as current usage evidence. Skill/agent
+usage now comes from layer (a).
+
+**Reliability:** Deterministic for the fact of a command invocation (same
+hook-tap mechanism as layer (b)'s deterministic streams). Discipline-
+dependent for `/factory-record` observations (a human has to actually run
+the command).
+
+**Read by:** `scripts/factory-usage-report.py` (command stubs; legacy stub
+count). `scripts/factory-frequency.sh` / `scripts/factory-aging.sh` still
+read the full stub layer including the legacy types — see the deprecation
+note at the top of each script.
+
+## The two report scripts
+
+| Script | Primary source | What it reports |
+|---|---|---|
+| `scripts/factory-usage-report.py` | Layer (a) checkpoints, plus working packets/task ledgers, routing logs, command stubs, and sessions | Per-skill and per-agent usage (checkpoints/packets naming it, last-seen, never-observed list), per-workflow checkpoint/gate breakdown, per-command invocations, engagement summary (sessions, span, checkpoints, total cost proxy) |
+| `scripts/factory-routing-report.py` | Layer (b) JSONL streams, plus `routing-*.md` and legacy factory-metrics records | Data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals, routing-discipline coverage %, drive-run summaries, heuristic recommendations |
+
+Both are zero-dependency Python 3, fail-soft (a missing/malformed source
+degrades that section of the report, never crashes the script), and accept
+`--project-dir` (project root or a `.project` dir directly), `--format
+md|json`, and `--out`.
 
 ## Running the reports
 
-**Weekly usage aggregation:**
+**Primary usage report (skills, agents, workflows, commands, engagement):**
 
 ```bash
-scripts/factory-frequency.sh --type skill --since $(date -v-7d +%Y-%m-%d) --top 10
-```
-
-Aggregates layer (a) records — top-N SKILLs/agents by invocation count over
-a period.
-
-**Coverage gate for experimental SKILLs:**
-
-```bash
-scripts/factory-aging.sh --strict-window 30
-```
-
-Flags `state: experimental` SKILLs with stale or missing layer (a)
-telemetry — a signal for the System Steward to decide promote vs. prune.
-
-**Full routing + cost report (aggregates all three layers):**
-
-```bash
-python3 scripts/factory-routing-report.py --project-dir <path> --format md --out <file>
+python3 scripts/factory-usage-report.py --project-dir <path> --format md --out <file>
 ```
 
 - `--project-dir` — the project root, or a `.project` directory directly.
   Defaults to cwd.
 - `--format` — `md` (default) or `json`.
 - `--out` — output path. Default for `md`:
-  `.project/telemetry/reports/routing-report-<YYYY-MM-DD>.md`. Default for
+  `.project/telemetry/reports/usage-report-<YYYY-MM-DD>.md`. Default for
   `json`: stdout unless `--out` is given.
 
-Reads (fail-soft — every source is optional; a missing one just degrades
+Mines (fail-soft — every source is optional; a missing one just degrades
 that section of the report, never crashes it):
-- `.project/telemetry/model-routing.jsonl` (layer c, structured)
-- `.project/telemetry/agent-spawns.jsonl` (layer b)
-- `.project/working/routing-*.md` (layer c, prose)
-- `.project/operational/factory-metrics/**` (layer a)
+- `.project/episodic/checkpoint-*.md` (layer a, primary)
+- `.project/working/slice-*-packet.md` + `slice-*-tasks.yaml`
+- `.project/working/routing-*.md` (layer b's prose fallback)
+- `.project/operational/factory-metrics/commands/**` (layer c, commands)
+- `.project/telemetry/sessions.jsonl` (layer b)
+- `.project/operational/factory-metrics/{skills,agents,...}` (legacy stub
+  layer — counted for continuity, labeled, not treated as evidence)
+
+Report sections: (1) data coverage per source with honest notes; (2)
+per-skill usage — checkpoints/packets naming it, last-seen, source labels,
+plus a "never observed" list for steward review; (3) per-agent dispatches,
+tiers seen, last active; (4) per-workflow checkpoint/gate breakdown; (5)
+per-command invocations; (6) engagement summary (sessions, span,
+checkpoints, total cost proxy).
+
+**Full routing + cost report (aggregates layer b's JSONL streams):**
+
+```bash
+python3 scripts/factory-routing-report.py --project-dir <path> --format md --out <file>
+```
+
+Same `--project-dir` / `--format` / `--out` convention. Default `md` output:
+`.project/telemetry/reports/routing-report-<YYYY-MM-DD>.md`.
+
+Reads (fail-soft):
+- `.project/telemetry/model-routing.jsonl` (layer b, discipline-dependent)
+- `.project/telemetry/agent-spawns.jsonl` (layer b, deterministic)
+- `.project/telemetry/drive.jsonl` (layer b, deterministic)
+- `.project/working/routing-*.md` (layer b's prose fallback)
+- `.project/operational/factory-metrics/**` (layer c, supplementary)
 
 Report sections:
 
-1. **Data coverage** — how much of each layer is present, so you know how
+1. **Data coverage** — how much of each source is present, so you know how
    much to trust the rest of the report.
 2. **Per-slice dispatches** — spawn activity grouped by slice, where
    determinable.
@@ -134,11 +194,28 @@ Report sections:
 4. **Tier & cost proxy** — tier distribution and a cost-proxy total, with
    every number source-labeled `default` / `observed` / `decided` (see
    below).
-5. **Routing-discipline coverage %** — the fraction of layer-(b) spawns that
-   have a matching layer-(c) logged decision.
-6. **Recommendations** — heuristic notes (e.g., "N `deep`-tier spawns had no
+5. **Routing-discipline coverage %** — the fraction of spawn events (from
+   `agent-spawns.jsonl`) that have a matching logged routing decision (from
+   `model-routing.jsonl` or its `routing-*.md` frontmatter fallback).
+6. **Drive-run summaries** — iterations/slices/tasks/cost per
+   `scripts/praxis-drive.sh` run, stop reasons, human-touchpoint density.
+7. **Recommendations** — heuristic notes (e.g., "N `deep`-tier spawns had no
    logged rationale — check whether adaptive-model-routing is being
    applied").
+
+**Legacy stub-layer aggregation (command-stub aging; deprecated for skill/agent usage):**
+
+```bash
+scripts/factory-frequency.sh --type skill --since $(date -v-7d +%Y-%m-%d) --top 10
+scripts/factory-aging.sh --strict-window 30
+```
+
+Both scripts carry a deprecation note explaining the ~5% capture ratio that
+led to retiring the read/preload/session stub types they were built around.
+They still work unchanged, and remain useful for command-stub aging and
+auditing `/factory-record` observation coverage — just don't treat their
+skill/agent numbers as the current picture; use
+`scripts/factory-usage-report.py` for that.
 
 ## Reading the "cost proxy" honestly
 
@@ -155,28 +232,35 @@ The report labels each figure by source so you know exactly what grounds it:
 - **`default`** — no spawn/routing telemetry available for this agent; the
   figure falls back to the agent's static `capability_tier` from its
   frontmatter.
-- **`observed`** — layer (b) spawn events exist for this agent (we know it
-  ran, and possibly at what model), but no layer (c) routing decision was
-  logged to explain the tier choice.
-- **`decided`** — a matching layer (c) routing decision exists; this is the
-  most complete/trustworthy figure — it tells you not just what happened,
-  but why.
+- **`observed`** — `agent-spawns.jsonl` events exist for this agent (we know
+  it ran, and possibly at what model), but no `model-routing.jsonl` decision
+  was logged to explain the tier choice.
+- **`decided`** — a matching `model-routing.jsonl` decision (or its
+  `routing-*.md` frontmatter fallback) exists; this is the most
+  complete/trustworthy figure — it tells you not just what happened, but
+  why.
 
 ## Where reports land
 
+`.project/telemetry/reports/usage-report-<YYYY-MM-DD>.md` and
 `.project/telemetry/reports/routing-report-<YYYY-MM-DD>.md` (or your `--out`
 path). Nothing auto-deletes old reports — treat them like ADRs: keep them,
-diff them quarter over quarter to see whether tier usage is drifting.
+diff them over time to see whether skill/agent usage and tier usage are
+drifting.
 
 ## See also
 
-- `references/factory-metrics-schema.md` — full schema for all telemetry
-  shapes (markdown records + both JSONL files), plus worked examples.
+- `references/factory-metrics-schema.md` — full schema for checkpoint
+  records, both JSONL layers, and the legacy stub-layer markdown format,
+  plus worked examples.
 - [`docs/model-routing.md`](model-routing.md) — what the tiers mean and how
   the routing decision gets made in the first place; this page is about
   measuring what already happened.
 - `skills/adaptive-model-routing/SKILL.md` — the rubric the delivery-lead
-  applies before each spawn, which is what layer (c) is recording.
+  applies before each spawn, which is what `model-routing.jsonl` is
+  recording.
+- `skills/factory-evaluation/SKILL.md` — how usage analytics feed the
+  quarterly factory report and steward review.
 - `PLAYBOOK.md` §7.5–7.6 — the per-session and weekly telemetry-review
   cadences in the operating guide.
 

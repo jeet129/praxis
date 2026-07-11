@@ -47,6 +47,9 @@ jobs:
       - name: Factory routing report smoke test (fail-soft on repos with no telemetry)
         run: python3 scripts/factory-routing-report.py --project-dir . --format json --out /tmp/ci-report.json
 
+      - name: Factory usage report smoke test (fail-soft on repos with no telemetry)
+        run: python3 scripts/factory-usage-report.py --project-dir . --format json --out /tmp/ci-usage.json
+
       - name: Drive runner dry-run smoke test (scripts/praxis-drive.sh)
         run: |
           set -e

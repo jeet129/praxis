@@ -209,13 +209,11 @@ case "$EVENT" in
 
     case "$tool_name" in
       Read)
-        file_path=$(echo "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
-        classified=$(classify_path "$file_path")
-        if [[ -n "$classified" ]]; then
-          a_type="${classified%%:*}"
-          a_name="${classified#*:}"
-          record "$a_type" "$a_name" read
-        fi
+        # Retired: per-Read usage stubs. Reading a SKILL.md is not applying it,
+        # plugin-injected skills never surface as Reads, and the stubs produced
+        # misleading near-zero usage data. Usage analytics now derive from
+        # checkpoint records + packets/ledgers/routing (see
+        # references/factory-metrics-schema.md "Checkpoint records").
         ;;
       Task)
         # Sub-agent spawn: tool_input.subagent_type carries the agent name.
@@ -233,17 +231,9 @@ case "$EVENT" in
             --arg agent "$subagent" \
             --arg model "$spawn_model" \
             '{ts:$ts, event:"spawn", session:$session, agent:$agent, model:(if $model=="" then null else $model end)}')"
-          # Preload-skill capture: record each SKILL the agent canonically uses
-          # as a preload entry. This catches cached use cases where the agent
-          # applies SKILL knowledge from its system prompt without Read-ing it.
-          preload_skills=$(lookup_agent_skills "$subagent")
-          if [[ -n "$preload_skills" ]]; then
-            IFS=',' read -ra skills_arr <<< "$preload_skills"
-            for s in "${skills_arr[@]}"; do
-              s="$(echo "$s" | sed 's/[[:space:]]//g')"
-              [[ -n "$s" ]] && record skill "$s" preload
-            done
-          fi
+          # Retired: per-spawn preload stub fan-out (N files per spawn saying
+          # only "this agent exists"). Skill consumption is now derived from
+          # checkpoint records and packets/ledgers, which record ACTUAL use.
         fi
         ;;
       Write|Edit|NotebookEdit)
@@ -334,31 +324,16 @@ case "$EVENT" in
   SessionStart)
     # Delegate to the existing SessionStart script
     bash "$PLUGIN_ROOT/hooks/session-start.sh" 2>/dev/null || true
-    # Also: self-log the SessionStart hook fire
-    "$RECORDER" \
-      --type        hook \
-      --name        SessionStart \
-      --tool        claude-code \
-      --trigger     auto-hook \
-      --invocation  fire \
-      --mode        per-use \
-      --session     "$session_id" \
-      --project-dir "$cwd" \
-      >/dev/null 2>&1 || true
+    # Session boundary as a single JSONL line (was: one stub .md per fire)
+    tdir="$cwd/.project/telemetry"
+    mkdir -p "$tdir" 2>/dev/null && \
+      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_start\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     ;;
 
   SessionEnd)
-    # Self-log session end so the steward can correlate session-bounded metrics.
-    "$RECORDER" \
-      --type        hook \
-      --name        SessionEnd \
-      --tool        claude-code \
-      --trigger     auto-hook \
-      --invocation  fire \
-      --mode        per-use \
-      --session     "$session_id" \
-      --project-dir "$cwd" \
-      >/dev/null 2>&1 || true
+    tdir="$cwd/.project/telemetry"
+    mkdir -p "$tdir" 2>/dev/null && \
+      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     ;;
 
 esac

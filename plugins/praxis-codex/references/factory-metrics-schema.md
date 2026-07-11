@@ -286,3 +286,39 @@ The runner is fail-safe: every stop is a clean exit with a human summary, never 
 ### Reading the telemetry: `scripts/factory-routing-report.py`
 
 Run `python3 scripts/factory-routing-report.py --project-dir <path-to-or-above-.project> --format md|json --out <file>` to aggregate both JSONL files above plus the prose `.project/working/routing-*.md` dispatch logs, `.project/operational/factory-metrics/` usage records, and `.project/telemetry/drive.jsonl` drive-run telemetry into one report: data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals (using `cost_weights` from `governance/model-routing.yaml`), routing-discipline coverage, drive-run summaries (iterations/slices/tasks/cost per run, stop reasons, human-touchpoint density), and heuristic recommendations. Zero dependencies beyond the Python 3 standard library; fails soft (exit 0) when telemetry is absent — every section just reports zero records and says so.
+
+## Checkpoint records — the universal aggregation point
+
+Every closure boundary in ANY workflow produces one structured episodic
+entry — `.project/episodic/checkpoint-<YYYYMMDD-HHMM>-<label>.md`. Slice
+close is one instance; requirements_freeze, architecture_sign_off, ideation
+convergence, spike disposition, release, expedited retro, and steward
+review are all others. Written by delivery-lead (single-writer) at the AOP
+Document step; costs a few dozen tokens per PHASE, not per event.
+
+```yaml
+---
+type: checkpoint
+boundary: gate_reached | phase_end | slice_close | loop_convergence | disposition | workflow_end
+workflow: <name>            # e.g. greenfield-saas
+phase: <A|B|C|D|pre|post>   # or n/a
+gate: <name or n/a>
+verdict: <approved|rejected|n/a>
+slice: <id or n/a>
+agents_dispatched:          # since the previous checkpoint
+  - {agent: <slug>, tier: <tier>, dispatches: <n>}
+skills_consumed: [<slug>, ...]   # named in packets/routing/handoffs since previous checkpoint
+artifacts_produced: [<paths>]
+cost_proxy: <float>         # tier-weighted, from routing decisions since previous checkpoint
+human_touchpoints: <n>
+deviations: <one line or none>
+---
+<3-10 lines of prose: what closed, what was decided, what carries forward>
+```
+
+This is the primary input for usage analytics (`factory-frequency` /
+steward review): per-skill used-in-N-checkpoints and last-used, per-agent
+dispatch and tier distribution, per-workflow gate pass rates — with
+near-100% capture because checkpoints are mandatory workflow outputs, not
+tool-event side effects. The hook-level usage records (below) are the
+zero-token supplement for command invocations and session boundaries only.

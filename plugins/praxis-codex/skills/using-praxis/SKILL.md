@@ -240,6 +240,8 @@ Agents reference this list as "the seven-phase AOP" and add only their role-spec
 
 When a `gate` step is reached: read `governance/governance.yaml` for the approver, construct the approval request (what's being approved, evidence package, recommended action), route to the approver (solo dev: the principal; team: per the matrix), pause the workflow, then resume on `approved`/`rejected` — on rejection, loop back to the prior step with the rejection rationale or escalate per the workflow's rejection-path declaration. Load `references/orchestration-runtime-detail.md` for the full six-step sequence. Gates are non-skippable. A `challenger_objection_override` is itself a gated decision that produces an ADR.
 
+Every gate resolution (and every phase end) produces a structured checkpoint entry in `.project/episodic/` per `references/factory-metrics-schema.md` — the factory's universal usage/telemetry record across ALL phases, not just slices.
+
 ## Parallelism, failure paths, and lifecycle
 
 `parallel`/`parallel_until` steps run concurrently, coordinated via the agent host; writes to `.project/` are serialized regardless. Every step that can fail declares an `on_failure` action (`escalate` default, `rollback`, `retry_n`, or `route_to:`). Workflow state persists in `.project/working/workflow-state.yaml` and archives to `.project/episodic/` on completion. Load `references/orchestration-runtime-detail.md` for the full failure-path detail and the workflow lifecycle state diagram.

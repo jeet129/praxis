@@ -13,6 +13,9 @@ minor versions until it stabilizes.
 
 ### Added
 
+- Telemetry redesigned around checkpoint records — the universal aggregation point at EVERY closure boundary (gate, phase end, slice close, loop convergence, disposition, workflow end), covering discovery/architecture/ideation/release phases that have no slice: structured episodic entries (agents_dispatched, skills_consumed, artifacts, cost_proxy, human touchpoints) written by delivery-lead at the AOP Document step; new scripts/factory-usage-report.py mines checkpoints + packets/ledgers/routing/commands/sessions into per-skill/agent/workflow usage analytics; hooks/tap.sh slimmed (retired the ~5%-capture per-Read and preload stub files and per-session stub files — sessions now one JSONL line each); factory-frequency/aging marked legacy; factory-evaluation and docs/telemetry.md updated to the mined-artifacts model. Zero incremental token cost: analytics ride on artifacts the workflow already produces.
+
+
 - Brownfield parity for governance seeding: /audit (all copies + Codex praxis-audit) gains a Day-0 setup step — initialize the .project tree, seed .project/governance/ overrides, and ask the same routing/autonomy tuning question as /start, with a brownfield-specific suggestion of stop_after: slice until characterization-test coverage is trusted.
 
 
