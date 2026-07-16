@@ -399,6 +399,11 @@ PYEOF
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
       echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+    if [[ "$session_id" == nojq-* ]]; then
+      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"jq_missing_no_session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+    elif [[ ! -d "$HOME/.claude/projects" ]]; then
+      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+    fi
     rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
     # Universal token capture: sum this session's usage from its own Claude
     # Code transcript (found by session id — layout-agnostic) and append one
@@ -406,6 +411,10 @@ PYEOF
     # session — interactive slices, discovery, architecture — not just drive.
     if [[ -n "$session_id" && "$session_id" != nojq-* && -d "$HOME/.claude/projects" ]]; then
       transcript=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${session_id}*.jsonl" 2>/dev/null | head -1)
+      if [[ -z "$transcript" ]]; then
+        # Telemetry failures must be observable: leave a breadcrumb instead of silence.
+        echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"transcript_not_found_under_~/.claude/projects\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      fi
       if [[ -n "$transcript" ]]; then
         python3 - "$transcript" "$session_id" >> "$tdir/tokens.jsonl" 2>/dev/null <<'PYEOF' || true
 import json, sys, datetime

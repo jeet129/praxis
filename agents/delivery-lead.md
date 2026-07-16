@@ -79,6 +79,7 @@ routing:
   agent: <slug>
   default_tier: <from frontmatter>
   chosen_tier: <after adaptive-model-routing>
+  resolved_model: <chosen_tier mapped through governance/model-routing.yaml for the active harness — REQUIRED, read the map, never guess>
   score: <rubric total, if scored>
   reason: <one line>
 ---

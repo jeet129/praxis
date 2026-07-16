@@ -558,6 +558,20 @@ These activate in both, but B-mode increases their priority:
 
 The library has rhythms beyond per-slice work. Knowing them prevents drift.
 
+### 7.0 Session discipline: one slice, one session
+
+Clear the session (or start a new one) after each slice closes — AFTER the
+slice-close checkpoint is written, never before. The memory layer makes
+sessions disposable by design: state lives in `.project/`, and re-opening
+costs only the context floor (cache-priced). What a long-lived session costs
+you instead: repeated history re-reads every turn, an eventual
+auto-compaction at an uncontrolled moment (possibly mid-review, lossy), and
+measurable quality dilution from stale context. Never clear mid-slice —
+in-flight reasoning is the one thing not on disk; if a long slice bloats
+context, `/compact` at a task boundary instead. Bonus: with one session per
+slice, `telemetry/tokens.jsonl` records read directly as cost-per-slice.
+(Drive mode already enforces the stronger form — fresh context per task.)
+
 ### 7.1 Per slice (every 2-5 days)
 
 - `implementation-slice.yaml` runs end to end.

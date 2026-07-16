@@ -231,9 +231,17 @@ slices, discovery, architecture — not just drive runs.
 `factory-token-report.py` treats these as authoritative and uses transcript
 mining only for sessions the hook missed (pre-upgrade or crashed sessions).
 
+
+When capture cannot run, the hook writes a breadcrumb to `sessions.jsonl`
+instead of failing silently: `{"event":"token_capture_skipped","reason":
+"transcript_not_found_under_~/.claude/projects" | "jq_missing_no_session_id"
+| "no_claude_projects_dir"}`. A project with session_end lines but no
+tokens.jsonl and no breadcrumb means the session ended uncleanly (killed
+terminal — SessionEnd never fired).
+
 ### Routing-decision fallback: routing-*.md frontmatter
 
-`model-routing.jsonl` is agent-written and can be skipped under load. The
+`model-routing.jsonl (records MUST include `resolved_model` — chosen_tier mapped through governance/model-routing.yaml; deterministic, never guessed; reports tolerate absence in older records)` is agent-written and can be skipped under load. The
 authoritative fallback is the `routing:` block delivery-lead embeds in every
 `routing-{timestamp}.md` frontmatter (agent, default_tier, chosen_tier,
 score, reason). `scripts/factory-routing-report.py` merges these as decided

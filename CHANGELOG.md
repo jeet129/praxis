@@ -13,6 +13,9 @@ minor versions until it stabilizes.
 
 ### Added
 
+- Session discipline codified in PLAYBOOK (7.0): one slice, one session — clear after the slice-close checkpoint (never mid-slice; /compact at task boundaries for long slices); rationale: chosen compaction points beat lossy auto-compaction, fresh context beats quality dilution, and session-per-slice makes tokens.jsonl read directly as cost-per-slice.
+
+
 - Artifact-class token hygiene named per surface (generic AOP rule made rationalization-proof): qa-engineer suite-run hygiene (quiet reporters, log capture, summary + failing extracts; coverage summaries only), platform-sre pipeline/deploy/IaC-plan log hygiene, static analysis to file with top-N consumption in /audit (all copies), code-reviewer exclusion of generated/lock artifacts from ingestion (consistency-check instead), and testing-strategy now mandates quiet reporters as the test-plan default with verbose re-runs on demand.
 
 
@@ -121,6 +124,9 @@ minor versions until it stabilizes.
 - **Repo governance docs** — `CHANGELOG.md` (this file), `SECURITY.md`, `ROADMAP.md`.
 
 ### Fixed
+
+- Routing-log schema drift: resolved_model is now a REQUIRED field in the routing decision template (deterministic — chosen_tier mapped through the governance harness map, never guessed); reports key on tiers so older records stay valid. Token-capture failures are now observable: the SessionEnd hook writes a token_capture_skipped breadcrumb to sessions.jsonl (transcript not found / jq missing / no transcript store) instead of silently producing nothing.
+
 
 - Drive runner discoverability: /drive (all copies) and the drive docs now explain that praxis-drive.sh ships inside the PLUGIN, with concrete resolution per install type (find ~/.claude/plugins for marketplace installs, ./scripts/ for install.sh, clone path for --plugin-dir) and a clear 'not found = plugin predates drive mode, update it' hint — previously all references used a bare relative path that only worked for file installs.
 
