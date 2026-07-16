@@ -13,6 +13,12 @@ minor versions until it stabilizes.
 
 ### Added
 
+- Artifact-class token hygiene named per surface (generic AOP rule made rationalization-proof): qa-engineer suite-run hygiene (quiet reporters, log capture, summary + failing extracts; coverage summaries only), platform-sre pipeline/deploy/IaC-plan log hygiene, static analysis to file with top-N consumption in /audit (all copies), code-reviewer exclusion of generated/lock artifacts from ingestion (consistency-check instead), and testing-strategy now mandates quiet reporters as the test-plan default with verbose re-runs on demand.
+
+
+- Live per-invocation token capture: SubagentStop hook computes the transcript usage DELTA since the last cursor position and writes it to agent-spawns.jsonl attributed to the finishing agent (event: invocation_usage; concurrent spawns honestly share a delta); factory-routing-report.py renders a 'Real tokens per agent' table; cursor cleaned at SessionEnd. Cost is now visible DURING runs, not only at session end.
+
+
 - Evidence-first token optimizations with explicit quality guards: hand-off reply contract (<=15-line structured replies, artifacts on disk — blockers/deviations/uncertainty are MANDATORY fields, never compressed away), read discipline (grep-to-locate before Read; reviewers work diff+context; reading deeper is always permitted when judgment requires — only mechanical over-reading is targeted), cache-aware spawn-prompt ordering (stable prefix first, volatile state last; drive's constant prompt documented as deliberate cache design), and diff-scoped review guard in code-reviewer with 'review depth is never budget-capped' stated verbatim.
 
 

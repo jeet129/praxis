@@ -267,6 +267,12 @@ drifting.
 
 ## Real token telemetry
 
+**Live per-invocation capture:** at each SubagentStop the hook writes the
+token DELTA since the last event to `agent-spawns.jsonl`
+(`event: invocation_usage`, attributed to the finishing agent; overlapping
+subagents share a delta) — cost is visible during the run, not only at its
+end.
+
 **Universal capture (every session):** at SessionEnd the hook sums the
 session's own transcript into `.project/telemetry/tokens.jsonl` — one
 record per session with input/output/cache tokens and per-model output.

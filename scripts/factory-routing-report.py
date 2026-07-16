@@ -523,6 +523,19 @@ def build_report(project_dir: Path) -> dict:
     fm_dir = project_dir / "operational" / "factory-metrics"
 
     spawn_events = read_jsonl(telemetry_dir / "agent-spawns.jsonl")
+    # Live per-invocation usage deltas (event: invocation_usage) — written by
+    # the SubagentStop hook from transcript cursor deltas. Aggregate real
+    # tokens per agent; deltas may span concurrent subagents (per their note).
+    invocation_usage = {}
+    for e in spawn_events:
+        if e.get("event") == "invocation_usage":
+            a = e.get("agent") or "unknown"
+            b = invocation_usage.setdefault(a, {"invocations": 0, "input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0})
+            b["invocations"] += 1
+            for k in ("input_tokens", "output_tokens", "cache_read_input_tokens"):
+                v = e.get(k)
+                if isinstance(v, (int, float)):
+                    b[k] += int(v)
     routing_events = read_jsonl(telemetry_dir / "model-routing.jsonl")
     drive_events = read_jsonl(telemetry_dir / "drive.jsonl")
     prose = ingest_prose_routing(working_dir, known_slugs)
@@ -747,6 +760,7 @@ def build_report(project_dir: Path) -> dict:
         "per_slice": per_slice,
         "per_agent_activity": per_agent_activity,
         "drive_runs": drive_runs,
+        "invocation_usage": invocation_usage,
         "tier_and_cost": {
             "agents": agent_tier_rows,
             "tier_totals_spawns": dict(tier_totals),
@@ -838,6 +852,19 @@ def render_markdown(agg: dict) -> str:
                   f"input={tc['total_input_tokens']}, output={tc['total_output_tokens']}")
     lines.append("")
 
+    inv = agg.get("invocation_usage") or {}
+    if inv:
+        lines.append("")
+        lines.append("### Real tokens per agent (live invocation deltas)")
+        lines.append("")
+        lines.append("Hook-captured at each SubagentStop from transcript cursor deltas; a delta spans concurrent subagents when they overlap.")
+        lines.append("")
+        lines.append("| Agent | Invocations | Input | Output | Cache read |")
+        lines.append("|---|---|---|---|---|")
+        for a in sorted(inv):
+            b = inv[a]
+            lines.append(f"| {a} | {b['invocations']} | {b['input_tokens']} | {b['output_tokens']} | {b['cache_read_input_tokens']} |")
+        lines.append("")
     lines.append("## 5. Routing discipline")
     lines.append("")
     rd = agg["routing_discipline"]

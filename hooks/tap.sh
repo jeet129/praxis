@@ -301,6 +301,62 @@ case "$EVENT" in
     # The payload should include the subagent's name and result status.
     subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
+
+    # LIVE per-invocation token delta: sum the usage lines the session
+    # transcript gained since the last cursor position and attribute the
+    # delta to the subagent that just finished. Deterministic, zero model
+    # tokens. Honest caveat encoded in the record: when subagents ran
+    # concurrently since the last event, the delta spans all of them
+    # (concurrent: true) — exact per-agent split needs sidechain mining.
+    if [[ -n "$session_id" && "$session_id" != nojq-* && -d "$HOME/.claude/projects" ]]; then
+      transcript=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${session_id}*.jsonl" 2>/dev/null | head -1)
+      if [[ -n "$transcript" ]]; then
+        tdir="$cwd/.project/telemetry"
+        mkdir -p "$tdir" 2>/dev/null || true
+        python3 - "$transcript" "$tdir/.token-cursor-${session_id}" "$subagent" "$session_id" >> "$tdir/agent-spawns.jsonl" 2>/dev/null <<'PYEOF' || true
+import json, os, sys, datetime
+path, cursor_path, agent, sid = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try:
+    offset = int(open(cursor_path).read().strip())
+except Exception:
+    offset = 0
+tot = {"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}
+new_offset = offset
+try:
+    size = os.path.getsize(path)
+    if size < offset:
+        offset = 0  # transcript rotated/replaced
+    with open(path) as f:
+        f.seek(offset)
+        chunk = f.read()
+        new_offset = offset + len(chunk.encode("utf-8", "ignore")) if False else f.tell()
+        for line in chunk.splitlines():
+            try:
+                d = json.loads(line)
+            except Exception:
+                continue
+            u = (d.get("message") or {}).get("usage") or {}
+            for k in tot:
+                v = u.get(k)
+                if isinstance(v, (int, float)):
+                    tot[k] += int(v)
+except Exception:
+    sys.exit(0)
+try:
+    with open(cursor_path, "w") as c:
+        c.write(str(new_offset))
+except Exception:
+    pass
+if sum(tot.values()) == 0:
+    sys.exit(0)
+rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "event": "invocation_usage", "session": sid,
+       "agent": agent or "unknown", **tot,
+       "note": "delta since previous cursor; spans concurrent subagents if any"}
+print(json.dumps(rec))
+PYEOF
+      fi
+    fi
     if [[ -n "$subagent" ]]; then
       # Structured completion event; includes token usage when the harness
       # provides it in the payload (fields are null otherwise).
@@ -343,6 +399,7 @@ case "$EVENT" in
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
       echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+    rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
     # Universal token capture: sum this session's usage from its own Claude
     # Code transcript (found by session id — layout-agnostic) and append one
     # line to tokens.jsonl. Deterministic, zero model tokens; works for EVERY

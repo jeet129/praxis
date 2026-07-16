@@ -166,6 +166,16 @@ Concrete tool choices, patterns, and idioms per language:
 - LLM/agent system evaluation — that's `evaluation-engineering`.
 - Manual exploratory testing — that's the QA Engineer's craft, lightly guided here.
 
+## Reporter configuration (agent-cost aware)
+
+Test infrastructure is consumed by agents as often as by humans: configure
+quiet reporters as the DEFAULT in the test plan (pytest `-q --tb=short`,
+Vitest/Jest `--silent` + summary reporter, JUnit/Gradle `-q --console=plain`,
+Playwright `line` reporter), with verbose modes available on demand for
+diagnosis. A test plan that defaults to verbose output taxes every agent run
+that touches it; a quiet default with per-test verbose re-runs costs nothing
+in signal.
+
 ## Verification
 
 You are done when:

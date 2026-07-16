@@ -192,6 +192,27 @@ Run `scripts/validate-factory-metrics.sh` to check all entries parse correctly a
 
 ## Telemetry JSONL schemas
 
+### invocation_usage events — live per-agent-invocation deltas
+
+At each SubagentStop, `hooks/tap.sh` sums the usage lines the session
+transcript gained since its last cursor position and appends the delta to
+`agent-spawns.jsonl`, attributed to the subagent that just finished:
+
+```json
+{"ts":"...","event":"invocation_usage","session":"<id>","agent":"code-reviewer",
+ "input_tokens":500,"output_tokens":90,"cache_read_input_tokens":1000,
+ "cache_creation_input_tokens":0,
+ "note":"delta since previous cursor; spans concurrent subagents if any"}
+```
+
+Deterministic and live (during the session, not just at its end). Honest
+limit: when subagents overlap, one delta spans all of them — exact
+per-agent split for concurrent spawns comes from sidechain mining in
+`factory-token-report.py`. The cursor file
+(`.project/telemetry/.token-cursor-<session>`) is cleaned at SessionEnd.
+`factory-routing-report.py` aggregates these into a "Real tokens per agent"
+table.
+
 ### tokens.jsonl — universal per-session token capture
 
 At SessionEnd, `hooks/tap.sh` locates the session's own Claude Code

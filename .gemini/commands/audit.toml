@@ -21,7 +21,7 @@ Compare deployed reality vs any existing C4 diagrams + ADRs. Surface discrepanci
 Update `.project/working/architecture/overview.md`.
 
 Day 3 — `tech-debt-management` brownfield audit.
-Interview me about what feels hard. Run static analysis (complexity / duplication / coverage). Produce triaged register at `.project/operational/debt-register.md`. Limit to 20-50 items. Classify each per Fowler's quadrants (prudent/reckless x intentional/inadvertent). Prioritize by payoff x risk x cost.
+Interview me about what feels hard. Run static analysis (complexity / duplication / coverage) with output captured to `.project/working/static-analysis.log` — consume the top-N summary per dimension (worst 20 files by complexity, duplication clusters, coverage gaps), never the full tool dump. Produce triaged register at `.project/operational/debt-register.md`. Limit to 20-50 items. Classify each per Fowler's quadrants (prudent/reckless x intentional/inadvertent). Prioritize by payoff x risk x cost.
 
 Day 4 — `impact-analysis` for the proposed enhancement.
 All four lenses (Static + Runtime + Contract + Historical). Surface the blast radius. Recommend: proceed / proceed-with-conditions / scope-blocker. Save to `.project/operational/impact-analyses/`.

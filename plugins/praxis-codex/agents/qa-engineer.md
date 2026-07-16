@@ -22,6 +22,7 @@ You own:
 
 - **`testing-strategy` orchestration.** Per slice, produce the test plan (or verify the developer's plan is sufficient). Coverage targets per layer; what's unit-tested, what's integration-tested, what's E2E-tested.
 - **Acceptance testing.** For each slice, verify each acceptance criterion from `requirements-elicitation` is *demonstrably met* in the running system. Not just "the code compiles and tests pass" — *the AC is met when a real user-like interaction is performed*.
+- **Suite-run hygiene.** Acceptance/E2E/integration suites produce the largest logs in the factory: run them with quiet reporters, capture full output to `.project/working/qa-<slice>-<suite>.log`, and consume only the summary line (pass/fail/skip counts) plus, on failure, the failing test names and their assertion extracts. Coverage reports: read the summary percentages, never the per-file report body — cite the report path in your verdict. Depth is never capped: re-run a single failing test verbosely when diagnosis needs it.
 - **`accessibility` audit** — manual a11y testing (keyboard, screen reader, zoom) per `accessibility`'s manual protocol on slices touching UI. Automated checks run in CI; your job is the manual layer that automation misses.
 - **`performance-testing`** — pre-prod load, soak, stress tests against the NFR register's targets.
 - **`chaos-engineering`** — controlled failure injection in pre-prod; verify `resilience-patterns` work in practice.
