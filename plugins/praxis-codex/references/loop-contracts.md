@@ -55,6 +55,8 @@ Path: `.project/working/slice-<id>-tasks.yaml`
 slice: S9
 packet: .project/working/slice-S9-packet.md   # the prose packet stays authoritative for context
 opened: 2026-07-10
+ceremony: full                        # full | expedited | spike — decided at slice open, see below
+ceremony_rationale: "schema migration touches shared enrolment table: reversibility=2, blast radius=1, prod exposure=1 -> full"
 tasks:
   - id: S9-T1
     summary: "Enrolment read-model consumer, idempotent"
@@ -63,10 +65,12 @@ tasks:
     ac:
       - "consumes session.scheduled type=class idempotently"
       - "duplicate event produces no second row"
-    verify: "./gradlew :modules:learning:test --tests '*EnrolmentConsumer*'"
+    verify: "./gradlew :modules:learning:test --tests '*EnrolmentConsumer*' -q --console=plain > .project/working/verify-S9-T1.log 2>&1"
     depends_on: []
-    status: open                        # open | in_progress | done | failed | blocked
-    attempts: 0
+    status: done                         # open | in_progress | done | failed | blocked
+    attempts: 1
+    started_at: 2026-07-10T12:03:00Z    # stamped when status moved to in_progress
+    completed_at: 2026-07-10T12:41:00Z  # stamped when status moved to done|failed
     notes: ""
   - id: S9-T2
     summary: "GET /classes browse endpoint behind ClassSearchPort"
@@ -75,9 +79,9 @@ tasks:
     ac:
       - "lang/category filters honored"
       - "contract matches m0X-learning.yaml"
-    verify: "./gradlew :modules:learning:test --tests '*ClassBrowse*'"
+    verify: "./gradlew :modules:learning:test --tests '*ClassBrowse*' -q --console=plain > .project/working/verify-S9-T2.log 2>&1"
     depends_on: [S9-T1]
-    status: open
+    status: open                        # started_at/completed_at omitted — not yet touched
     attempts: 0
     notes: ""
 gates:                                  # populated as gate verdicts land
@@ -98,9 +102,31 @@ Rules:
 - **`verify` is the exit criterion.** A task moves to `done` only when its
   verify command exits 0 AND its `ac` items are demonstrably met. No verify
   command → the task is not drive-eligible and must run interactively.
+- **`verify` is authored quiet, executed to a log.** The command itself must
+  use a quiet/silent flag (`pytest -q --tb=short -x`, `gradle -q
+  --console=plain`, `npm test --silent`) — full output is never the model's
+  problem to hold in context. Execution captures everything to
+  `.project/working/verify-<task-id>.log` (`cmd > log 2>&1`); the model reads
+  back only the exit code, and on failure a failure extract (last ~40 lines,
+  or the failing-test names via `grep`) — never the full log. The log stays
+  on disk for humans and for re-runs.
+- **`ceremony` is decided once, at slice open.** `full | expedited | spike`
+  (default `full`), scored per the rubric in `skills/autonomous-drive`, never
+  changed mid-loop, recorded with a one-line rationale in the slice-open
+  checkpoint (`ceremony_rationale` above). Ceremony only scales PRE-MERGE
+  review intensity — workflow-declared governance gates
+  (`production_go_live` etc.) are untouched regardless of ceremony. Any
+  security-bearing surface (auth, data-handling, public API, dependency
+  changes) forces `full` regardless of score.
 - **`attempts` is enforced.** At `max_task_attempts` (governance/autonomy.yaml)
   the task goes to `failed`, a `blocked` stop flag is raised, and the human
   gets the trail.
+- **Whoever moves a task's `status` stamps the corresponding timestamp.**
+  `in_progress` sets `started_at`; `done` or `failed` sets `completed_at`
+  (ISO UTC, e.g. `2026-07-10T12:03:00Z`). These windows power per-task token
+  attribution in interactive sessions (drive already measures token usage
+  exactly per task via `drive.jsonl`; this is what makes the same
+  attribution possible outside drive).
 - **`stop_flags` is the drive runner's contract.** Agents raise flags; the
   runner reads them after every iteration and stops when any is present
   (subject to the autonomy dial for `gate_reached` at slice close).

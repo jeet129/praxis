@@ -49,7 +49,7 @@ tell me how many SKILLs and agents you can see, and read
 ```
 
 Expected: 11 slash commands (`/start /discover /architect /slice /release
-/audit /steward /review /refine-idea /factory-record /drive`), 89 SKILLs, 17 agents,
+/audit /steward /review /refine-idea /factory-record /drive`), 90 SKILLs, 17 agents,
 17 gates (6 core + 11 conditional). If any count is off, re-run the install
 with `--dry-run` first and compare against what it says it would create.
 
@@ -91,10 +91,12 @@ ls .project/working/                             # in-flight discovery artifacts
 
 Expect a requirements brief, user stories with acceptance criteria, a scope
 boundary, an NFR register, and an assumptions/open-questions log — assembled
-toward the `requirements_freeze` gate evidence pack. If telemetry hooks are
-wired (they are, by default, via `hooks/tap.sh`), you'll also see files
-accumulate under `.project/operational/factory-metrics/` — one per SKILL /
-agent invocation. See [`telemetry.md`](telemetry.md) for what those mean.
+toward the `requirements_freeze` gate evidence pack. When that (or any) gate
+closes, delivery-lead writes a checkpoint record to
+`.project/episodic/checkpoint-*.md` — the primary telemetry source, mined by
+`scripts/factory-usage-report.py`. Telemetry hooks are also wired by default
+(`hooks/tap.sh`), writing deterministic JSONL streams under
+`.project/telemetry/`. See [`telemetry.md`](telemetry.md) for what those mean.
 
 ### 6. Next steps
 
@@ -139,7 +141,7 @@ at `.gemini/`. Slash commands mirror Claude Code's set:
 
 ```
 Read GEMINI.md and confirm you can navigate to .gemini/skills/ and
-.gemini/agents/. List the 17 agents and 89 SKILLs.
+.gemini/agents/. List the 17 agents and 90 SKILLs.
 ```
 
 Full detail: [`docs/gemini-cli-setup.md`](gemini-cli-setup.md).

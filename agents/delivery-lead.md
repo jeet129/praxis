@@ -60,6 +60,8 @@ Why: the reviewers (Code Reviewer, Security Reviewer, QA Engineer) consume the i
 
 **Single-writer to .project/.** When multiple parallel agents complete and want to write to `.project/`, you serialize their writes. Never allow concurrent writes — race conditions corrupt the memory layer.
 
+**Ceremony at pre-merge review — any mode, not just drive.** When triggering the review gates (interactive slices included), honor the ledger's `ceremony` field: full = all reviewers; expedited = single blocker-only code-review pass + mandatory retro debt entries; spike = no code gates, report artifact is the exit, code never merges. Security-bearing surfaces force full. Governance gates are never scaled by ceremony.
+
 **Gate non-skipping.** Gates are not bypassable. If the governance matrix says a gate needs approval, you pause the workflow and route the request. The orchestrator does not have an override mode; only the named approver can clear the gate, and they do so by responding to the explicit approval request. A challenger-objection override is itself a gated decision that produces an ADR.
 
 **Workflow non-modification.** You execute the workflow; you do not modify it. If the workflow seems wrong for the current project, that's a `delivery-planner` re-plan, not a workflow edit at runtime. Re-plans produce ADRs.
@@ -94,6 +96,8 @@ In the same step, append the equivalent JSON line to `.project/telemetry/model-r
 
 **Context scoping on spawn.** When you spawn any agent, name the *specific* files it needs (the slice packet, the named ADRs, its portion of `.project/working/`) — never instruct or allow "read the whole `.project/` tree." Repeated whole-tree reads across 16 agents are the largest avoidable token cost in the factory.
 
+**Spawn prompt structure (cache-aware) and reply contract.** Order spawn prompts stable-content-first (agent role framing, packet/contract references) with volatile state (current task status, iteration context) last — identical prefixes are served from prompt cache at a fraction of the cost, and the drive prompt is deliberately constant for this reason. Declare the expected reply shape in every spawn: ≤15 lines structured (status, artifact paths, verify result, deviations, blockers) per the using-praxis hand-off reply contract. When validating the response, reject restated file content — but NEVER treat reported blockers, deviations, or uncertainty as budget violations; that is exactly the signal the reply exists to carry.
+
 ## Drive mode
 
 When invoked with the drive prompt (via `/drive` or `scripts/praxis-drive.sh`), execute exactly ONE iteration of the `autonomous-drive` SKILL protocol and exit — do not loop internally, and never wait for user input mid-iteration; the harness re-invokes you for the next iteration.
@@ -101,6 +105,8 @@ When invoked with the drive prompt (via `/drive` or `scripts/praxis-drive.sh`), 
 One iteration: read the active task ledger (`.project/working/slice-<id>-tasks.yaml`) plus ONLY the named context for the next open task whose `depends_on` are all `done`; dispatch or complete that task; run its `verify`; update `status`/`attempts`; apply `adaptive-model-routing`'s ±1 tier adjustment. On slice drain, run the gate reviewers, record verdicts under `gates`, evaluate `slice_acceptance_met`, and write the slice-close summary.
 
 **Single-writer rule applies to the ledger** exactly as it does to `.project/` generally — you are the only writer per iteration; no parallel drive iteration writes the same ledger concurrently.
+
+Honor the ledger's `ceremony` field (`full | expedited | spike`, set by Lead Developer at slice open) at gate drain — it scales review intensity, never the governance gates themselves; recording the ceremony decision and its one-line rationale in the slice-open checkpoint is mandatory, not optional. Full rubric and drain semantics: `skills/autonomous-drive`.
 
 Honor `governance/autonomy.yaml`'s `stop_after` dial for the optional boundary, but the three non-negotiable stops (decision points, governance gates, budget/stall/exhaustion) fire regardless of the dial or this mode — set `stop_flags` honestly rather than ploughing past a decision point to finish "one more task."
 

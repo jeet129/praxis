@@ -108,6 +108,8 @@ def canonicalize_agent(raw: str, known_slugs: set) -> str | None:
     if not raw:
         return None
     text = raw.strip()
+    # Strip a "praxis:" (or similar plugin-namespace) prefix, e.g. "praxis:lead-developer".
+    text = re.sub(r"^[A-Za-z][\w-]*:\s*(?=\S)", "", text) if re.match(r"^[A-Za-z][\w-]*:\S", text) else text
     # Strip a trailing parenthetical abbreviation, e.g. "backend-developer (BE)".
     text = re.sub(r"\s*\([^)]*\)\s*$", "", text).strip()
     # Strip a leading/trailing decorative markdown, punctuation.
@@ -246,7 +248,9 @@ def read_jsonl(path: Path) -> list[dict]:
 # --------------------------------------------------------------------------
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.S)
-DISPATCH_HEADING_RE = re.compile(r"^##\s*Dispatch(?:ed)?\s*\d*\s*[:—-]\s*(.+)$", re.M)
+# Case-tolerant: real-world routing logs use "## Dispatch N — agent", but also
+# "## Routing — agent" and lowercase/odd-spacing variants. Heading level 1-3.
+DISPATCH_HEADING_RE = re.compile(r"^#{1,3}\s*(?:Dispatch(?:ed)?|Routing)\s*\d*\s*[:—-]\s*(.+)$", re.M | re.I)
 GATE_KIND_RE = re.compile(r"gate-(security|code|qa)", re.I)
 
 
@@ -310,6 +314,7 @@ def ingest_prose_routing(working_dir: Path, known_slugs: set) -> dict:
         # parse_frontmatter is flat: the nested `routing:` block's keys land
         # as flat keys (agent, default_tier, chosen_tier, score, reason).
         # The presence of the `routing` parent key signals the block exists.
+        explicit_agents_this_file = set()
         if "routing" in fm and fm.get("agent"):
             r_agent = fm["agent"]
             agent = canonicalize_agent(r_agent, known_slugs) or r_agent
@@ -323,9 +328,18 @@ def ingest_prose_routing(working_dir: Path, known_slugs: set) -> dict:
                 "file": fname,
                 "slice": slice_id,
             })
+            # A routing: frontmatter block IS a dispatch decision — one
+            # specialist was routed to, even though these files rarely carry
+            # a "## Dispatch N —" heading too. Count it once per file so
+            # per-slice/per-agent dispatch tallies aren't silently zero for
+            # every project that uses this (now-standard) frontmatter form.
+            explicit_agents_this_file.add(agent)
+            out["dispatches"].append({
+                "slice": slice_id, "agent": agent, "raw_agent": r_agent,
+                "source": "frontmatter", "file": fname, "event": event, "status": "n/a",
+            })
 
-        # --- Explicit "## Dispatch N — <agent>" / "## Dispatched: <agent>" headings ---
-        explicit_agents_this_file = set()
+        # --- Explicit "## Dispatch N — <agent>" / "## Routing — <agent>" headings ---
         for m in DISPATCH_HEADING_RE.finditer(body):
             raw = m.group(1).strip()
             agent = canonicalize_agent(raw, known_slugs)

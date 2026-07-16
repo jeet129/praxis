@@ -26,7 +26,11 @@ Before iterating, tell the user (once, not every iteration):
 
 Offer both paths; let the user pick (or infer from context — a long-running/background request implies unattended):
 
-- **Unattended:** instruct the user to run `scripts/praxis-drive.sh`, which invokes the harness headlessly per `governance/autonomy.yaml`'s `harnesses` block, enforcing iteration caps and stall detection outside the agent's own context.
+- **Unattended:** instruct the user to run the runner script, which invokes the harness headlessly per `governance/autonomy.yaml`'s `harnesses` block, enforcing iteration caps and stall detection outside the agent's own context. **Locating it:** the script ships inside the PLUGIN, not the project. Resolve the path first:
+  - Marketplace/plugin install (Claude Code): `find ~/.claude/plugins -name praxis-drive.sh 2>/dev/null | head -1`
+  - `install.sh` file install: `./scripts/praxis-drive.sh` in the project
+  - Git clone used via `--plugin-dir`: `<clone>/scripts/praxis-drive.sh`
+  Then run: `bash <resolved-path> --project-dir . --dry-run` first, and without `--dry-run` when satisfied. If the script is not found anywhere, the installed plugin predates drive mode — update the plugin. In-session drive (above) needs no script at all.
 - **In-session:** iterate the drive protocol yourself, continuously, within this session — each iteration is `delivery-lead` executing exactly one `autonomous-drive` pass (see `agents/delivery-lead.md`'s Drive mode section) and reporting the outcome, honoring the same stops as the unattended path. Stop cleanly the moment any non-negotiable stop or the dial's boundary is reached.
 
 ## What you do NOT do

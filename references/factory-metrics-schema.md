@@ -192,6 +192,24 @@ Run `scripts/validate-factory-metrics.sh` to check all entries parse correctly a
 
 ## Telemetry JSONL schemas
 
+### tokens.jsonl — universal per-session token capture
+
+At SessionEnd, `hooks/tap.sh` locates the session's own Claude Code
+transcript (by session id under `~/.claude/projects/`) and appends one
+summed record to `.project/telemetry/tokens.jsonl`:
+
+```json
+{"ts":"...","session":"<id>","source":"session_end_hook",
+ "input_tokens":1300,"output_tokens":250,
+ "cache_read_input_tokens":5000,"cache_creation_input_tokens":100,
+ "models_by_output":{"claude-opus-4-8":200,"claude-sonnet-5":50}}
+```
+
+Deterministic, zero model tokens, fires for EVERY session — interactive
+slices, discovery, architecture — not just drive runs.
+`factory-token-report.py` treats these as authoritative and uses transcript
+mining only for sessions the hook missed (pre-upgrade or crashed sessions).
+
 ### Routing-decision fallback: routing-*.md frontmatter
 
 `model-routing.jsonl` is agent-written and can be skipped under load. The
@@ -271,6 +289,30 @@ Written by `scripts/praxis-drive.sh` (the outer drive runner), one line per driv
 | `stop_flags` | array of strings | Ledger `stop_flags` observed after the iteration; empty when clear |
 | `cost_proxy` | number | Tier-weighted cost unit for this single iteration (`cost_weights` from `governance/model-routing.yaml`) |
 
+#### Real-usage fields (extension beyond the `references/loop-contracts.md` §4 pinned spec)
+
+Five additional fields, present on every record, `null` when the harness invocation didn't expose them (never a guessed value):
+
+```jsonc
+{"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,
+ "slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard",
+ "outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0,
+ "input_tokens":1234,"output_tokens":567,"cache_read_input_tokens":89,
+ "cache_creation_input_tokens":12,"total_cost_usd":0.0421}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `input_tokens` | number \| null | From the harness result's `usage.input_tokens`, when the harness reports usage |
+| `output_tokens` | number \| null | From the harness result's `usage.output_tokens` |
+| `cache_read_input_tokens` | number \| null | From the harness result's `usage.cache_read_input_tokens` |
+| `cache_creation_input_tokens` | number \| null | From the harness result's `usage.cache_creation_input_tokens` |
+| `total_cost_usd` | number \| null | The harness result's own dollar-cost figure (e.g. Claude Code's `total_cost_usd`), when reported — this is a REAL dollar amount, unlike `cost_proxy` (a relative tier-weighted unit; see "Reading the cost proxy honestly" in `docs/telemetry.md`) |
+
+**How it's captured (claude-code, the default harness):** `scripts/praxis-drive.sh` appends `--output-format json` to the harness command for `harness == claude-code` whenever the configured `governance/autonomy.yaml` `harnesses.claude-code.command` doesn't already contain `--output-format`, and defaults `usage_parse` to `claude-json`. `claude -p ... --output-format json` emits a single result object with a top-level `usage` map and `total_cost_usd`; the runner captures the invocation's stdout to a tempfile and parses it with an embedded python3 helper, tolerant of shape variations (whole-object JSON, line-delimited JSON, missing fields) — any parse failure produces `null`s, never breaks the drive loop. Both the JSON-output flag and the parse strategy are overridable per harness via optional `governance/autonomy.yaml` keys `harnesses.<harness>.json_output_flag` and `harnesses.<harness>.usage_parse` (not required — absent for `codex`/`gemini-cli` today, which get `null` usage fields until/unless those keys are added). `--dry-run` never invokes the harness, so these fields stay `null` in dry-run records, unchanged from before this extension.
+
+**Stop-summary reporting:** when at least one iteration in a run captured `total_cost_usd`, `praxis-drive.sh`'s human summary prints the sum (`real cost (sum of harness total_cost_usd): $X.XXXXXX`); otherwise it prints an honest "real cost: n/a" line.
+
 ### `scripts/praxis-drive.sh` exit codes
 
 The runner is fail-safe: every stop is a clean exit with a human summary, never a crash.
@@ -286,6 +328,25 @@ The runner is fail-safe: every stop is a clean exit with a human summary, never 
 ### Reading the telemetry: `scripts/factory-routing-report.py`
 
 Run `python3 scripts/factory-routing-report.py --project-dir <path-to-or-above-.project> --format md|json --out <file>` to aggregate both JSONL files above plus the prose `.project/working/routing-*.md` dispatch logs, `.project/operational/factory-metrics/` usage records, and `.project/telemetry/drive.jsonl` drive-run telemetry into one report: data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals (using `cost_weights` from `governance/model-routing.yaml`), routing-discipline coverage, drive-run summaries (iterations/slices/tasks/cost per run, stop reasons, human-touchpoint density), and heuristic recommendations. Zero dependencies beyond the Python 3 standard library; fails soft (exit 0) when telemetry is absent — every section just reports zero records and says so.
+
+**Prose-frontmatter dispatch counting:** a `routing-*.md` file whose frontmatter carries a `routing:` block (`agent`, `default_tier`, `chosen_tier`, `score`, `reason` — the routing-transparency form every real engagement now uses) counts as ONE dispatch for that `routing.agent`, in addition to being a decided routing record. Earlier versions only counted dispatches from explicit `## Dispatch N — <agent>` / `## Dispatched: <agent>` headings, which real-world routing logs frequently omit even when the frontmatter `routing:` block is present — that under-counted per-slice/per-agent dispatch tallies to zero on projects that had genuine routing activity. The heading match itself is also case-tolerant now and additionally recognizes `## Routing — <agent>` / `### Routing — <agent>` forms, not just `Dispatch`.
+
+### Reading the telemetry: `scripts/factory-token-report.py`
+
+Run `python3 scripts/factory-token-report.py --project-dir <path> [--claude-projects DIR] [--transcripts-dir DIR] --format md|json --out <file>` for a REAL token/cost report — as opposed to `factory-routing-report.py`'s relative `cost_proxy` unit. Two capture paths feed it:
+
+1. **Drive-runner real usage** — `.project/telemetry/drive.jsonl`'s `input_tokens`/`output_tokens`/`cache_read_input_tokens`/`cache_creation_input_tokens`/`total_cost_usd` fields (see above), deterministic for headless `praxis-drive.sh` iterations.
+2. **Transcript mining** — Claude Code writes one JSONL file per session under `~/.claude/projects/<munged-project-path>/<session-id>.jsonl` (path with every `/` replaced by `-`; **this convention is unverified in sandboxed environments without a local `~/.claude` directory** — the script defends against it being wrong via a fuzzy-match fallback and an explicit `--transcripts-dir` override). Each `type: "assistant"` line carries `message.usage` and `message.model`; the script sums input/output/cache tokens per session, per model, per day, and — best-effort, by matching the message's own timestamp against a padded (±3h) window built from `.project/telemetry/model-routing.jsonl` + `drive.jsonl` timestamps per slice — per slice.
+
+Report sections: coverage (which capture path resolved, honest "no transcripts found" note when absent), totals + input:output ratio + cache-hit ratio, per-model, per-day, per-slice (labeled best-effort), the drive-runner real-usage table, a **proxy calibration** section — `cost_proxy` totals per slice (from `drive.jsonl`, tier-weighted relative units) next to actual mined tokens per slice, with a tokens-per-cost_proxy-unit ratio where both exist — plus two finer-grain attribution sections. Tool-result token share is intentionally NOT estimated — Claude Code's transcript `usage` is per assistant-message, not decomposed into prompt-vs-tool-result origin, and estimating that cheaply/reliably wasn't achievable without overbuilding; skipped rather than guessed.
+
+**Section 8 — per agent invocation (sidechain segments).** When mined transcript lines carry `isSidechain` (subagent/Task-tool activity, present in Claude Code versions that support it), the script partitions main-thread vs sidechain messages and groups contiguous sidechain messages per file into invocation segments (a new segment starts when the gap since the previous sidechain message exceeds 5 minutes, or a main-thread message intervenes). Each segment's agent identity is resolved best-effort — an identity field on the line/message first, else a ±3-minute match against `routing-*.md` frontmatter timestamps, else `unattributed-subagent` — and every row is tagged with which of the three grounded the label. Skipped honestly (not guessed) when no mined line carries `isSidechain` at all.
+
+**Section 9 — per task (window-attributed, approximation).** When a task ledger (`.project/working/slice-*-tasks.yaml`) carries both `started_at` and `completed_at` (`references/loop-contracts.md` §2), transcript messages falling inside that window are summed as an approximation of the task's token cost. This is a time-window allocation, not a measurement — shared context makes exact per-task splitting impossible from transcripts alone. Where a task ALSO has an exact `drive.jsonl` per-iteration figure (it ran under drive), the exact figure is preferred and the row is marked `source: exact`; otherwise the window approximation is shown as `source: window`.
+
+**Attribution ladder (decreasing reliability):** session-level exact/universal (`telemetry/tokens.jsonl`, the SessionEnd hook, every session) > drive task exact (`drive.jsonl` per-iteration usage, section 9 `source: exact`) > sidechain invocation measured/best-effort attribution (section 8, per-message measured, agent identity best-effort) > interactive task-window approximation (section 9 `source: window`, time-based allocation of shared-context tokens). See `docs/telemetry.md`'s "Sub-session attribution ladder" for the fuller narrative.
+
+Zero dependencies beyond the Python 3 standard library. Exits 0 with an honest "no transcripts found" coverage note when `~/.claude/projects` (or the resolved project subdirectory) doesn't exist — the expected outcome in CI and in sandboxes that have never run Claude Code interactively.
 
 ## Checkpoint records — the universal aggregation point
 

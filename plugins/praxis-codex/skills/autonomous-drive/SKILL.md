@@ -44,17 +44,17 @@ One iteration, one task. This SKILL is what the Delivery Lead runs inside a driv
 
 ## One iteration = one task
 
-Each drive iteration is a fresh-context invocation with a constant prompt. Within it:
+Each drive iteration is a fresh-context invocation with a constant prompt — deliberately constant: identical prefixes are served from the harness prompt cache, keeping fresh contexts cheap. Keep the prompt stable; volatile ledger state lives in the files it reads, never in the prompt. Within it:
 
 1. **Read.** Load the active task ledger (`.project/working/slice-<id>-tasks.yaml`) and ONLY the named context for the next open task — the slice packet, the task's named `ac`, any ADRs the task cites. Never widen to the whole `.project/` tree. The next task is the first whose `depends_on` are all `done`.
 2. **Dispatch or complete.** If the task isn't drive-eligible (no runnable `verify`), stop and flag it — it runs interactively, not here. Otherwise dispatch the named specialist (or complete the work directly if the task is orchestration-only) against the task's `ac`.
-3. **Verify.** Run the task's `verify` command. It must exit 0. A task moves to `done` only when `verify` passes AND its `ac` items are demonstrably met — not on "looks right."
-4. **Update.** Write `status` (`done` | `failed` | `blocked`) and increment `attempts` in the ledger. At `max_task_attempts` (`governance/autonomy.yaml`), the task goes to `failed` and a `blocked` stop_flag is raised.
+3. **Verify.** Run the task's `verify` command. It must exit 0. A task moves to `done` only when `verify` passes AND its `ac` items are demonstrably met — not on "looks right." Verify commands are authored quiet (`pytest -q --tb=short -x`, `gradle -q --console=plain`, `npm test --silent`) and executed with output captured to `.project/working/verify-<task-id>.log` (`cmd > log 2>&1`). The iteration consumes ONLY the exit code plus, on failure, a failure extract (last ~40 lines, or the failing-test names via `grep`) — never the full log. The full log stays on disk for humans and re-runs; tool-result tokens are the largest avoidable context cost in a drive session, and build/test noise is most of it.
+4. **Update.** Write `status` (`done` | `failed` | `blocked`) and increment `attempts` in the ledger; stamp `started_at` when a task moves to `in_progress` and `completed_at` when it moves to `done` or `failed` (ISO UTC), per `references/loop-contracts.md` §2 — these windows are what let interactive sessions get the same per-task token attribution drive already gets from `drive.jsonl`. At `max_task_attempts` (`governance/autonomy.yaml`), the task goes to `failed` and a `blocked` stop_flag is raised.
 5. **Route the model.** Apply `adaptive-model-routing` for this task specifically — demote for mechanical work against an existing packet, promote for a task that failed at its default tier once already. Log the decision.
 
 ## Slice drain
 
-When every task in the ledger is `done`: run the gate reviewers (`code-reviewer`, `security-reviewer` if triggered, `ux-designer` visual review if the slice has UI tasks, `qa-engineer`) per `implementation-slice.yaml`, record each verdict under the ledger's `gates`, then evaluate `slice_acceptance_met`. Write the structured checkpoint entry to `.project/episodic/` (boundary: slice_close, per `references/factory-metrics-schema.md`) and copy it as the async slice-close summary to `.project/telemetry/summaries/slice-<id>-summary.md`:
+When every task in the ledger is `done`: honor the ledger's `ceremony` field (see "Ceremony" below) to decide review intensity, then run the applicable gate reviewers (`code-reviewer`, `security-reviewer` if triggered, `ux-designer` visual review if the slice has UI tasks, `qa-engineer`) per `implementation-slice.yaml`, record each verdict under the ledger's `gates`, then evaluate `slice_acceptance_met`. Write the structured checkpoint entry to `.project/episodic/` (boundary: slice_close, per `references/factory-metrics-schema.md`) and copy it as the async slice-close summary to `.project/telemetry/summaries/slice-<id>-summary.md`:
 
 ```markdown
 ## Slice close — <slice-id>
@@ -105,6 +105,29 @@ You are done with a drive iteration when:
 - Treating the slice-close summary as optional busywork.
 - Widening context beyond the named task's inputs "while I'm in there."
 - Continuing past a decision point because the iteration was "almost done anyway."
+- Piping full test/build output into context — capture to a log file, read back the exit code and failure extract only.
+
+## Ceremony
+
+The task ledger's slice-level `ceremony` field (`full | expedited | spike`, default `full`) scales PRE-MERGE review intensity at slice drain — set once at slice open per `references/loop-contracts.md` §2, never changed mid-loop. It is not a way around governance: workflow-declared gates (`production_go_live`, etc.) fire exactly as declared regardless of ceremony.
+
+**Rubric** (score each 0–2, mirrors `adaptive-model-routing`'s style):
+
+| Signal | 0 | 1 | 2 |
+|---|---|---|---|
+| Reversibility | Feature-flagged / easily reverted | Revertible with some cost | Schema or data migration |
+| Blast radius | Isolated module | Several modules, one service | Cross-service / public contract |
+| Production exposure | Not user-facing / behind flag | Limited prod exposure | Direct prod hot path |
+
+Score 0–2: `spike`-eligible only if the work is explicitly exploratory AND will never merge. Non-exploratory work at score ≤2: `expedited`. Score 3+: `full`. **Any security-bearing surface (auth, data-handling, public API, dependency changes) forces `full` regardless of score.**
+
+**Drain behavior, per ceremony:**
+
+- `full` — current behavior: code review + security review (when triggered) + visual review (when UI) + QA.
+- `expedited` — ONE combined review pass (`code-reviewer`, blocker-only bar) plus a MANDATORY retro entry in the slice-close checkpoint: majors get logged as tech-debt, full review is owed at the next `full`-ceremony slice touching the area. Same philosophy as `workflows/expedited-change.yaml`'s compressed-now/repaid-later loan — cite it in the checkpoint.
+- `spike` — no code gates fire; the spike report artifact is the exit criterion; ledger `gates` are all `n/a`. Code from a `spike`-ceremony slice NEVER merges to a production branch, per `workflows/spike.yaml`'s hard rule.
+
+**Non-negotiables:** security forces `full`; `spike` never merges; an `expedited` retro is owed, not optional; governance gates are untouched by ceremony choice.
 
 ## What this SKILL does NOT do
 

@@ -124,12 +124,13 @@ count). `scripts/factory-frequency.sh` / `scripts/factory-aging.sh` still
 read the full stub layer including the legacy types — see the deprecation
 note at the top of each script.
 
-## The two report scripts
+## The report scripts
 
 | Script | Primary source | What it reports |
 |---|---|---|
 | `scripts/factory-usage-report.py` | Layer (a) checkpoints, plus working packets/task ledgers, routing logs, command stubs, and sessions | Per-skill and per-agent usage (checkpoints/packets naming it, last-seen, never-observed list), per-workflow checkpoint/gate breakdown, per-command invocations, engagement summary (sessions, span, checkpoints, total cost proxy) |
 | `scripts/factory-routing-report.py` | Layer (b) JSONL streams, plus `routing-*.md` and legacy factory-metrics records | Data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals, routing-discipline coverage %, drive-run summaries, heuristic recommendations |
+| `scripts/factory-token-report.py` | `drive.jsonl` real-usage fields + local Claude Code session transcripts | Real (not proxy) token/cost totals — per-model, per-day, per-slice (best-effort), input:output ratio, cache-hit ratio, and a proxy-calibration table against `cost_proxy`. See "Real token telemetry" below. |
 
 Both are zero-dependency Python 3, fail-soft (a missing/malformed source
 degrades that section of the report, never crashes the script), and accept
@@ -263,6 +264,92 @@ drifting.
   quarterly factory report and steward review.
 - `PLAYBOOK.md` §7.5–7.6 — the per-session and weekly telemetry-review
   cadences in the operating guide.
+
+## Real token telemetry
+
+**Universal capture (every session):** at SessionEnd the hook sums the
+session's own transcript into `.project/telemetry/tokens.jsonl` — one
+record per session with input/output/cache tokens and per-model output.
+This fires for ALL workflow executions, interactive or driven; drive runs
+additionally get per-iteration usage in `drive.jsonl`.
+
+Everything above — `cost_proxy`, tier totals, the "cost proxy" figures in
+`factory-routing-report.py` — is a RELATIVE unit (`cost_weights` from
+`governance/model-routing.yaml`: `deep: 5.0`, `standard: 1.0`, `light: 0.25`),
+not a token count or a dollar amount. Three paths exist for actual token/cost
+numbers, in decreasing order of reliability:
+
+**1. Drive headless JSON usage (deterministic).** `scripts/praxis-drive.sh`
+appends `--output-format json` to the `claude-code` harness command whenever
+it doesn't already request a `--output-format` (overridable per harness via
+optional `governance/autonomy.yaml` keys `harnesses.<harness>.json_output_flag`
+/ `usage_parse` — not required, and not owned/edited by this doc's scope),
+captures the invocation's stdout, and parses the result object's `usage`
+(`input_tokens`, `output_tokens`, `cache_read_input_tokens`,
+`cache_creation_input_tokens`) and `total_cost_usd` into five additive fields
+on every `drive.jsonl` record — `null` when the harness doesn't expose them,
+never a guessed value. This is deterministic and covers every headless drive
+iteration, but ONLY headless drive iterations — interactive sessions aren't
+captured this way. See `references/factory-metrics-schema.md`'s drive.jsonl
+section for the full field table.
+
+**2. Transcript mining (deterministic, interactive sessions).**
+`scripts/factory-token-report.py` mines Claude Code's own per-session JSONL
+transcripts (`~/.claude/projects/<munged-project-path>/<session-id>.jsonl` —
+an observed, not officially pinned, path convention; the script defends
+against it being wrong with a fuzzy-match fallback and an explicit
+`--transcripts-dir` override) for `message.usage` on every assistant-role
+line. This is the only path that covers interactive (non-headless) sessions.
+It correlates mined tokens against `.project/telemetry/sessions.jsonl` (for
+session-id matching where transcript filenames allow it) and
+`model-routing.jsonl` / `drive.jsonl` timestamps (for best-effort per-slice
+attribution via a padded time window) — both correlations are best-effort and
+labeled as such in the report. Run:
+
+```bash
+python3 scripts/factory-token-report.py --project-dir <path> --format md --out <file>
+# or, to bypass the ~/.claude/projects path-munge guess entirely:
+python3 scripts/factory-token-report.py --project-dir <path> --transcripts-dir <exact-dir> --format md
+```
+
+Report sections: coverage (which capture path resolved, or an honest "no
+transcripts found" note), totals + input:output ratio + cache-hit ratio,
+per-model, per-day, per-slice (best-effort), the drive-runner real-usage
+table (path 1 above, surfaced for one combined picture), and a **proxy
+calibration** table comparing `cost_proxy` totals to actual mined tokens per
+slice — a sanity check on whether the tier cost weights track real
+consumption. Zero dependencies, fails soft, exits 0 with the "no transcripts
+found" note when `~/.claude/projects` is absent (the expected CI case).
+
+**Sub-session attribution ladder.** Below the session level, the same
+"deterministic where possible, honest approximation otherwise" discipline
+applies at finer grain, in decreasing order of reliability: (a) a `drive.jsonl`
+task-level exact figure, when a task ran under drive (`source: exact` in
+report section 9); (b) sidechain (subagent/Task-tool) per-invocation
+attribution, when transcripts carry `isSidechain` — measured per assistant
+message, with the invoking agent's identity itself best-effort (an
+identity field on the line, else a ±3-minute match against `routing-*.md`
+timestamps, else `unattributed-subagent`) — report section 8; (c) interactive
+task-window attribution, when a task ledger carries `started_at`/`completed_at`
+(`references/loop-contracts.md` §2) but didn't run under drive — transcript
+messages falling inside the window are summed as a time-based approximation,
+not a measurement, because shared context means tokens can't be cleanly
+split by task (`source: window` in report section 9). Each report row is
+labeled with which rung produced it — never silently blended.
+
+**3. Tier proxy (fallback, always available).** When neither of the above
+applies — no drive runs, no local transcript history — `cost_proxy` from
+`factory-routing-report.py` is what's left: a coarse, tier-weighted relative
+figure, useful for "did this quarter route more deep-tier work than last
+quarter", not for real accounting.
+
+**Org-scale option (OTEL):** Claude Code can also emit usage via OpenTelemetry
+(`claude_code.token.usage` and related metrics) to an OTEL collector, which is
+the right answer at organization scale — one pipeline aggregating usage
+across every project and every developer's local sessions, rather than
+per-project transcript mining. Praxis doesn't set this up or depend on it;
+mentioned here as the direction to look if `factory-token-report.py`'s
+single-machine transcript mining stops being enough.
 
 ## If model-routing.jsonl is empty
 

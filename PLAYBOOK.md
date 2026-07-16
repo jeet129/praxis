@@ -125,7 +125,7 @@ and skills, and tell me which roles and which skills are available. Then read
 the governance.yaml and summarize the active gates.
 ```
 
-You should see Claude Code list **17 agents**, **89 skills**, and the **6 core governance gates** (plus 11 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
+You should see Claude Code list **17 agents**, **90 skills**, and the **6 core governance gates** (plus 11 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
 
 ---
 
@@ -153,7 +153,7 @@ Four layers. Each invocation flows top-down.
 └────────────────────────┬────────────────────────────────┘
                          │ consume
 ┌────────────────────────▼────────────────────────────────┐
-│ SKILLS — the 89 SKILL.md bundles                        │
+│ SKILLS — the 90 SKILL.md bundles                        │
 │   (foundation, lifecycle, discovery, architecture,      │
 │    stack packs, quality+security, build+deploy,         │
 │    infra, ops, data, ml, agentic-ai, maintenance, ...)  │
@@ -175,11 +175,13 @@ Two cross-cutting layers wrap around these four:
           deep / standard / light, resolved to a concrete model per harness
           via governance/model-routing.yaml)
 
-       ↕ after every artifact use: hooks/tap.sh + factory-record.sh
-         (writes .project/operational/factory-metrics/<type>/<name>/*.md)
+       ↕ at every closure boundary: delivery-lead writes a checkpoint record
+         (.project/episodic/checkpoint-<timestamp>-<label>.md — the
+          universal telemetry aggregation point, mined by
+          scripts/factory-usage-report.py)
 ```
 
-Both fire automatically without you invoking them explicitly. The routing SKILL picks the model on each spawn; the telemetry tap captures every SKILL / agent / workflow / command / hook invocation so the Steward has real data at quarterly review.
+Both fire automatically as part of the workflow, without you invoking them explicitly. The routing SKILL picks the model on each spawn; the checkpoint record is a mandatory AOP deliverable at every gate/phase/slice/loop closure — not a hook riding on a tool event — so the Steward has real, near-complete data at quarterly review. A slimmer hook layer (`hooks/tap.sh`) still writes deterministic JSONL streams (`agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl`) plus command stubs; the old per-Read skill/agent/session stub types are retired. See [`docs/telemetry.md`](docs/telemetry.md) for the full three-layer breakdown.
 
 ### When to invoke which layer
 
@@ -188,7 +190,7 @@ Both fire automatically without you invoking them explicitly. The routing SKILL 
 - **Skill (by name)** when you want a specific discipline applied: "Apply `threat-modeling` to this design." For most work, the agent picks the skill.
 - **Governance gate** never invoked directly — gates fire from workflow steps; you approve when they reach you.
 - **Model routing** never invoked directly — the Delivery Lead runs `adaptive-model-routing` before each spawn. Reach into it only when: (a) you're opening a session and need to pick a tier up-front, (b) a spawn's route looks wrong, (c) `deep`-tier usage is running high and needs to be conserved for the work that actually needs it.
-- **Telemetry** never invoked directly — the tap fires on every tool use. Reach in only when: (a) writing a rich per-use observation via `/praxis:factory-record`, (b) reading `.project/operational/factory-metrics/` for weekly / quarterly review.
+- **Telemetry** never invoked directly — delivery-lead writes a checkpoint record at every closure boundary as part of the workflow itself. Reach in only when: (a) writing a rich per-use observation via `/praxis:factory-record`, (b) running `scripts/factory-usage-report.py` / `scripts/factory-routing-report.py` for weekly / quarterly review.
 
 Default: invoke the workflow. Let it orchestrate. Model routing + telemetry fire underneath. Specialize only when needed.
 
@@ -614,30 +616,38 @@ If usage at the `deep` tier is running high, the Delivery Lead reads the routing
 
 ### 7.6 Weekly — telemetry review (10 minutes)
 
-Praxis now captures every SKILL / agent / workflow / command invocation to `.project/operational/factory-metrics/` via the PostToolUse hook + `factory-record.sh`. A quick weekly pass catches drift before it compounds.
+Praxis captures usage primarily through checkpoint records
+(`.project/episodic/checkpoint-*.md`) written by delivery-lead at every
+gate/phase/slice/loop closure — a mandatory workflow deliverable, not a
+hook riding on a tool event. A quick weekly pass catches drift before it
+compounds.
 
 ```bash
-# What SKILLs got used this week? Top 10.
-scripts/factory-frequency.sh --type skill --since $(date -v-7d +%Y-%m-%d) --top 10
+# Per-skill / per-agent / per-workflow / per-command usage this week.
+python3 scripts/factory-usage-report.py --project-dir . --format md
 
-# Any experimental SKILL missing telemetry?
+# Routing, cost-proxy, and drive-run aggregation.
+python3 scripts/factory-routing-report.py --project-dir . --format md
+
+# Any experimental SKILL missing telemetry? (legacy stub-layer aging check)
 scripts/factory-aging.sh --strict-window 30
 ```
 
 Read the output for three signals:
 - Frequency imbalance — is one SKILL disproportionately over/under-used vs. expectation for this project's phase?
 - Missing experimental telemetry — the aging gate flags them. If a SKILL has zero uses in 30 days but is still marked `experimental`, ask whether the project actually needs it, or whether the SKILL's triggers are wrong.
-- Model routing surprises — read `.project/telemetry/model-routing.jsonl`. Any `deep`-tier routes for tasks that scored low on the rubric? Any escalations that recurred on the same task type?
+- Model routing surprises — the routing report's tier & cost-proxy section, or `.project/telemetry/model-routing.jsonl` directly. Any `deep`-tier routes for tasks that scored low on the rubric? Any escalations that recurred on the same task type?
 
-Any of these warrant a note in `.project/operational/library-evolution/YYYY-MM-DD-observations.md` for the next quarterly steward pass.
+Any of these warrant a note in `.project/operational/library-evolution/YYYY-MM-DD-observations.md` for the next quarterly steward pass. Full detail on what feeds each report: [`docs/telemetry.md`](docs/telemetry.md).
 
 ### 7.7 Quarterly — the library's own rhythm
 
-This is what makes the platform self-improving. Now that telemetry is captured automatically, the Steward reads real data — no more "your observations."
+This is what makes the platform self-improving. Now that telemetry is captured automatically via checkpoint records, the Steward reads real data — no more "your observations."
 
-- Run `scripts/factory-frequency.sh --since <quarter-start> --format json > factory-Q.json` to produce the aggregate.
+- Run `python3 scripts/factory-usage-report.py --project-dir . --format md --out <file>` for the quarter's per-skill/agent/workflow/command usage picture.
+- Run `python3 scripts/factory-routing-report.py --project-dir . --format md --out <file>` for tier, cost-proxy, and routing-discipline coverage.
 - Run `scripts/factory-aging.sh` to identify experimental SKILLs stale enough to promote / demote / kill.
-- `factory-evaluation` SKILL synthesizes both into a factory report covering library health, skill efficacy, agent performance, workflow completion, gate-clearance times.
+- `factory-evaluation` SKILL synthesizes all of the above into a factory report covering library health, skill efficacy, agent performance, workflow completion, gate-clearance times.
 - `system-steward` reads the factory report + the accumulated `library-evolution/` observations; drafts the quarterly steward report.
 - Steward proposals route through `steward_promotion` gate.
 - Principal approves per-proposal.
@@ -753,7 +763,8 @@ charter). Phase: <which one>. Run ml-problem-framing FIRST — including the
 
 ```
 You: System Steward, run quarterly cadence. First run:
-  scripts/factory-frequency.sh --since <quarter-start> --format text
+  python3 scripts/factory-usage-report.py --project-dir . --format md
+  python3 scripts/factory-routing-report.py --project-dir . --format md
   scripts/factory-aging.sh --strict-window 30
 Read the aggregates + the accumulated `.project/operational/library-evolution/`
 observations. Draft the quarterly steward report. Identify lifecycle
@@ -800,12 +811,12 @@ prepended so it doesn't start cold.
 **Weekly frequency scan:**
 
 ```
-You: Run scripts/factory-frequency.sh --type skill --since $(date -v-7d
-+%Y-%m-%d) --top 10 and read the output. Identify: (a) unexpectedly
+You: Run python3 scripts/factory-usage-report.py --project-dir . --format md
+and read the per-skill usage section. Identify: (a) unexpectedly
 frequent SKILLs, (b) unexpectedly infrequent SKILLs given the current
-phase, (c) any SKILL that fired 0 times but should have. If (c) appears,
-either the trigger phrases need refinement or my project needed a SKILL
-I forgot to invoke. Write findings to .project/operational/
+phase, (c) any SKILL on the "never observed" list that should have fired.
+If (c) appears, either the trigger phrases need refinement or my project
+needed a SKILL I forgot to invoke. Write findings to .project/operational/
 library-evolution/YYYY-MM-DD-weekly.md.
 ```
 
@@ -945,7 +956,7 @@ should consult the files below per task type.
 
 ```
 You: Read AGENTS.md and confirm you can navigate to .team/agents/ and
-.team/skills/. Then list the 17 agents and the 89 skills you can see.
+.team/skills/. Then list the 17 agents and the 90 skills you can see.
 Read governance.yaml and summarize active gates.
 ```
 
@@ -1029,13 +1040,17 @@ The routing rubric is trained on general engineering patterns. Every project has
 
 If the same override recurs across 3+ projects, propose a SKILL update via System Steward at quarterly review.
 
-### "`.project/operational/factory-metrics/` is empty"
+### "factory-usage-report.py shows no checkpoint records"
 
 Two common causes:
-1. **Hooks not loaded:** run `/reload-plugins` in Claude Code (or restart the session). Verify by checking that `.project/operational/factory-metrics/hooks/SessionStart/` has an entry after opening a new session.
-2. **The tap.sh hook is failing silently:** run `bash hooks/tap.sh PostToolUse < /dev/null` manually to check for syntax errors. Hook failures are swallowed by design (telemetry never blocks work), so silent errors are possible.
+1. **No closure boundary reached yet:** checkpoint records are written at gate/phase/slice/loop closures (`.project/episodic/checkpoint-*.md`), not on every tool use. If you haven't closed a slice, hit a gate, or finished a phase yet, there's nothing to write. This is expected early in a session.
+2. **delivery-lead short-circuited the AOP:** the checkpoint write is a mandatory Document step, but a delivery-lead that skips the AOP can skip it. Check whether the closure actually happened per the workflow, and prompt: "Write the checkpoint record for that closure now."
 
-Fallback: use the `/praxis:factory-record` slash command to write observations manually. That path doesn't rely on the tap.
+`.project/telemetry/sessions.jsonl`, `agent-spawns.jsonl`, and `drive.jsonl` empty is a different problem — those are hook/runner-written and deterministic. If they're missing:
+1. **Hooks not loaded:** run `/reload-plugins` in Claude Code (or restart the session).
+2. **The tap.sh hook is failing silently:** run `bash hooks/tap.sh SessionStart < /dev/null` manually to check for syntax errors. Hook failures are swallowed by design (telemetry never blocks work), so silent errors are possible.
+
+Fallback for either: use the `/praxis:factory-record` slash command to write observations manually. That path doesn't rely on the tap or the checkpoint discipline. `.project/operational/factory-metrics/` is now a legacy/supplementary layer (command stubs + `/factory-record` observations only) — an empty `skills/`/`agents/` subtree there is expected and not a bug; it stopped being the primary usage source.
 
 ### "Experimental SKILL flagged stale by factory-aging"
 
@@ -1046,11 +1061,11 @@ Fallback: use the `/praxis:factory-record` slash command to write observations m
 
 Do not ignore the flag — that defeats the visibility the aging gate is designed to provide.
 
-### "Frequency report shows a SKILL fired 200 times this week"
+### "Usage report shows a SKILL named in far more checkpoints than expected"
 
 Investigate. Two possibilities:
 1. Genuine heavy use — the SKILL is in the load-bearing set for this project's phase. Fine.
-2. Trigger phrase too broad — the SKILL is firing when it shouldn't. Read a few of the recent entries under `.project/operational/factory-metrics/skills/<name>/`; if most of them are false-positive uses, tune the trigger phrases.
+2. Trigger phrase too broad — the SKILL is firing when it shouldn't. Read a few of the recent `.project/episodic/checkpoint-*.md` entries that name it (or, if the SKILL predates the checkpoint-record slimdown, any legacy entries under `.project/operational/factory-metrics/skills/<name>/`); if most of them are false-positive uses, tune the trigger phrases.
 
 Note it in `.project/operational/library-evolution/` for the next quarterly review.
 

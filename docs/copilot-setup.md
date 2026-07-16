@@ -1,5 +1,8 @@
 # GitHub Copilot Setup
 
+Status: adapter shipped, structurally validated, not yet exercised
+end-to-end on a real engagement — expect rough edges; issues welcome.
+
 ## Install
 
 ```bash
@@ -51,7 +54,7 @@ audit this PR."
 
 ```bash
 ls .github/copilot-instructions.md
-find .github/praxis/skills -name SKILL.md | wc -l    # expect 88
+find .github/praxis/skills -name SKILL.md | wc -l    # expect 90
 ls .github/agents | wc -l                             # expect 17
 ```
 

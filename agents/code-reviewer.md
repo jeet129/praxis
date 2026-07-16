@@ -43,7 +43,7 @@ You do not own:
 
 Run the seven-phase AOP per `using-praxis`. Role-specific notes per phase:
 
-- **Understand.** Read the PR's diff and the linked implementation packet — just this PR's scope, not the wider `.project/` tree — so you know what the PR is trying to accomplish. Read the relevant `.repo-intel/conventions.md` for brownfield. Identify the active stack pack from project metadata.
+- **Understand.** Read the PR's diff and the linked implementation packet — just this PR's scope, not the wider `.project/` tree — so you know what the PR is trying to accomplish. Work from the diff plus the context lines you request; pull full files only where the diff's correctness depends on surrounding code — and always when judgment says so: **review depth is never budget-capped**, only mechanical whole-file ingestion is. Read the relevant `.repo-intel/conventions.md` for brownfield. Identify the active stack pack from project metadata.
 - **Clarify.** KUACQ surfaces questions about: PR scope clarity, missing context the diff doesn't explain, ambiguous tests (do they assert behavior or implementation?).
 - **Plan.** Identify which of the seven dimensions apply to this PR. A pure-frontend PR may skip dimension 6 (API/data contracts). A docs-only PR is largely dimension 7. Most PRs touch all seven.
 - **Execute.** Walk the diff against each dimension in order. Produce findings with severity, diff location, suggested fix. Use the exact report format from `code-review`.

@@ -113,7 +113,7 @@ prompt to reach for*. For the phase-by-phase prose walkthrough see
 
 **Recommended autonomy setting:** N/A — this is the manual mode Scenario 6/7 build trust toward. Use plain `/slice`, not `/drive`, until you've watched the full loop at least once.
 
-**Expected artifacts:** `.project/working/slice-<id>-packet.md`, `.project/working/slice-<id>-tasks.yaml` (task ledger), review/QA reports, an episodic slice-close entry.
+**Expected artifacts:** `.project/working/slice-<id>-packet.md`, `.project/working/slice-<id>-tasks.yaml` (task ledger — carries the slice's `ceremony` decision and rationale, scored at open per `skills/autonomous-drive`), review/QA reports, an episodic slice-close entry.
 
 **Watch out for:** `/slice` never spawns a specialist directly from the command — if you see that shortcut taken because "the slice is small," that's a protocol violation; the packet is what reviewers consume, no packet means broken review flow.
 
@@ -123,7 +123,7 @@ prompt to reach for*. For the phase-by-phase prose walkthrough see
 
 **When it applies:** you've watched `/slice` run cleanly by hand at least once and want the loop to keep going without you re-prompting each task.
 
-**Entry point:** `/drive` (in-session, supervised) or `scripts/praxis-drive.sh` (headless, unattended).
+**Entry point:** `/drive` (in-session, supervised) or `praxis-drive.sh (in the PLUGIN dir — see "Locating the runner" in docs/autonomous-drive.md)` (headless, unattended).
 
 **What runs:** the drive protocol (`skills/autonomous-drive/SKILL.md`) executed one task per iteration against the active task ledger — fresh context each time, only disk state (ledger, `.project/working/`, telemetry) survives between iterations. `scripts/praxis-drive.sh` is the outer loop that invokes the harness headlessly (`claude -p`, `codex exec`, or `gemini -p` per `governance/autonomy.yaml`'s `harnesses:` block) and enforces iteration caps, run budgets, and stall detection — the runner, not the agent, is what can't be talked out of the guardrails.
 
@@ -133,7 +133,7 @@ prompt to reach for*. For the phase-by-phase prose walkthrough see
 
 **Expected artifacts:** `.project/telemetry/drive.jsonl` (per-iteration record: tier, cost_proxy, outcome), `.project/telemetry/summaries/slice-<id>-summary.md` (per slice close), updated `.project/working/slice-<id>-tasks.yaml`.
 
-**Watch out for:** a task with no `verify` command is not drive-eligible and must run interactively — don't fabricate a ledger or a verify command just to make a task appear automatable. A slow or flaky `verify` wastes the iteration budget and can trigger false stalls.
+**Watch out for:** a task with no `verify` command is not drive-eligible and must run interactively — don't fabricate a ledger or a verify command just to make a task appear automatable. A slow or flaky `verify` wastes the iteration budget and can trigger false stalls. The ledger's `ceremony` (full/expedited/spike) only scales pre-merge review intensity at drain — governance gates still fire exactly as declared, and `governance/autonomy.yaml`'s ceremony switches can force everything to full for compliance engagements.
 
 ---
 
@@ -221,13 +221,13 @@ prompt to reach for*. For the phase-by-phase prose walkthrough see
 
 **Entry point:** `/steward`.
 
-**What runs:** `factory-evaluation` aggregates the quarter's telemetry (skill/agent/workflow/governance metrics, library health) into `.project/operational/factory-metrics/<quarter>.md`; `system-steward` reads it end-to-end and drafts the quarterly report (findings, proposals — lifecycle changes, trigger tunings, reference/pattern additions, consolidations, deprecations — with evidence + risk + rollback plan per proposal, plus an explicit "items NOT proposed" section).
+**What runs:** `scripts/factory-usage-report.py` mines the quarter's checkpoint records (`.project/episodic/checkpoint-*.md`, the primary usage source) for per-skill/agent/workflow/command usage; `scripts/factory-routing-report.py` aggregates the JSONL telemetry streams for tier/cost/routing-discipline figures; `factory-evaluation` synthesizes both into a factory report covering library health, skill efficacy, agent performance, workflow completion, and gate-clearance times; `system-steward` reads it end-to-end and drafts the quarterly report (findings, proposals — lifecycle changes, trigger tunings, reference/pattern additions, consolidations, deprecations — with evidence + risk + rollback plan per proposal, plus an explicit "items NOT proposed" section).
 
 **Where humans intervene:** `steward_promotion` gate, per-proposal granularity — the principal approves or rejects each proposal individually within the same report; rejected proposals become ADRs.
 
 **Recommended autonomy setting:** interactive, run as a single 1-2 day block, not more often (over-tweaking) and not less (drift).
 
-**Expected artifacts:** `.project/operational/factory-metrics/<quarter>.md`, the steward report itself, per-proposal evidence under `.project/operational/library-evolution/`.
+**Expected artifacts:** `.project/telemetry/reports/usage-report-<date>.md` and `routing-report-<date>.md`, the steward report itself, per-proposal evidence under `.project/operational/library-evolution/`.
 
 **Watch out for:** "nothing changed this quarter, skip it" is called out as a rationalization to ignore — telemetry exists, review it. Skill count above ~90 is review zone, above 101 is mandatory consolidation; growth is supposed to flow into references/patterns/examples, not new SKILLs.
 
@@ -239,7 +239,7 @@ prompt to reach for*. For the phase-by-phase prose walkthrough see
 
 **Entry point:** `python3 scripts/factory-routing-report.py --project-dir <path>`.
 
-**What runs:** the report cross-references three telemetry layers — layer (a) usage records (`.project/operational/factory-metrics/`), layer (b) deterministic spawn events (`.project/telemetry/agent-spawns.jsonl`), and layer (c) discipline-dependent routing decisions (`.project/telemetry/model-routing.jsonl`) — producing per-slice dispatches, per-agent activity, tier & cost-proxy breakdown (each figure labeled `default`/`observed`/`decided`), routing-discipline coverage %, and heuristic recommendations.
+**What runs:** the report aggregates layer (b)'s JSONL telemetry streams — deterministic `agent-spawns.jsonl` and `drive.jsonl`, plus discipline-dependent `model-routing.jsonl` (with `routing-*.md` frontmatter as its recovery fallback) — cross-referenced against layer (c)'s supplementary factory-metrics records, producing per-slice dispatches, per-agent activity, tier & cost-proxy breakdown (each figure labeled `default`/`observed`/`decided`), routing-discipline coverage %, and heuristic recommendations. See [`telemetry.md`](telemetry.md) for the full three-layer definitions.
 
 **Where humans intervene:** you decide what to change based on the report — e.g., adjust `governance/model-routing.yaml`'s `cost_weights` (relative proxies, not dollars) or a project-local fast-path override in `.project/procedural/model-routing-overrides.md` — then re-apply via `scripts/apply-model-routing.py`.
 

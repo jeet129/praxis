@@ -2,6 +2,8 @@
 
 The primary target — best UX for the platform.
 
+Status: tested end-to-end on real engagements.
+
 ## Install
 
 ```bash
@@ -15,10 +17,10 @@ The primary target — best UX for the platform.
 your-project/
 ├── .claude/                ← Claude Code reads this automatically
 │   ├── agents/             17 role agents
-│   ├── skills/             88 SKILLs
-│   ├── workflows/          6 workflows
-│   ├── governance/         governance.yaml (6 core + 5 conditional gates)
-│   ├── commands/           10 slash commands
+│   ├── skills/             90 SKILLs
+│   ├── workflows/          9 workflows
+│   ├── governance/         governance.yaml (6 core + 11 conditional gates)
+│   ├── commands/           11 slash commands
 │   ├── hooks/              SessionStart hook
 │   ├── scripts/            skill validator
 │   ├── patterns/           reusable solution shapes
@@ -43,6 +45,7 @@ your-project/
 | `/review` | On-demand review of an artifact outside a gate (Challenger + Code + Security reviewers) |
 | `/refine-idea` | Run the `ideation-refinement-loop` creator/reviewer/enhancer loop over an ideation artifact |
 | `/factory-record` | Record a rich factory-metrics observation for telemetry |
+| `/drive` | Autonomous iteration — run the drive loop between human touchpoints |
 
 ## SessionStart hook
 
@@ -70,6 +73,6 @@ Type:
 available. Read governance.yaml and summarize active gates."
 ```
 
-You should see: 17 agents, 88 SKILLs, 6 core gates + 5 conditional. If any number is off, re-run `install.sh --dry-run` and compare against the tree above.
+You should see: 17 agents, 90 SKILLs, 6 core gates + 11 conditional. If any number is off, re-run `install.sh --dry-run` and compare against the tree above.
 
 Then type `/start` — you should see the delivery-planner interview begin (mode, data plane, ML, compliance, scale, stack questions). See `docs/quickstart.md` for the full 5-minute path.

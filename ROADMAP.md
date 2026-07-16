@@ -63,6 +63,13 @@ Work that's scoped, mostly mechanical, and blocks or de-risks everything else.
   and 2 brownfield engagements — the single highest-value validation activity,
   and the gate everything else (trigger tuning, skill slimming, reference
   priority) should ultimately be driven by.
+- **Exercise the six under-test harness adapters end-to-end.** Claude Code and
+  Codex are tested end-to-end on real engagements; Gemini CLI, Cursor,
+  OpenCode, GitHub Copilot, Kiro, and Antigravity are shipped and
+  structurally validated (installer output + CI cover their layout) but
+  haven't run a real delivery engagement yet. Run at least one real slice or
+  small project through each before calling any of them more than
+  structurally sound.
 - **Model-routing telemetry review.** Now that routing decisions log to
   `.project/telemetry/model-routing.jsonl`, do at least one real pass
   correlating tier choices against gate-failure/escalation rates before
@@ -90,11 +97,13 @@ Needs the near-term groundwork (real usage, registry data) to do well.
   runner made — as a concrete worked example of drive mode, distinct from
   the interactive case studies above.
 - **`evaluations/` — first factory-evaluation run.** The `factory-evaluation`
-  skill and the telemetry stack (`factory-record.sh`, `factory-aging.sh`,
-  `factory-frequency.sh`) are wired, but no full quarterly-style synthesis has
-  been run yet. Running it once, on real accumulated telemetry, is the
-  prerequisite for trusting the aggregation and for the System Steward's
-  quarterly cadence to mean anything.
+  skill and the telemetry stack (checkpoint records mined by
+  `scripts/factory-usage-report.py`, plus `scripts/factory-routing-report.py`
+  and the legacy `factory-aging.sh` / `factory-frequency.sh` coverage tools)
+  are wired, but no full quarterly-style synthesis has been run yet. Running
+  it once, on real accumulated telemetry, is the prerequisite for trusting
+  the aggregation and for the System Steward's quarterly cadence to mean
+  anything.
 - **Wave 4 operational-hardening completion.** `production-release.yaml` and
   `implementation-slice.yaml` both reference Wave-4 items not yet feasible in
   the current gate baseline (e.g. `chaos_engineering_pass_recent` and other

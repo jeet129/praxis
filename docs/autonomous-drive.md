@@ -88,6 +88,29 @@ agents raise flags (`decision_required | gate_reached | blocked |
 budget_exceeded | stalled`); the runner reads them after every iteration and
 stops when any is present.
 
+## Ceremony
+
+Alongside `stop_after`, the task ledger carries a slice-level `ceremony` field
+(`full | expedited | spike`, default `full`) that scales PRE-MERGE review
+intensity — not the governance gates, which fire exactly as declared
+regardless of ceremony. Lead Developer decides it once, at slice open,
+scoring three signals 0–2 (reversibility, blast radius, production exposure)
+per the rubric in `skills/autonomous-drive`: 3+ is `full`; ≤2 non-exploratory
+work is `expedited`; ≤2 explicitly-exploratory work that will never merge is
+`spike`-eligible. Any security-bearing surface (auth, data-handling, public
+API, dependency changes) forces `full` regardless of score.
+
+At drain, `full` runs the standard gate set; `expedited` runs one combined
+blocker-only review plus a mandatory retro entry (majors logged as
+tech-debt, owed at the next `full` slice touching the area — mirrors
+`workflows/expedited-change.yaml`); `spike` runs no code gates at all — the
+spike report is the exit criterion and the code never merges to a
+production branch, per `workflows/spike.yaml`'s hard rule.
+`governance/autonomy.yaml`'s `ceremony.allow_expedited` /
+`ceremony.allow_spike` are the engagement-level safety rails — set both
+`false` on a compliance project and every slice runs `full` regardless of
+its rubric score.
+
 ## Slice-close async summaries
 
 When a slice drains, the iteration that closes it writes a summary to
@@ -117,7 +140,15 @@ own context, and you can interrupt at any point — this is the way to build
 trust in a new workflow or harness before handing it to the unattended
 runner.
 
-**Unattended, headless:** `scripts/praxis-drive.sh` runs the outer loop
+**Locating the runner:** the script ships inside the plugin, NOT your
+project. Plugin/marketplace installs (Claude Code):
+`find ~/.claude/plugins -name praxis-drive.sh 2>/dev/null | head -1`.
+`install.sh` file installs: `./scripts/praxis-drive.sh` in the project.
+Git-clone via `--plugin-dir`: `<clone>/scripts/praxis-drive.sh`. Not found
+anywhere = your installed plugin predates drive mode; update it. (In-session
+`/drive` needs no script.)
+
+**Unattended, headless:** the runner runs the outer loop
 without a human watching each iteration, invoking the configured harness
 command from `governance/autonomy.yaml`'s `harnesses:` block. Recommended
 preconditions before running unattended:

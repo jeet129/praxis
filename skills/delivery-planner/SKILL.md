@@ -149,6 +149,10 @@ added gates by characteristic:
     add: capacity-stress-test (before production go-live)
 ```
 
+### Ceremony defaults (slice-level)
+
+The planner may set a default `ceremony` (`full | expedited | spike`, per `skills/autonomous-drive`'s rubric) per slice type in the workflow instance — the same gate-intensity-scaling instinct as the rules above, applied at slice granularity rather than project granularity. Lead Developer still scores and confirms the rubric at each slice's actual open (reversibility/blast-radius/exposure can differ from the planner's guess), and `governance/autonomy.yaml`'s `ceremony.allow_expedited`/`allow_spike` switches can force everything to `full` for compliance engagements regardless of any planner default.
+
 ### Sub-persona selection (Architecture Challenger)
 
 ```

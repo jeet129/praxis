@@ -50,6 +50,9 @@ jobs:
       - name: Factory usage report smoke test (fail-soft on repos with no telemetry)
         run: python3 scripts/factory-usage-report.py --project-dir . --format json --out /tmp/ci-usage.json
 
+      - name: Factory token report smoke test (fail-soft on runners with no Claude Code transcript history)
+        run: python3 scripts/factory-token-report.py --project-dir . --format json --out /tmp/ci-tokens.json
+
       - name: Drive runner dry-run smoke test (scripts/praxis-drive.sh)
         run: |
           set -e

@@ -1,5 +1,8 @@
 # Cursor Setup
 
+Status: adapter shipped, structurally validated, not yet exercised
+end-to-end on a real engagement — expect rough edges; issues welcome.
+
 ## Install
 
 ```bash
@@ -41,7 +44,7 @@ and summarize the intent routing tree."
 
 ```bash
 ls .cursor/rules/000-ai-delivery-platform.md
-find .cursor/praxis/skills -name SKILL.md | wc -l    # expect 88
+find .cursor/praxis/skills -name SKILL.md | wc -l    # expect 90
 ls .cursor/praxis/agents | wc -l                      # expect 17
 ```
 

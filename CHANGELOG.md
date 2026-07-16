@@ -13,6 +13,23 @@ minor versions until it stabilizes.
 
 ### Added
 
+- Evidence-first token optimizations with explicit quality guards: hand-off reply contract (<=15-line structured replies, artifacts on disk — blockers/deviations/uncertainty are MANDATORY fields, never compressed away), read discipline (grep-to-locate before Read; reviewers work diff+context; reading deeper is always permitted when judgment requires — only mechanical over-reading is targeted), cache-aware spawn-prompt ordering (stable prefix first, volatile state last; drive's constant prompt documented as deliberate cache design), and diff-scoped review guard in code-reviewer with 'review depth is never budget-capped' stated verbatim.
+
+
+- Token attribution ladder completed: sidechain-aware per-agent-invocation attribution in factory-token-report.py (main-vs-sidechain split, invocation segments with best-effort agent identity), task started_at/completed_at timestamps in the ledger (stamped on status change, drive and interactive alike) enabling window-attributed per-task tokens in interactive sessions — clearly labeled approximation vs drive.jsonl's exact per-task measurement; attribution ladder documented (session exact > drive task exact > sidechain measured > interactive window approximation).
+
+
+- Token telemetry made universal: SessionEnd hook now sums each session's own Claude Code transcript into .project/telemetry/tokens.jsonl (deterministic, every session — interactive or driven); factory-token-report.py treats hook records as authoritative with transcript mining as gap-fill; ceremony honored at pre-merge review in ANY mode (delivery-lead general discipline, not drive-only); tool-output hygiene promoted to a universal AOP rule in using-praxis.
+
+
+- Real token telemetry: praxis-drive.sh captures actual usage + total_cost_usd from headless JSON output into drive.jsonl; new scripts/factory-token-report.py mines Claude Code session transcripts for per-session/model/day/slice token totals with a proxy-calibration table; factory-routing-report.py surfaces real tokens/USD per drive run and its prose-dispatch parser now counts routing-frontmatter files (PortiQ validation: 0 -> 13 dispatches).
+- Verify-output hygiene: verify commands authored quiet, full output captured to .project/working/verify-<task>.log, model consumes exit code + failure extract only (loop-contracts, autonomous-drive, lead-developer) — tool-result token sink closed.
+- Adaptive ceremony: task ledgers carry ceremony: full|expedited|spike scored at slice open (reversibility x blast radius x production exposure; security-bearing surfaces force full), drive drains gates accordingly (expedited = single blocker-only review + mandatory retro; spike = report artifact, never merges); engagement switches in governance/autonomy.yaml; governance gates unaffected.
+
+
+- Honest harness test-status published everywhere support is claimed: tested end-to-end on real engagements = Claude Code + Codex; adapters shipped and structurally validated but under test = Gemini CLI, Cursor, OpenCode, Copilot, Kiro, Antigravity. Publishing-readiness sweep synced all counts (90/17/9/11/17) and telemetry descriptions across README, INSTALLATION, PLAYBOOK, and every docs page.
+
+
 - Telemetry redesigned around checkpoint records — the universal aggregation point at EVERY closure boundary (gate, phase end, slice close, loop convergence, disposition, workflow end), covering discovery/architecture/ideation/release phases that have no slice: structured episodic entries (agents_dispatched, skills_consumed, artifacts, cost_proxy, human touchpoints) written by delivery-lead at the AOP Document step; new scripts/factory-usage-report.py mines checkpoints + packets/ledgers/routing/commands/sessions into per-skill/agent/workflow usage analytics; hooks/tap.sh slimmed (retired the ~5%-capture per-Read and preload stub files and per-session stub files — sessions now one JSONL line each); factory-frequency/aging marked legacy; factory-evaluation and docs/telemetry.md updated to the mined-artifacts model. Zero incremental token cost: analytics ride on artifacts the workflow already produces.
 
 
@@ -98,6 +115,12 @@ minor versions until it stabilizes.
 - **Repo governance docs** — `CHANGELOG.md` (this file), `SECURITY.md`, `ROADMAP.md`.
 
 ### Fixed
+
+- Drive runner discoverability: /drive (all copies) and the drive docs now explain that praxis-drive.sh ships inside the PLUGIN, with concrete resolution per install type (find ~/.claude/plugins for marketplace installs, ./scripts/ for install.sh, clone path for --plugin-dir) and a clear 'not found = plugin predates drive mode, update it' hint — previously all references used a bare relative path that only worked for file installs.
+
+
+- tap.sh no longer requires jq for SessionStart/SessionEnd: governance seeding and session logging now run without jq (degraded session id), and only tool-event parsing bails when jq is absent — a missing jq previously killed the entire hook layer silently.
+
 
 - Routing-decision logging made resilient: delivery-lead now embeds the tier decision (agent/default_tier/chosen_tier/score/reason) in every routing-*.md frontmatter as part of the routing-transparency discipline it demonstrably follows, with the model-routing.jsonl append folded into the same step; factory-routing-report.py recovers frontmatter decisions as decided records when the JSONL is missing; session-start hook pre-creates .project/telemetry/ so appends cannot fail on a missing directory.
 

@@ -187,6 +187,11 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     sh("COST_WEIGHT_LIGHT", gov["cost_weights"].get("light", 0.25))
     sh("SUMMARIES_SLICE_CLOSE_DIR", summaries.get("slice_close", ".project/telemetry/summaries/"))
     sh("SUMMARIES_NOTIFY", summaries.get("notify", "terminal"))
+    # Optional per-harness real-usage-capture keys. Not required in
+    # governance/autonomy.yaml — when absent, claude-code gets a documented
+    # default (see below in the bash driver); other harnesses stay opt-in.
+    sh("HARNESS_JSON_OUTPUT_FLAG", h.get("json_output_flag", "null") or "null")
+    sh("HARNESS_USAGE_PARSE", h.get("usage_parse", "null") or "null")
 
 
 def parse_inline_list(val):
@@ -325,7 +330,23 @@ def cmd_ledger(ledger_path, task_id_filter=None):
         sh("QUERIED_TASK_ATTEMPTS", match.get("attempts", "") if match else "")
 
 
-def cmd_append_record(jsonl_path, ts, run_id, iteration, slice_id, task_id, agent, tier, outcome, ledger_hash, stop_flags_csv, cost_proxy):
+def _num_or_null(s):
+    """Parse a shell-passed 'null' | int | float string into a Python number or None."""
+    if s is None:
+        return None
+    s = str(s).strip()
+    if s == "" or s.lower() == "null":
+        return None
+    try:
+        f = float(s)
+    except ValueError:
+        return None
+    return int(f) if f.is_integer() else f
+
+
+def cmd_append_record(jsonl_path, ts, run_id, iteration, slice_id, task_id, agent, tier, outcome, ledger_hash, stop_flags_csv, cost_proxy,
+                       input_tokens="null", output_tokens="null", cache_read_input_tokens="null",
+                       cache_creation_input_tokens="null", total_cost_usd="null"):
     flags = [f for f in stop_flags_csv.split(",") if f]
     record = {
         "ts": ts,
@@ -339,9 +360,98 @@ def cmd_append_record(jsonl_path, ts, run_id, iteration, slice_id, task_id, agen
         "ledger_hash": ledger_hash,
         "stop_flags": flags,
         "cost_proxy": float(cost_proxy),
+        # Real usage, when the harness invocation exposed it (see cmd_parse_usage).
+        # null, never a guessed value, when unavailable (--dry-run, non-JSON
+        # harness output, or a parse failure — fail-soft by design).
+        "input_tokens": _num_or_null(input_tokens),
+        "output_tokens": _num_or_null(output_tokens),
+        "cache_read_input_tokens": _num_or_null(cache_read_input_tokens),
+        "cache_creation_input_tokens": _num_or_null(cache_creation_input_tokens),
+        "total_cost_usd": _num_or_null(total_cost_usd),
     }
     with open(jsonl_path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def _extract_claude_json_usage(text):
+    """Tolerant extraction of usage/cost fields from `claude -p --output-format
+    json` stdout. Handles the plain single-JSON-object shape and, defensively,
+    a line-delimited/stream-json shape (multiple JSON objects, one per line) —
+    picks the last object that looks like a final result record (carries
+    `usage` or `total_cost_usd`, or `type: result`). Returns a dict of
+    possibly-None values; never raises (caller is already inside a try/except,
+    but this is written to be safe to call directly too)."""
+    text = (text or "").strip()
+    if not text:
+        return None
+    candidates = []
+    try:
+        obj = json.loads(text)
+        candidates.append(obj)
+    except json.JSONDecodeError:
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                candidates.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    result_obj = None
+    for c in reversed(candidates):
+        if isinstance(c, dict) and (
+            "usage" in c or "total_cost_usd" in c or "cost_usd" in c or c.get("type") == "result"
+        ):
+            result_obj = c
+            break
+    if result_obj is None:
+        for c in reversed(candidates):
+            if isinstance(c, dict):
+                result_obj = c
+                break
+    if result_obj is None:
+        return None
+
+    usage = result_obj.get("usage")
+    if not isinstance(usage, dict):
+        usage = {}
+
+    def _pick(d, *keys):
+        for k in keys:
+            v = d.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                return v
+        return None
+
+    return {
+        "input_tokens": _pick(usage, "input_tokens"),
+        "output_tokens": _pick(usage, "output_tokens"),
+        "cache_read_input_tokens": _pick(usage, "cache_read_input_tokens"),
+        "cache_creation_input_tokens": _pick(usage, "cache_creation_input_tokens"),
+        "total_cost_usd": _pick(result_obj, "total_cost_usd", "cost_usd"),
+    }
+
+
+def cmd_parse_usage(stdout_path, usage_parse):
+    """Fail-soft usage extraction: emits USAGE_* shell vars, always — 'null'
+    on any parse problem, missing file, empty output, or unsupported
+    usage_parse strategy. Never raises past this function."""
+    fields = ("input_tokens", "output_tokens", "cache_read_input_tokens",
+              "cache_creation_input_tokens", "total_cost_usd")
+    values = {f: None for f in fields}
+    try:
+        if usage_parse == "claude-json":
+            text = Path(stdout_path).read_text(encoding="utf-8", errors="replace")
+            parsed = _extract_claude_json_usage(text)
+            if parsed:
+                values.update(parsed)
+        # Unknown/other usage_parse strategies: leave everything null — this
+        # is the documented "tolerant of shape variations and missing
+        # fields" contract, not an error.
+    except Exception:
+        values = {f: None for f in fields}
+    for f in fields:
+        sh(f"USAGE_{f.upper()}", "null" if values[f] is None else values[f])
 
 
 def main():
@@ -352,7 +462,9 @@ def main():
         task_filter = sys.argv[3] if len(sys.argv) > 3 else None
         cmd_ledger(sys.argv[2], task_filter)
     elif action == "append_record":
-        cmd_append_record(*sys.argv[2:14])
+        cmd_append_record(*sys.argv[2:19])
+    elif action == "parse_usage":
+        cmd_parse_usage(sys.argv[2], sys.argv[3])
     else:
         print(f"unknown action: {action}", file=sys.stderr)
         sys.exit(1)
@@ -379,6 +491,28 @@ fi
 
 if [[ -n "$MAX_ITERATIONS_OVERRIDE" ]]; then
   MAX_ITERATIONS_PER_RUN="$MAX_ITERATIONS_OVERRIDE"
+fi
+
+# --------------------------------------------------------------------------
+# Real-usage capture: which flag (if any) gets appended to the harness
+# command to request machine-readable output, and how to parse it.
+# Both keys are read from governance/autonomy.yaml harnesses.<harness>.* if
+# present (json_output_flag, usage_parse); governance/autonomy.yaml itself is
+# not owned/edited here. claude-code gets a built-in default when the
+# project's harness command doesn't already request a --output-format:
+# `claude -p "{prompt}" --max-turns 30` becomes ...--max-turns 30 --output-format json,
+# and usage_parse defaults to "claude-json" (the `claude -p --output-format
+# json` result-object shape: top-level `usage` + `total_cost_usd`).
+# --------------------------------------------------------------------------
+JSON_OUTPUT_FLAG="$HARNESS_JSON_OUTPUT_FLAG"
+USAGE_PARSE="$HARNESS_USAGE_PARSE"
+if [[ "$HARNESS" == "claude-code" ]]; then
+  if [[ "$JSON_OUTPUT_FLAG" == "null" && "$HARNESS_COMMAND" != *"--output-format"* ]]; then
+    JSON_OUTPUT_FLAG="--output-format json"
+  fi
+  if [[ "$USAGE_PARSE" == "null" ]]; then
+    USAGE_PARSE="claude-json"
+  fi
 fi
 
 # --------------------------------------------------------------------------
@@ -426,6 +560,8 @@ ITERATION=0
 STALL_COUNT=0
 SLICES_CLOSED=0
 COST_ACCUM=0
+COST_USD_ACCUM=0
+HAVE_COST_USD_DATA=0
 LAST_DONE_COUNT=0
 LAST_FAILED_COUNT=0
 LAST_TOTAL_COUNT=0
@@ -503,12 +639,37 @@ while true; do
   if [[ "$MAX_BUDGET_USD" != "null" && "$HARNESS_BUDGET_FLAG" != "null" ]]; then
     CMD="$CMD $HARNESS_BUDGET_FLAG $MAX_BUDGET_USD"
   fi
+  if [[ -n "$JSON_OUTPUT_FLAG" && "$JSON_OUTPUT_FLAG" != "null" ]]; then
+    CMD="$CMD $JSON_OUTPUT_FLAG"
+  fi
+
+  # Usage/cost fields default to null; only overwritten below when the
+  # harness actually ran and produced parseable JSON (fail-soft: --dry-run,
+  # a non-JSON harness, or a parse error all leave these null, never break
+  # the loop).
+  USAGE_INPUT_TOKENS="null"
+  USAGE_OUTPUT_TOKENS="null"
+  USAGE_CACHE_READ_INPUT_TOKENS="null"
+  USAGE_CACHE_CREATION_INPUT_TOKENS="null"
+  USAGE_TOTAL_COST_USD="null"
 
   if (( DRY_RUN == 1 )); then
     echo "[dry-run] iteration $ITERATION — would invoke: $CMD"
   else
-    if ! ( cd "$PROJECT_DIR" && eval "$CMD" ); then
+    ITER_STDOUT="$(mktemp -t praxis-drive-iter-stdout.XXXXXX)"
+    if ! ( cd "$PROJECT_DIR" && eval "$CMD" > "$ITER_STDOUT" ); then
       echo "praxis-drive.sh: harness invocation exited non-zero on iteration $ITERATION" >&2
+    fi
+    cat "$ITER_STDOUT"
+    if USAGE_ENV="$(python3 "$PY_HELPER" parse_usage "$ITER_STDOUT" "$USAGE_PARSE")"; then
+      eval "$USAGE_ENV"
+    else
+      echo "praxis-drive.sh: usage parse failed on iteration $ITERATION (non-fatal — recording nulls)" >&2
+    fi
+    rm -f "$ITER_STDOUT"
+    if [[ "$USAGE_TOTAL_COST_USD" != "null" ]]; then
+      COST_USD_ACCUM="$(awk "BEGIN{printf \"%.6f\", $COST_USD_ACCUM + $USAGE_TOTAL_COST_USD}")"
+      HAVE_COST_USD_DATA=1
     fi
   fi
 
@@ -542,7 +703,8 @@ while true; do
   [[ -z "$OUTCOME" ]] && OUTCOME="unknown"
 
   TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  python3 "$PY_HELPER" append_record "$DRIVE_JSONL" "$TS" "$RUN_ID" "$ITERATION" "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$PROCESSED_TASK_AGENT" "$PROCESSED_TASK_TIER" "$OUTCOME" "$HASH_AFTER" "$LEDGER_STOP_FLAGS" "$WEIGHT"
+  python3 "$PY_HELPER" append_record "$DRIVE_JSONL" "$TS" "$RUN_ID" "$ITERATION" "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$PROCESSED_TASK_AGENT" "$PROCESSED_TASK_TIER" "$OUTCOME" "$HASH_AFTER" "$LEDGER_STOP_FLAGS" "$WEIGHT" \
+    "$USAGE_INPUT_TOKENS" "$USAGE_OUTPUT_TOKENS" "$USAGE_CACHE_READ_INPUT_TOKENS" "$USAGE_CACHE_CREATION_INPUT_TOKENS" "$USAGE_TOTAL_COST_USD"
 
   # ---- Always-on stop checks (fire regardless of stop_after) ----
   if [[ -n "$LEDGER_STOP_FLAGS" ]]; then
@@ -607,6 +769,11 @@ echo "  last slice:        $LAST_SLICE"
 echo "  tasks done/failed/remaining (last ledger read): $LAST_DONE_COUNT/$LAST_FAILED_COUNT/$REMAINING"
 echo "  slices closed:     $SLICES_CLOSED"
 echo "  cost proxy consumed: $COST_ACCUM (ceiling: $COST_CEILING_PROXY)"
+if (( HAVE_COST_USD_DATA == 1 )); then
+  echo "  real cost (sum of harness total_cost_usd): \$$COST_USD_ACCUM"
+else
+  echo "  real cost: n/a (harness did not report total_cost_usd this run)"
+fi
 echo "  slice-close summaries: $PROJECT_DIR/$SUMMARIES_SLICE_CLOSE_DIR"
 echo "  telemetry:          $DRIVE_JSONL"
 echo "  exit code:          $EXIT_CODE"

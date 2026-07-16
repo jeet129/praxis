@@ -37,13 +37,21 @@ fi
 # Read stdin payload (Claude Code passes hook payload as JSON on stdin)
 payload=$(cat 2>/dev/null || echo "{}")
 
-# jq is required for payload parsing. Fall back silently if absent.
-if ! command -v jq >/dev/null 2>&1; then
-  exit 0
-fi
+# jq is required for payload parsing of tool events — but SessionStart/End
+# (governance seeding, session logging) must work WITHOUT jq: degrade the
+# session id instead of dying, and only bail on jq-dependent events.
+HAVE_JQ=1
+command -v jq >/dev/null 2>&1 || HAVE_JQ=0
 
-# Extract common fields
-session_id=$(echo "$payload" | jq -r '.session_id // empty' 2>/dev/null)
+if [[ $HAVE_JQ -eq 1 ]]; then
+  session_id=$(echo "$payload" | jq -r '.session_id // empty' 2>/dev/null)
+else
+  session_id="nojq-$(date +%s)"
+  case "$EVENT" in
+    SessionStart|SessionEnd) : ;;   # proceed — these branches don't need jq
+    *) exit 0 ;;                    # tool-event parsing needs jq; bail soft
+  esac
+fi
 
 # Resolve the workspace root for telemetry writes.
 # Priority:
@@ -58,7 +66,8 @@ session_id=$(echo "$payload" | jq -r '.session_id // empty' 2>/dev/null)
 if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
   cwd="$CLAUDE_PROJECT_DIR"
 else
-  payload_cwd=$(echo "$payload" | jq -r '.cwd // empty' 2>/dev/null)
+  payload_cwd=""
+  [[ $HAVE_JQ -eq 1 ]] && payload_cwd=$(echo "$payload" | jq -r '.cwd // empty' 2>/dev/null)
   if [[ -n "$payload_cwd" ]]; then
     probe="$payload_cwd"
     cwd=""
@@ -334,6 +343,47 @@ case "$EVENT" in
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
       echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+    # Universal token capture: sum this session's usage from its own Claude
+    # Code transcript (found by session id — layout-agnostic) and append one
+    # line to tokens.jsonl. Deterministic, zero model tokens; works for EVERY
+    # session — interactive slices, discovery, architecture — not just drive.
+    if [[ -n "$session_id" && "$session_id" != nojq-* && -d "$HOME/.claude/projects" ]]; then
+      transcript=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${session_id}*.jsonl" 2>/dev/null | head -1)
+      if [[ -n "$transcript" ]]; then
+        python3 - "$transcript" "$session_id" >> "$tdir/tokens.jsonl" 2>/dev/null <<'PYEOF' || true
+import json, sys, datetime
+path, sid = sys.argv[1], sys.argv[2]
+tot = {"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}
+models = {}
+try:
+    with open(path) as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+            except Exception:
+                continue
+            msg = d.get("message") or {}
+            u = msg.get("usage") or {}
+            if not u:
+                continue
+            for k in tot:
+                v = u.get(k)
+                if isinstance(v, (int, float)):
+                    tot[k] += int(v)
+            m = msg.get("model")
+            if m:
+                models[m] = models.get(m, 0) + int(u.get("output_tokens") or 0)
+except Exception:
+    sys.exit(0)
+if sum(tot.values()) == 0:
+    sys.exit(0)
+rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "session": sid, "source": "session_end_hook", **tot,
+       "models_by_output": models}
+print(json.dumps(rec))
+PYEOF
+      fi
+    fi
     ;;
 
 esac

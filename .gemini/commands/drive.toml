@@ -29,7 +29,7 @@ that fire regardless of the dial; that slice-close summaries post to
 
 Step 4 - Run it. Offer both paths; let the user pick (or infer from
 context - a long-running/background request implies unattended):
-- Unattended: instruct the user to run scripts/praxis-drive.sh, which
+- Unattended: instruct the user to run the praxis-drive.sh runner (locate it first — it ships in the PLUGIN, not the project: `find ~/.claude/plugins -name praxis-drive.sh | head -1` for plugin installs, ./scripts/ for install.sh installs; if absent, update the plugin), which
   invokes the harness headlessly per governance/autonomy.yaml's harnesses
   block, enforcing iteration caps and stall detection outside the agent's
   own context.

@@ -2,6 +2,8 @@
 
 Praxis ships to Codex as a repo-backed plugin package. The Claude Code plugin remains separate and unchanged.
 
+Status: tested end-to-end on real engagements.
+
 ## Install From GitHub Marketplace
 
 Add this repo as a Codex plugin marketplace:

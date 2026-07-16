@@ -37,6 +37,15 @@ run_budget:
   cost_ceiling_proxy: 120         # tier-weighted units per governance/model-routing.yaml cost_weights
   max_budget_usd: null            # passed to the harness natively where supported (e.g. claude -p --max-budget-usd)
 
+# Ceremony — engagement-level switches for the adaptive ceremony rubric in
+# skills/autonomous-drive (full | expedited | spike per slice, scored by
+# Lead Developer at slice open). Governance gates are never affected by
+# these switches; they only gate whether a slice may scale DOWN pre-merge
+# review intensity at all.
+ceremony:
+  allow_expedited: true          # false forces every slice to full ceremony
+  allow_spike: true              # false disables spike-ceremony slices; compliance engagements set both false
+
 # Stall detection (the "witness" check): if the task ledger hash is unchanged
 # after this many consecutive iterations, stop and flag — the loop is spinning.
 stall:

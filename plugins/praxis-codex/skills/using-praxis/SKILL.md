@@ -236,6 +236,12 @@ Every role agent (specialist, phase lead, or gate reviewer) executes its work as
 
 Agents reference this list as "the seven-phase AOP" and add only their role-specific detail per phase.
 
+**Hand-off reply contract (every agent, every mode):** artifacts belong on disk; the reply to your spawner is ≤15 lines, structured: status, artifact paths, verify result, deviations, blockers/uncertainty. The last two are MANDATORY when they exist — never compress away risk information to hit the budget; if a finding needs depth, write it to an artifact and reference the path. The budget targets restated content, not signal.
+
+**Read discipline (every agent, every mode):** locate before you load — Grep/Glob to find the relevant region, then Read the section you need; reviewers work from the diff plus requested context. Reading MORE is always permitted when judgment requires it — this rule targets mechanical whole-file/whole-tree ingestion, never depth of analysis. When in doubt about correctness or security, read deeper.
+
+**Tool-output hygiene (every agent, every mode):** never pipe full test/build/lint output into context — run commands quiet, capture to a log file, and read back the exit code plus a failure extract only. Tool results are the largest invisible input-token sink.
+
 ## Gate enforcement
 
 When a `gate` step is reached: read `governance/governance.yaml` for the approver, construct the approval request (what's being approved, evidence package, recommended action), route to the approver (solo dev: the principal; team: per the matrix), pause the workflow, then resume on `approved`/`rejected` — on rejection, loop back to the prior step with the rejection rationale or escalate per the workflow's rejection-path declaration. Load `references/orchestration-runtime-detail.md` for the full six-step sequence. Gates are non-skippable. A `challenger_objection_override` is itself a gated decision that produces an ADR.

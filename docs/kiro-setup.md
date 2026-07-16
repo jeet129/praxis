@@ -1,5 +1,8 @@
 # Kiro IDE & CLI Setup
 
+Status: adapter shipped, structurally validated, not yet exercised
+end-to-end on a real engagement — expect rough edges; issues welcome.
+
 ## Install
 
 ```bash
@@ -11,7 +14,7 @@
 ```
 your-project/
 ├── .kiro/
-│   ├── skills/             88 SKILLs (Kiro auto-discovers under .kiro/skills/)
+│   ├── skills/             90 SKILLs (Kiro auto-discovers under .kiro/skills/)
 │   ├── agents/, workflows/, governance/, references/, patterns/
 │   └── README.md, PLAYBOOK.md
 ├── AGENTS.md               ← Kiro also supports AGENTS.md
