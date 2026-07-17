@@ -4,32 +4,66 @@ The primary target — best UX for the platform.
 
 Status: tested end-to-end on real engagements.
 
-## Install
+## Install as a plugin (recommended)
+
+Praxis is a Claude Code plugin — `.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json` sit at the repo root, so Claude Code installs it directly. Nothing is copied into your project; updates arrive by updating the plugin.
+
+Published (default branch):
+
+```text
+/plugin marketplace add jeet129/praxis
+/plugin install praxis@praxis
+```
+
+`praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That's the whole install — you now have all slash commands, agents, skills, workflows, and the SessionStart hook.
+
+### From a specific branch (e.g. `features/improvements`)
+
+Claude Code takes an `@ref` on the `owner/repo` shorthand (or `#ref` on a full git URL):
+
+```text
+/plugin marketplace add jeet129/praxis@features/improvements
+/plugin install praxis@praxis
+```
+
+This pulls the branch **as pushed to GitHub** — commit and push first, or the install won't include un-pushed local work.
+
+### From a local clone
+
+Point Claude Code at a checkout; it reads `.claude-plugin/marketplace.json` there:
 
 ```bash
-./install.sh /path/to/your-project           # project-local (recommended for first test)
-./install.sh --user                          # user-global at ~/.claude/
+git clone -b features/improvements https://github.com/jeet129/praxis.git
+```
+```text
+/plugin marketplace add ./praxis
+/plugin install praxis@praxis
 ```
 
-## What lands in your project
+For updating/removing plugins and the copy-based `install.sh` alternative (frozen `.claude/` snapshot, needed for multi-tool installs), see `INSTALLATION.md`.
 
-```
-your-project/
-├── .claude/                ← Claude Code reads this automatically
-│   ├── agents/             17 role agents
-│   ├── skills/             90 SKILLs
-│   ├── workflows/          9 workflows
-│   ├── governance/         governance.yaml (6 core + 11 conditional gates)
-│   ├── commands/           11 slash commands
-│   ├── hooks/              SessionStart hook
-│   ├── scripts/            skill validator
-│   ├── patterns/           reusable solution shapes
-│   ├── references/         cross-cutting references
-│   ├── .claude-plugin/     marketplace + plugin manifests
-│   ├── README.md
-│   └── PLAYBOOK.md
-└── .project/               project memory tree (17 subdirs)
-```
+## How to use it — the workflows
+
+Once installed, you drive the platform through slash commands that run workflows. Start with `/start` to bootstrap the project charter, then route by intent. The full guide to all 9 workflows — what each is for, how to invoke it, its gates, and how to run it autonomously — is in **`docs/workflows.md`**. Quick map:
+
+| You want to… | Command | Workflow |
+|---|---|---|
+| Bootstrap a project | `/start` | (sets charter; picks greenfield/brownfield) |
+| Build something new | `/discover` → `/architect` → `/slice` | greenfield-saas / greenfield-api-service |
+| Change an existing system | `/audit` → `/slice` | brownfield-enhancement |
+| Ship one slice | `/slice` | implementation-slice |
+| Release to production | `/release` | production-release |
+| Fix a P0/P1 now | describe the incident | expedited-change |
+| Prove feasibility | "can we even do X?" | spike |
+| Replace a legacy system | "modernize this" | modernization |
+| Refine an idea | `/refine-idea` | ideation-refinement-loop |
+| Run autonomously | `/drive` | autonomous-drive (any of the above) |
+
+## What the plugin gives you
+
+Installed as a plugin, the content lives in the plugin (nothing is copied into your repo) — 17 role agents, 91 SKILLs, 9 workflows, `governance.yaml` (6 core + 11 conditional gates), 11 slash commands, the SessionStart hook, plus scripts, patterns, and references. The only thing created in your project is the `.project/` memory tree (populated as you work).
+
+The copy-based `install.sh` alternative instead writes that same content into a `your-project/.claude/` directory (frozen snapshot) — see `INSTALLATION.md` for when to prefer it (multi-tool installs, offline/CI, pinned team versions).
 
 ## Slash commands
 
@@ -56,11 +90,12 @@ Automatically fires on session open. Surfaces:
 - Open debt items
 - Quarterly steward cadence alarm (if >90 days)
 
-## Marketplace install (when published)
+## Dev loading (no install)
 
-```
-/plugin marketplace add your-org/praxis
-/plugin install praxis@praxis
+To test an in-progress working tree without adding a marketplace, load the plugin directory directly:
+
+```bash
+claude --plugin-dir ./praxis
 ```
 
 For maintainer build and release details, see `docs/plugin-builds.md`.
@@ -73,6 +108,6 @@ Type:
 available. Read governance.yaml and summarize active gates."
 ```
 
-You should see: 17 agents, 90 SKILLs, 6 core gates + 11 conditional. If any number is off, re-run `install.sh --dry-run` and compare against the tree above.
+You should see: 17 agents, 91 SKILLs, 6 core gates + 11 conditional. If a slash command isn't recognized, run `/plugin` and confirm `praxis` shows as installed and enabled.
 
 Then type `/start` — you should see the delivery-planner interview begin (mode, data plane, ML, compliance, scale, stack questions). See `docs/quickstart.md` for the full 5-minute path.

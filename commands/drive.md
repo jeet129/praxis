@@ -33,6 +33,8 @@ Offer both paths; let the user pick (or infer from context — a long-running/ba
   Then run: `bash <resolved-path> --project-dir . --dry-run` first, and without `--dry-run` when satisfied. If the script is not found anywhere, the installed plugin predates drive mode — update the plugin. In-session drive (above) needs no script at all.
 - **In-session:** iterate the drive protocol yourself, continuously, within this session — each iteration is `delivery-lead` executing exactly one `autonomous-drive` pass (see `agents/delivery-lead.md`'s Drive mode section) and reporting the outcome, honoring the same stops as the unattended path. Stop cleanly the moment any non-negotiable stop or the dial's boundary is reached.
 
+`--workflow` (or "drive the whole workflow") runs the top-level loop over workflow steps, each on its phase-tier model, stopping at governance gates and non-machine-verifiable boundaries (see `skills/autonomous-drive`'s "Workflow-drive" section and `references/phase-gates.md`).
+
 ## What you do NOT do
 
 - Do NOT invent a task ledger to make a slice appear drive-eligible — route through `/slice` first.

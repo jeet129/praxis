@@ -83,6 +83,21 @@ The output is a workflow *instance* — same shape as a template but with:
 
 The output file lives in `.project/working/workflow-instance.yaml` and is what the orchestrator actually executes.
 
+## Workflow-step ledger
+
+Instantiating a workflow ALSO emits the machine-legible workflow-step ledger
+at `.project/working/workflow-state.yaml`, per `references/phase-gates.md`
+§3 — this is what `workflow-drive` consumes. One entry per phase/gate/
+decision-node in the instantiated graph, each with: `id`, `phase`, `kind`
+(`phase | gate | decision_node`), `agent`, `tier` (the phase's default per
+`skills/adaptive-model-routing`'s "Phase-level defaults" table), `depends_on`,
+`outputs`, and an `exit` — either a machine check (`command | artifact_exists
+| artifact_contains | verdict_file`, per phase-gates.md §2) or a
+`fallback_gate` when the boundary is a judgment call the runner cannot
+evaluate. Set `autonomy_zone: [C, D]` at the ledger root — A (discovery) and
+B (architecture) stay human-gated per phase-gates.md §1; only C→D steps with
+a machine `exit` may run unattended.
+
 ## Planning logic
 
 The planner runs a small set of rules over the inputs:

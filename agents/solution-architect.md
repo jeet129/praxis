@@ -4,6 +4,7 @@ description: The Phase B lead — owns technical design from requirements_freeze
 tools: Read, Write, Edit, Glob, Grep
 capability_tier: deep
 model: opus
+effort: high
 capability: phase-lead
 tier: 1
 ---

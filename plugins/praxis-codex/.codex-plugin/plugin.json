@@ -2,5 +2,6 @@
   "name": "praxis-codex",
   "version": "1.0.0",
   "description": "Praxis for Codex: agentic development platform for end-to-end software and product delivery.",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

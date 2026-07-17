@@ -25,11 +25,16 @@ VALID_TIERS = ("deep", "standard", "light")
 
 
 def parse_routing(path: Path) -> dict:
-    """Minimal parser for the known structure of model-routing.yaml."""
+    """Minimal parser for the known structure of model-routing.yaml.
+
+    Additive: also reads `effort_field`/`effort_map` (claude-code) and
+    `model_field`/`model_map` (codex) alongside the original `field`/`map`.
+    A harness missing these keys behaves exactly as before (backward-compat).
+    """
     harnesses: dict[str, dict] = {}
     force_tier = None
     current_harness = None
-    in_map = False
+    active_map = None  # which dict the indent-6 lines populate: "map" | "effort_map" | "model_map"
     section = None
     for raw in path.read_text().splitlines():
         line = raw.split("#", 1)[0].rstrip()
@@ -42,22 +47,36 @@ def parse_routing(path: Path) -> dict:
         if indent == 0:
             section = key
             current_harness = None
-            in_map = False
+            active_map = None
             if section == "overrides":
                 pass
             continue
         if section == "harnesses":
             if indent == 2:
                 current_harness = key
-                harnesses[current_harness] = {"field": None, "map": {}}
-                in_map = False
+                harnesses[current_harness] = {
+                    "field": None, "map": {},
+                    "effort_field": None, "effort_map": {},
+                    "model_field": None, "model_map": {},
+                }
+                active_map = None
             elif indent == 4 and current_harness:
                 if key == "field":
                     harnesses[current_harness]["field"] = val
                 elif key == "map":
-                    in_map = True
-            elif indent == 6 and current_harness and in_map:
-                harnesses[current_harness]["map"][key] = val
+                    active_map = "map"
+                elif key == "effort_field":
+                    harnesses[current_harness]["effort_field"] = val
+                elif key == "effort_map":
+                    active_map = "effort_map"
+                elif key == "model_field":
+                    harnesses[current_harness]["model_field"] = val
+                elif key == "model_map":
+                    active_map = "model_map"
+                else:
+                    active_map = None
+            elif indent == 6 and current_harness and active_map:
+                harnesses[current_harness][active_map][key] = val
         elif section == "overrides" and key == "force_tier":
             force_tier = None if val in ("null", "~", "") else val
     return {"harnesses": harnesses, "force_tier": force_tier}
@@ -71,9 +90,18 @@ def frontmatter_span(text: str):
 
 
 def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], list[str]]:
-    """Returns (changed_files, agent->tier map, errors)."""
+    """Returns (changed_files, agent->tier map, errors).
+
+    Additive: alongside `model:` (from `field`/`map`), also writes/updates
+    `effort:` (from `effort_field`/`effort_map`) when the harness config
+    declares them. A map value of `auto` OMITS that field entirely (removes
+    any existing line rather than writing `effort: auto` / `model: auto`).
+    Harnesses without effort_field/effort_map behave exactly as before.
+    """
     harness = cfg["harnesses"]["claude-code"]
     field, mapping = harness["field"], harness["map"]
+    effort_field = harness.get("effort_field")
+    effort_map = harness.get("effort_map") or {}
     force = cfg["force_tier"]
     changed, tiers, errors = [], {}, []
     for path in sorted(AGENTS.glob("*.md")):
@@ -102,6 +130,27 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
                 fm.group(1),
                 flags=re.M,
             )
+
+        if effort_field and effort_map:
+            effort_target = effort_map.get(tier)
+            has_effort_line = re.search(rf"^{effort_field}:\s*.*$", new_fm, re.M) is not None
+            if effort_target and effort_target != "auto":
+                if has_effort_line:
+                    new_fm = re.sub(
+                        rf"^{effort_field}:\s*.*$", f"{effort_field}: {effort_target}", new_fm, flags=re.M
+                    )
+                else:
+                    new_fm = re.sub(
+                        rf"^({field}:.*)$",
+                        rf"\1\n{effort_field}: {effort_target}",
+                        new_fm,
+                        count=1,
+                        flags=re.M,
+                    )
+            elif has_effort_line:
+                # auto (or unmapped) => omit the field entirely.
+                new_fm = re.sub(rf"^{effort_field}:\s*.*\n", "", new_fm, flags=re.M)
+
         if new_fm != fm.group(1):
             changed.append(str(path.relative_to(ROOT)))
             if not check:
@@ -110,8 +159,14 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
 
 
 def process_codex(cfg: dict, tiers: dict, check: bool) -> tuple[list[str], list[str]]:
+    """Additive: alongside `model_reasoning_effort` (`field`/`map`), also
+    writes/updates `model` (`model_field`/`model_map`) when the harness
+    config declares them and the mapped value != auto. `auto` OMITS the
+    `model =` line entirely (removes an existing one, writes none new)."""
     harness = cfg["harnesses"]["codex"]
     field, mapping = harness["field"], harness["map"]
+    model_field = harness.get("model_field")
+    model_map = harness.get("model_map") or {}
     changed, errors = [], []
     if not CODEX_AGENTS.exists():
         return changed, errors
@@ -133,11 +188,70 @@ def process_codex(cfg: dict, tiers: dict, check: bool) -> tuple[list[str], list[
                 count=1,
                 flags=re.M,
             )
+
+        if model_field and model_map:
+            model_target = model_map.get(tier)
+            has_model_line = re.search(rf'^{model_field}\s*=\s*".*"$', new_text, re.M) is not None
+            if model_target and model_target != "auto":
+                if has_model_line:
+                    new_text = re.sub(
+                        rf'^{model_field}\s*=\s*".*"$',
+                        f'{model_field} = "{model_target}"',
+                        new_text,
+                        flags=re.M,
+                    )
+                else:
+                    new_text = re.sub(
+                        r'^(name\s*=.*)$',
+                        rf'\1\n{model_field} = "{model_target}"',
+                        new_text,
+                        count=1,
+                        flags=re.M,
+                    )
+            elif has_model_line:
+                new_text = re.sub(rf'^{model_field}\s*=\s*".*"\n', "", new_text, flags=re.M)
+
         if new_text != text:
             changed.append(str(path.relative_to(ROOT)))
             if not check:
                 path.write_text(new_text)
     return changed, errors
+
+
+def validate_effort_pairing(cfg: dict) -> list[str]:
+    """FAIL if a claude-code tier has a concrete model but no effort mapped
+    for the same tier — both should be set together (job 5). A tier whose
+    model is 'auto'/unset is exempt (nothing to pair)."""
+    errors = []
+    harness = cfg["harnesses"].get("claude-code") or {}
+    mapping = harness.get("map") or {}
+    effort_field = harness.get("effort_field")
+    effort_map = harness.get("effort_map") or {}
+    for tier in VALID_TIERS:
+        model_val = mapping.get(tier)
+        if not model_val or model_val == "auto":
+            continue
+        effort_val = effort_map.get(tier)
+        if not effort_field or not effort_val:
+            errors.append(
+                f"governance/model-routing.yaml: claude-code tier '{tier}' has model "
+                f"'{model_val}' but no paired effort_map entry — set both together"
+            )
+    return errors
+
+
+def validate_pin_comment_context(routing_path: Path) -> list[str]:
+    """WARN (not fail) if the routing table pins concrete claude models
+    without the 'current-best-known/override-friendly' comment context that
+    documents what a pin means (job 5, light-touch — text presence only)."""
+    warnings = []
+    text = routing_path.read_text()
+    if "current-best-known" not in text or "override-friendly" not in text:
+        warnings.append(
+            f"{routing_path}: pins concrete models without documenting the "
+            "'current-best-known / override-friendly' comment context — see docs/model-routing.md"
+        )
+    return warnings
 
 
 def main() -> int:
@@ -149,7 +263,11 @@ def main() -> int:
             return 2
     changed_a, tiers, errs_a = process_agents(cfg, check)
     changed_c, errs_c = process_codex(cfg, tiers, check)
-    errors = errs_a + errs_c
+    errs_pairing = validate_effort_pairing(cfg)
+    warnings = validate_pin_comment_context(ROUTING)
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+    errors = errs_a + errs_c + errs_pairing
     for e in errors:
         print(f"ERROR: {e}", file=sys.stderr)
     changed = changed_a + changed_c

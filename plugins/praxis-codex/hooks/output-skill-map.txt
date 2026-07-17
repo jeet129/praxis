@@ -1,0 +1,53 @@
+# output-skill-map.txt — maps output file paths to the SKILLs that produced them.
+#
+# Used by hooks/tap.sh PostToolUse(Write|Edit) branch to detect cached SKILL
+# applications — cases where Claude applied a SKILL without re-Reading the
+# SKILL.md in this session.
+#
+# Format: PATTERN | SKILL_NAME
+# - PATTERN: shell glob pattern, matched against the absolute output path
+# - SKILL_NAME: the SKILL whose application produced this artifact
+#
+# Lines starting with # are comments. Blank lines ignored.
+# Order matters — first match wins. Put more specific patterns first.
+
+# ----- Decision artifacts -----
+*/.project/decision/adr-*.md                                | adr-decision-records
+*/.project/decision/INDEX.md                                | adr-decision-records
+
+# ----- Discovery + intake -----
+*/.project/working/inbox.md                                 | requirements-intake
+*/.project/working/inbox-decisions.md                       | requirements-intake
+*/.project/semantic/opportunity.md                          | product-discovery
+*/.project/semantic/mvp-scope.md                            | requirements-elicitation
+*/.project/semantic/requirement-*.md                        | requirements-intake
+*/.project/semantic/project-charter.md                      | delivery-planner
+
+# ----- Architecture -----
+*/.project/working/architecture/*.md                        | architecture-documentation
+*/.project/working/architecture-patterns/*.md               | architecture-pattern-selection
+*/.project/working/nfr-register.md                          | nfr-definition
+
+# ----- Repo intelligence (brownfield) -----
+*/.repo-intel/*.md                                          | codebase-comprehension
+*/.project/operational/impact-analyses/*.md                 | impact-analysis
+
+# ----- Operational -----
+*/.project/operational/debt-register.md                     | tech-debt-management
+*/.project/operational/runbooks/*.md                        | incident-runbook
+*/.project/operational/releases/*.md                        | deploy-release
+*/.project/operational/factory-metrics/*                    | factory-evaluation
+*/.project/operational/library-evolution/*.md               | system-steward
+*/.project/operational/architecture-reconciliation/*.md     | codebase-comprehension
+*/.project/operational/doc-audit/*.md                       | technical-documentation
+*/.project/operational/modernization/*.md                   | legacy-modernization
+*/.project/operational/ml-models/*.md                       | ml-serving-deployment
+*/.project/operational/risk-acceptances/*.md                | engineering-standards
+
+# ----- Library backlog (steward outputs) -----
+*/library-backlog/proposed-skills/*.md                      | system-steward
+*/library-backlog/proposed-references/*.md                  | system-steward
+*/library-backlog/proposed-patterns/*.md                    | system-steward
+*/design-brief.md            | frontend-design
+*/design-tokens.json         | design-system
+*/telemetry/summaries/*.md   | autonomous-drive

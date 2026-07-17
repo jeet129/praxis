@@ -49,7 +49,12 @@ steps:
 
   - id: capacity_adjustments_applied
     type: decision_node
-    predicate: capacity_verdict == sufficient OR capacity_adjustments_applied == true
+    predicate:
+      expr: capacity_verdict == sufficient OR capacity_adjustments_applied == true
+      fallback_gate: capacity_verification   # runtime predicate (capacity_check) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Evidence-existence check in Phase D's autonomous span; the human stop
+      # for this release is production_go_live_gate downstream.
     branches:
       true: [dr_readiness_check]
       false: [apply_capacity_adjustments]
@@ -67,7 +72,13 @@ steps:
 
   - id: dr_readiness_check
     type: decision_node
-    predicate: dr_drill_recent_pass(within_cadence_days=90)
+    predicate:
+      name: dr_drill_recent_pass
+      check: artifact_exists
+      args:
+        path: .project/operational/drills/
+        within_cadence_days: 90
+      on_fail: escalate_to_human
     branches:
       true: [observability_readiness_check]
       false: [escalate_dr_overdue]
@@ -202,12 +213,15 @@ steps:
 
   - id: production_verified_check
     type: decision_node
-    predicate: |
-      smoke_status == pass AND
-      error_budget_consumption < threshold AND
-      p99_latency < nfr.p99_target AND
-      error_rate < nfr.error_rate_target AND
-      business_metrics_anomaly == none
+    predicate:
+      expr: |
+        smoke_status == pass AND
+        error_budget_consumption < threshold AND
+        p99_latency < nfr.p99_target AND
+        error_rate < nfr.error_rate_target AND
+        business_metrics_anomaly == none
+      fallback_gate: post_deploy_verification_boundary   # runtime predicate (post_deploy_verification) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [record_release]
       false: [production_rollback]

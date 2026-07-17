@@ -190,3 +190,16 @@ and the delivery-lead's runtime routing): `.project/governance/<file>` if
 present, else the plugin's copy. Typical per-project tunings: `force_tier`
 for compliance-critical engagements, `cost_weights` for your org's actual
 model pricing, `stop_after` and `run_budget` for drive-mode autonomy.
+
+## Routing the router (per-iteration model selection)
+
+The orchestrator itself is routed, not pinned. In drive mode the runner
+resolves each iteration's model from the TASK's tier (`model_flag` per
+harness in `governance/autonomy.yaml` + the tier map): a light-tier task's
+entire iteration — including the delivery-lead protocol execution — runs on
+the light model, recorded as `iteration_model` in `drive.jsonl`.
+Interactively, open orchestration sessions on the standard tier and reserve
+deep-tier sessions for architecture phases, re-plans, and judgment-heavy
+gate evaluations (see delivery-lead's "Your own tier" discipline).
+delivery-lead's static default is `standard`; deep is an escalation, never
+a resting state.

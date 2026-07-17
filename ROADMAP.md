@@ -23,6 +23,43 @@ Work that's scoped, mostly mechanical, and blocks or de-risks everything else.
   `scripts/factory-routing-report.py`, and slice-close async summaries at
   `.project/telemetry/summaries/`. Operator guide:
   [`docs/autonomous-drive.md`](docs/autonomous-drive.md). Follow-ons below.
+- ~~**Workflow-drive — the outer ring over workflow steps, plus universal
+  per-step model routing.**~~ **Shipped.** `scripts/praxis-drive.sh
+  --workflow` (opt-in) loops a workflow's *steps* instead of a slice's
+  *tasks*, reading the workflow-step ledger
+  (`.project/working/workflow-state.yaml`, schema in
+  [`references/phase-gates.md`](references/phase-gates.md) §3) that
+  `delivery-planner` now emits alongside the workflow instance. Every step —
+  including the orchestrator's own — resolves to a model through its phase
+  tier (`skills/adaptive-model-routing`'s phase defaults), closing the last
+  static-model-pin gap in the routing story. The C→D autonomy zone (§1)
+  keeps discovery/architecture human-gated and `kind: gate` steps always a
+  human stop, regardless of the autonomy dial. Alongside it, **phase-exit
+  predicate hardening**: every `decision_node` / phase-exit boundary must
+  now resolve to a machine `check` (`command | artifact_exists |
+  artifact_contains | verdict_file`, §2) or declare an explicit
+  `fallback_gate` — `scripts/validate-workflows.py` fails the build on any
+  decision node that does neither, closing the "LLM silently asserts a
+  phase exit" gap. Docs: `docs/autonomous-drive.md`'s "Workflow-drive"
+  section, `agents/delivery-lead.md`, `docs/operating-model.md`.
+- **Loop-engineering follow-ons (the remaining pieces).** Per Addy Osmani's
+  five-pieces-plus-memory model for agentic loops, Praxis already has
+  memory (`.project/`), skills (this library), maker-checker (review
+  gates), and verifiable stops (the loop-contract's machine-checkable
+  `verify`/`exit` discipline, now including workflow-step exits above).
+  Three pieces remain — honestly framed as not-yet-built, not
+  deferred-on-purpose:
+  - **Automation heartbeat.** A scheduled discovery/triage pass that feeds
+    the drive loop new work on its own — the piece that would make the
+    loop self-feeding instead of always waiting on a human to open the
+    next slice or workflow step.
+  - **MCP connectors.** Reach into real external tools from inside a drive
+    iteration — open a PR, update an issue tracker, notify a channel —
+    instead of leaving those as manual follow-ups after a run.
+  - **Worktree isolation** (low priority). Only matters if
+    concurrent-slice execution is ever wanted; low priority today because
+    drive mode is deliberately sequential and solo-dev-oriented (see
+    "Parallel task consumption in drive mode" under Later, below).
 - ~~**Modernization workflow (strangler-fig legacy replacement).**~~ **Shipped.**
   `workflows/modernization.yaml` — deep comprehension + seam identification,
   target architecture + migration strategy sign-off (`modernization_strategy_sign_off`),

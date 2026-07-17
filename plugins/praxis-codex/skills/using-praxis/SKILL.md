@@ -214,6 +214,8 @@ The orchestrator understands a small set of step types:
 
 Decision Nodes are first-class — this SKILL owns the logic, not the agent. The `predicate` is named — dispatch to a small library of evaluators (in `predicates/`). Each predicate is a pure function that reads step outputs and returns a branch key. New predicates are added per workflow as needed; they live in the workflow's namespace. Load `references/orchestration-runtime-detail.md` for a worked `decision_node` YAML example.
 
+Every `decision_node`'s predicate must resolve to a registered `check` kind or declare a `fallback_gate` — a bare prose predicate with neither is a protocol violation, not a judgment call this SKILL gets to make silently. `references/phase-gates.md` §2 is the pinned spec (the workflow-drive / phase-gate spec, one ring above `loop-contracts.md`'s slice-drive rules); `scripts/validate-workflows.py` enforces it.
+
 ## Model selection before agent spawn
 
 Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct capability tier (deep | standard | light) and pass it as the `model:` field in the Agent tool call, per `governance/model-routing.yaml`. Do not default to the deep tier without scoring — deep-tier budget is finite. Fast reference: Architecture Challenger / threat-modeling / novel cross-cutting ADR → `deep`; everything else → score the rubric, default `standard`; classification / intent detection / pre-flight → `light`. Log every decision to `.project/telemetry/model-routing.jsonl`. Each agent's frontmatter `model:` field is the fallback default when spawned without an explicit routing decision; `adaptive-model-routing` overrides it when the task profile warrants.

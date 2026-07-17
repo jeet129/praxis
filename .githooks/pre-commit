@@ -35,6 +35,7 @@ TRIGGERS=(
   "references/"
   "patterns/"
   "scripts/"
+  "hooks/"
   "codex-plugin-assets/"
 )
 
@@ -62,6 +63,15 @@ echo ""
 if [[ ! -x scripts/build-codex-plugin.sh ]]; then
   echo "ERROR: scripts/build-codex-plugin.sh not found or not executable" >&2
   echo "       chmod +x scripts/build-codex-plugin.sh, then re-commit" >&2
+  exit 1
+fi
+
+# Model-routing TOMLs must be regenerated from canonical source before the
+# Codex build step runs — otherwise the build packages stale reasoning-effort
+# assignments.
+if ! python3 scripts/apply-model-routing.py --check; then
+  echo ""
+  echo "ERROR: run scripts/apply-model-routing.py and re-commit" >&2
   exit 1
 fi
 

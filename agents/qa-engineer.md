@@ -4,6 +4,7 @@ description: Owns quality gates across implementation and release. Runs testing-
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: gate-reviewer
 tier: cross-cutting
 ---

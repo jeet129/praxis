@@ -30,6 +30,7 @@ consumers:
   - scripts/praxis-drive.sh (the unattended runner; enforces caps this SKILL cannot)
 references:
   - loop-contracts.md
+  - phase-gates.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -128,6 +129,75 @@ Score 0–2: `spike`-eligible only if the work is explicitly exploratory AND wil
 - `spike` — no code gates fire; the spike report artifact is the exit criterion; ledger `gates` are all `n/a`. Code from a `spike`-ceremony slice NEVER merges to a production branch, per `workflows/spike.yaml`'s hard rule.
 
 **Non-negotiables:** security forces `full`; `spike` never merges; an `expedited` retro is owed, not optional; governance gates are untouched by ceremony choice.
+
+## Workflow-drive (top-level loop)
+
+An **outer ring** around everything above. Slice-drive (this SKILL, so far)
+loops over a slice's *tasks*; workflow-drive loops over a workflow's *steps*
+— one altitude up. `scripts/praxis-drive.sh --workflow` reads
+`.project/working/workflow-state.yaml` (schema: `references/phase-gates.md`
+§3) instead of a task ledger, and each step runs on **its phase's
+tier-resolved model** — this is how the orchestrator and every phase lead
+(product-manager, solution-architect, delivery-lead, ...) get routed by
+task instead of pinned to one static model. Default OFF: without
+`--workflow`, `praxis-drive.sh` is exactly the slice-drive runner described
+above, unchanged.
+
+### The autonomy zone: C→D only
+
+Per `references/phase-gates.md` §1, workflow-drive's genuine unattended span
+is **implementation → release (C→D)**. Discovery and architecture (A/B) stay
+human-gated: that is where exit criteria for the phases *downstream* of them
+get created and frozen (`requirements_freeze`, `architecture_sign_off`). A
+step whose `phase` falls outside the ledger's `autonomy_zone` is never driven
+unattended, regardless of whether it happens to carry a machine-checkable
+`exit` — the zone boundary is checked first.
+
+### The three step kinds
+
+- **`kind: gate`** — ALWAYS a human stop. The runner raises `gate_reached`
+  and halts immediately, naming the gate. Governance is never
+  machine-cleared, no matter how the autonomy dial is set.
+- **`kind: phase`, machine-verifiable `exit`, in the autonomy zone** — runs
+  unattended: launch the step's `agent` on its `tier`'s resolved model, then
+  the RUNNER (not the agent) evaluates `exit` deterministically (`command` |
+  `artifact_exists` | `artifact_contains` | `verdict_file`, per
+  `references/phase-gates.md` §2). Pass → `status: done`, `completed_at`
+  stamped, loop continues. Fail → apply `on_fail` (`route_back` reopens the
+  named step, `stop_and_flag` or `escalate_to_human` just stop) and halt —
+  a failed exit is always a stop, never a silent retry.
+- **`kind: phase` with a `sub_ledger`** — the step's work IS a slice-drive
+  run: this SKILL's loop executes over that task ledger (nested invocation
+  or an equivalent call — see the script's implementation), then the
+  step's `exit` reads the slice-close summary it produced. Workflow-drive
+  and slice-drive nest cleanly; this is the seam between the two altitudes.
+- **Outside the zone, OR the `exit` carries only a `fallback_gate` (no
+  `check`)** — run the step's agent once so its work is staged, then STOP
+  for a human, naming the `fallback_gate`. This also covers `decision_node`
+  steps and anything the runner cannot classify confidently: when in doubt,
+  stop, don't guess.
+
+### The non-negotiable
+
+**Never self-assert a phase exit.** A step's `status` only becomes `done`
+when the runner's own deterministic check passes — not because the agent
+said the work looks complete, not because a fallback step "seemed fine."
+Silent LLM assertion of a phase boundary is the same failure class as
+draining past a `pending` status token: a protocol violation, not a judgment
+call. Gates and non-machine-verifiable boundaries ALWAYS stop, exactly as
+`stop_after: gate` never crosses a decision point in slice-drive above —
+same discipline, one altitude up.
+
+`governance/autonomy.yaml`'s `stop_after` also drives this loop: `step`
+(pause after each), `phase` (stop when the next eligible step belongs to a
+different workflow phase), or `gate` (run continuously to the next gate,
+fallback boundary, or budget/stall stop). `run_budget.max_steps_per_run`
+caps steps processed per run (defaults to `max_slices_per_run` when unset);
+stall detection hashes `workflow-state.yaml` the same way slice-drive hashes
+the task ledger. Telemetry lands in the same `drive.jsonl`, tagged
+`mode: "workflow"` with `step`, `phase`, `iteration_model`, and `exit_check`
+per `references/phase-gates.md` §4 — `factory-routing-report.py` reports it
+alongside slice-drive runs.
 
 ## What this SKILL does NOT do
 

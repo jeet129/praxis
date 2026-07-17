@@ -4,6 +4,7 @@ description: The phase lead who owns the deployment plane AND the operational pl
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: phase-lead
 tier: 1
 ---

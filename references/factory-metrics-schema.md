@@ -232,9 +232,13 @@ slices, discovery, architecture — not just drive runs.
 mining only for sessions the hook missed (pre-upgrade or crashed sessions).
 
 
+Token capture searches both `~/.claude/projects` and `~/.codex/sessions` for
+the session's transcript (Codex rollout files), so this capture path works
+for both Claude Code and Codex sessions.
+
 When capture cannot run, the hook writes a breadcrumb to `sessions.jsonl`
 instead of failing silently: `{"event":"token_capture_skipped","reason":
-"transcript_not_found_under_~/.claude/projects" | "jq_missing_no_session_id"
+"transcript_not_found_under_claude_or_codex_stores" | "jq_missing_no_session_id"
 | "no_claude_projects_dir"}`. A project with session_end lines but no
 tokens.jsonl and no breadcrumb means the session ended uncleanly (killed
 terminal — SessionEnd never fired).
@@ -296,7 +300,7 @@ Written by the delivery-lead per `skills/adaptive-model-routing/SKILL.md`, befor
 
 ### `.project/telemetry/drive.jsonl`
 
-Written by `scripts/praxis-drive.sh` (the outer drive runner), one line per drive iteration — the outer loop's telemetry layer, distinct from the per-agent `agent-spawns.jsonl` above. Copied here from `references/loop-contracts.md` section 4, the pinned spec:
+Written by `scripts/praxis-drive.sh` (the outer drive runner), one line per drive iteration — the outer loop's telemetry layer, distinct from the per-agent `agent-spawns.jsonl` above. Copied here from `references/loop-contracts.md` section 4, the pinned spec. Workflow-drive steps (phase boundaries, one ring above slice-drive) append to this same file with `mode: workflow` per `references/phase-gates.md` §4 — that document is the pinned spec for phase-exit predicates and the workflow-step ledger, the outer-ring counterpart to `loop-contracts.md`:
 
 ```jsonc
 {"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,

@@ -4,6 +4,7 @@ description: The Phase A lead — owns product discovery and requirements throug
 tools: Read, Write, Edit, Glob, Grep
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: phase-lead
 tier: 1
 ---

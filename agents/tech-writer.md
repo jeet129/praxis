@@ -4,6 +4,7 @@ description: The documentation and maintenance specialist. Leads brownfield comp
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: light
 model: haiku
+effort: low
 capability: maintenance
 tier: cross-cutting
 ---

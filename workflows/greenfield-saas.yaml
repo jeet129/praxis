@@ -79,6 +79,9 @@ steps:
   - id: requirements_complete_check
     type: decision_node
     predicate: requirements_complete(requirements_brief, user_stories, nfr_register, journey_maps)
+    # Judgment call — "complete" means good enough to freeze, not just present.
+    # Phase A stays human-gated per references/phase-gates.md §1.
+    fallback_gate: requirements_freeze
     branches:
       true: [requirements_freeze_gate]
       false: [requirements_elicitation, with_open_questions_resolved]
@@ -158,13 +161,24 @@ steps:
   - id: challenger_findings_resolved
     type: decision_node
     predicate: challenge_findings_addressed(challenge_report)
+    # Judgment call — did SA incorporate vs. reject each finding, and is any
+    # rejection's rationale sound? Rejections route through the dedicated
+    # governance gate rather than being self-certified here.
+    fallback_gate: challenger_objection_override
     branches:
       true: [nfr_check]
       false: [architecture_and_ux_parallel, with_challenge_findings_as_input]
 
   - id: nfr_check
     type: decision_node
-    predicate: nfr_satisfied(architecture_decision, fe_architecture, nfr_register)
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
     branches:
       true: [project_phasing]
       false: [architecture_and_ux_parallel, with_nfr_violations_as_input]
@@ -351,7 +365,20 @@ implementation_slice_saas_definition:
 
     - id: slice_dod_check
       type: decision_node
-      predicate: slice_dod_met(be_review_verdict, fe_review_verdict, security_verdict, qa_verdict, integration_passed)
+      predicate:
+        name: slice_dod_met
+        check: verdict_file
+        args:
+          files:
+            - path: .project/working/review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/security-review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/qa-acceptance-*.md
+              clear_of: [REJECTED]
+        on_fail: route_back
+        # Phase C — squarely in slice-drive's autonomous span (phase-gates.md
+        # §1); no fallback_gate needed, this is the machine-checkable DoD.
       branches:
         true: [close_slice]
         false: [open_slice, with_findings_as_input]

@@ -203,9 +203,58 @@ human review at `production_go_live`.
 | `5` blocked — decision/gate | A non-negotiable stop fired mid-slice (decision node, ADR-producing step, required KUACQ, or a gate in `governance.yaml`). | This is expected behavior, not a failure — resolve the decision or approve the gate, then resume the run. |
 | Ledger never advances but no stall exit yet | `stall.max_iterations_without_ledger_change` hasn't been hit; check sooner by lowering it temporarily. | Inspect the ledger hash logic and the most recent `.project/telemetry/drive.jsonl` entries for repeated identical outcomes. |
 
+## Workflow-drive
+
+`scripts/praxis-drive.sh --workflow` is an **outer ring** around everything
+above: instead of looping a slice's *tasks*, it loops a workflow's *steps* —
+reading `.project/working/workflow-state.yaml` (schema in
+`references/phase-gates.md` §3) rather than a task ledger. Default OFF —
+without `--workflow` the script is the unchanged slice-drive runner
+documented in the rest of this page. Each step runs on **its own phase's
+tier-resolved model**, exactly the same `TIER_MODEL_*` / model-flag
+machinery slice-drive uses for tasks — this is how the orchestrator itself,
+and every phase lead (product-manager, solution-architect, delivery-lead,
+...), get per-step model routing instead of a static pin.
+
+**The autonomy zone is C→D only** (`references/phase-gates.md` §1):
+discovery and architecture (A/B) stay human-gated, because that is where the
+exit criteria for the downstream phases get authored and frozen
+(`requirements_freeze`, `architecture_sign_off`). A step outside the
+ledger's `autonomy_zone` never runs unattended, regardless of whether its
+`exit` happens to be machine-checkable.
+
+**Three step kinds, three behaviors:**
+
+| `kind` | Behavior |
+|---|---|
+| `gate` | ALWAYS a human stop — raises `gate_reached`, names the gate, halts. Governance is never machine-cleared. |
+| `phase`, machine `exit`, in-zone | Launches the step's `agent` on its `tier`'s model, then the **runner** evaluates `exit` deterministically (`command` \| `artifact_exists` \| `artifact_contains` \| `verdict_file`). Pass → `status: done` + `completed_at` stamped, loop continues. Fail → applies `on_fail` (`route_back` \| `stop_and_flag` \| `escalate_to_human`) and stops. |
+| `phase` with `sub_ledger` | The step's work IS a slice-drive run — the loop delegates to the existing slice-drive path over that ledger, then reads the slice-close summary as the step's exit. |
+| out-of-zone, or `exit` has only a `fallback_gate` | Runs the step's agent once so the work is staged, then stops for a human, naming the `fallback_gate`. Covers `decision_node` steps too — an unresolvable boundary is a stop, never a guess. |
+
+**Non-negotiable:** a step's status becomes `done` only when the runner's
+own deterministic check passes — never because an agent asserted the work
+looked complete. Silent self-assertion of a phase boundary is the same
+protocol violation as draining past an unknown status token. Gates and
+non-machine-verifiable boundaries always stop, regardless of the dial.
+
+`governance/autonomy.yaml`'s `stop_after` now also drives this loop: `step`
+(pause after each — the workflow-drive analogue of `task`), `phase` (stop
+when the next eligible step belongs to a different workflow phase), or
+`gate` (run continuously to the next gate, fallback boundary, or
+budget/stall stop). `run_budget.max_steps_per_run` caps steps per run
+(defaults to `max_slices_per_run` when unset). Telemetry lands in the same
+`.project/telemetry/drive.jsonl`, tagged `mode: "workflow"` with `step`,
+`phase`, `iteration_model`, and `exit_check` (`references/phase-gates.md`
+§4) — `factory-routing-report.py` reports it alongside slice-drive runs.
+
+See also `skills/autonomous-drive`'s "Workflow-drive (top-level loop)"
+section, which this subsection mirrors.
+
 ## See also
 
 - `references/loop-contracts.md` — the loop contract and task ledger schemas, the drive iteration protocol, and the telemetry shape.
+- `references/phase-gates.md` — the workflow-step ledger schema, the phase-exit predicate registry, and the autonomy zone for workflow-drive.
 - `governance/autonomy.yaml` — the autonomy dial, run budgets, stall thresholds, and per-harness invocation commands.
 - `governance/model-routing.yaml` — `cost_weights` used for the cost proxy.
 - `docs/operating-model.md` — where drive mode sits in the overall operating model and the slice lifecycle.

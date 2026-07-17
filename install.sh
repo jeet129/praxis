@@ -2,7 +2,7 @@
 # install.sh — Praxis installer
 #
 # Installs the library into a target project for any supported AI coding tool.
-# 90 SKILLs · 17 agents · 9 workflows · 11 slash commands · governance · hooks · validator.
+# 91 SKILLs · 17 agents · 9 workflows · 11 slash commands · governance · hooks · validator.
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
@@ -196,7 +196,7 @@ This repo ships the Praxis at `.team/`. Codex / OpenCode / Cursor / Antigravity 
 
 ## Where things live
 - Role agents:    `.team/agents/` (17 agents)
-- Skills:         `.team/skills/<skill-name>/SKILL.md` (90 skills)
+- Skills:         `.team/skills/<skill-name>/SKILL.md` (91 skills)
 - Workflows:      `.team/workflows/` (9 workflows)
 - Governance:     `.team/governance/governance.yaml`
 - References:    `.team/references/`

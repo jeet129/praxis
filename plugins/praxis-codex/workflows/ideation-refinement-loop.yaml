@@ -175,6 +175,18 @@ steps:
           - unresolved_findings
           - next_pass_expected_value
           - recommended_disposition
+        verdict_artifact:
+          # The arbiter MUST persist its verdict here so the loop exit is
+          # machine-checkable (loop_decision below reads it via check:
+          # status_field) rather than an LLM self-asserting the boundary.
+          path: .project/working/ideation-convergence.yaml
+          # recommended_disposition is computed DETERMINISTICALLY from the same
+          # criteria as the loop_contract exit_criteria:
+          #   converged     iff unresolved_findings has none >= major
+          #                     AND next_pass_expected_value in [cosmetic, low]
+          #   another_pass   otherwise
+          required_fields: [recommended_disposition, convergence_score, next_pass_expected_value]
+          disposition_values: [converged, another_pass]
 
       - id: update_artifact_state
         type: state_update
@@ -188,9 +200,19 @@ steps:
 
       - id: loop_decision
         type: decision_node
-        predicate: |
-          convergence_check.unresolved_findings.none_severity_at_or_above("major")
-          and convergence_check.next_pass_expected_value in ["cosmetic", "low"]
+        predicate:
+          name: ideation_convergence
+          # machine-checkable: reads the arbiter's persisted verdict file
+          check: status_field
+          args:
+            path: .project/working/ideation-convergence.yaml   # written by convergence_check.verdict_artifact
+            field: recommended_disposition
+            expect: converged
+          on_fail: route_back
+          # Equivalent expr the arbiter computes into recommended_disposition
+          # (kept for humans; the runner evaluates the status_field check):
+          #   unresolved_findings.none_severity_at_or_above("major")
+          #   and next_pass_expected_value in ["cosmetic", "low"]
         branches:
           true: [prepare_user_approval_summary]
           false: [reviewer_pass]   # next pass reviews loop_state.current_artifact (the enhancer's revision)

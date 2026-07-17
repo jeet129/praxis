@@ -4,6 +4,7 @@ description: The adversarial-review role that fires after the Solution Architect
 tools: Read, Glob, Grep
 capability_tier: deep
 model: opus
+effort: high
 capability: adversarial-review
 tier: cross-cutting
 ---

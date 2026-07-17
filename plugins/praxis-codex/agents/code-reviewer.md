@@ -4,6 +4,7 @@ description: The pre-merge quality gate. Runs the seven-dimension review against
 tools: Read, Glob, Grep, Bash
 capability_tier: deep
 model: opus
+effort: high
 capability: gate-reviewer
 tier: cross-cutting
 ---

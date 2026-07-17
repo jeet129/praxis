@@ -22,6 +22,6 @@ Step 3 — Read `governance/governance.yaml` and tell me which gates apply per t
 
 Step 4 — Ensure the per-project governance overrides exist at `.project/governance/model-routing.yaml` and `.project/governance/autonomy.yaml` (the SessionStart hook seeds them from the plugin defaults; copy them yourself if missing). Then ask me ONE concise question set: keep the default adaptive routing and autonomy, or tune for this engagement — (a) `force_tier` (null | deep — e.g. compliance-critical work), (b) `cost_weights` (match our model pricing), (c) drive autonomy `stop_after` (task | slice | phase | gate) and `run_budget`. Apply my answers to the PROJECT copies only — never edit the plugin's own governance files.
 
-Step 5 — Confirm the Praxis is loaded: 17 agents, 90 SKILLs, 9 workflows.
+Step 5 — Confirm the Praxis is loaded: 17 agents, 91 SKILLs, 9 workflows.
 
 Then route automatically per `using-praxis` intent routing: proceed into `/discover` for greenfield or `/audit` for brownfield, announcing the transition — pause only if the mode is ambiguous or I object.

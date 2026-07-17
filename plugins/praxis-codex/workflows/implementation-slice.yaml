@@ -77,7 +77,15 @@ steps:
   # ------------------------------------------------------------------
   - id: ux_handoff_check
     type: decision_node
-    predicate: slice_has_ui(slice, implementation_packet)
+    predicate:
+      name: slice_has_ui
+      check: artifact_contains
+      args:
+        path: .project/working/implementation-packet-{slice}.md
+        must_contain: "ui_tasks: true"
+      on_fail: route_back
+      # Phase C routing — data-driven flag from build_implementation_packet,
+      # not a judgment boundary; no fallback_gate needed.
     branches:
       true: [ux_handoff]
       false: [lead_developer_decompose]
@@ -212,7 +220,20 @@ steps:
 
   - id: review_findings_resolved
     type: decision_node
-    predicate: all_blocker_findings_resolved(code_review_findings, security_findings, visual_findings)
+    predicate:
+      name: all_blocker_findings_resolved
+      check: verdict_file
+      args:
+        files:
+          - path: .project/working/review-*.md
+            clear_of: [BLOCK]
+          - path: .project/working/security-review-*.md
+            clear_of: [BLOCK]
+            condition: security_review_ran
+          - path: .project/working/visual-review-*.md
+            clear_of: [BLOCK]
+            condition: visual_review_ran
+      on_fail: route_back
     branches:
       true: [merge_prs]
       false: [implementation_parallel, with_findings_as_input]
@@ -222,7 +243,20 @@ steps:
   # ------------------------------------------------------------------
   - id: merge_prs
     type: decision_node
-    predicate: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped) AND (visual_review_verdict == PASS OR visual_review_skipped)
+    predicate:
+      expr: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped) AND (visual_review_verdict == PASS OR visual_review_skipped)
+      check: verdict_file
+      args:
+        files:
+          - path: .project/working/review-*.md
+            clear_of: [FAIL, PASS_WITH_MAJORS]
+          - path: .project/working/security-review-*.md
+            clear_of: [FAIL, PASS_WITH_MAJORS]
+            condition: security_review_ran
+          - path: .project/working/visual-review-*.md
+            clear_of: [FAIL]
+            condition: visual_review_ran
+      on_fail: route_back
     branches:
       true: [cicd_pipeline_run]
       false: [implementation_parallel, with_review_failures_as_input]
@@ -253,7 +287,10 @@ steps:
 
   - id: pipeline_gate
     type: decision_node
-    predicate: pipeline_status == passed
+    predicate:
+      expr: pipeline_status == passed
+      fallback_gate: pipeline_pass_verification   # runtime predicate (cicd_pipeline_run) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [staging_deploy]
       false: [implementation_parallel, with_pipeline_failures_as_input]
@@ -304,7 +341,10 @@ steps:
 
   - id: staging_verified_check
     type: decision_node
-    predicate: smoke_test_status == pass AND slo_status == healthy AND error_rate < nfr.error_rate_target
+    predicate:
+      expr: smoke_test_status == pass AND slo_status == healthy AND error_rate < nfr.error_rate_target
+      fallback_gate: staging_verification_boundary   # runtime predicate (staging_verification) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [acceptance_testing]
       false: [auto_rollback_staging, then_back_to_implementation_parallel]
@@ -344,7 +384,13 @@ steps:
 
   - id: acceptance_check
     type: decision_node
-    predicate: acceptance_verdict == ACCEPTED OR (acceptance_verdict == ACCEPTED_WITH_CAVEATS AND caveats_acknowledged)
+    predicate:
+      expr: acceptance_verdict == ACCEPTED OR (acceptance_verdict == ACCEPTED_WITH_CAVEATS AND caveats_acknowledged)
+      check: verdict_file
+      args:
+        path: .project/working/qa-acceptance-*.md
+        must_not_contain: "Verdict: REJECTED"
+      on_fail: route_back
     branches:
       true: [integration_validation]
       false: [implementation_parallel, with_acceptance_failures_as_input]

@@ -23,7 +23,11 @@ steps:
   # ------------------------------------------------------------------
   - id: spike_topic_check
     type: decision_node
-    predicate: spike_topic_class == product_or_market
+    predicate:
+      expr: spike_topic_class == product_or_market
+      fallback_gate: spike_topic_routing   # runtime predicate (principal_intent) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Routing on the principal-declared topic class, not a judgment call.
     branches:
       true: [spike_brief_product]
       false: [spike_brief_architecture]
@@ -111,7 +115,12 @@ steps:
 
   - id: disposition_decision
     type: decision_node
-    predicate: spike_disposition_gate.disposition_call == promote
+    predicate:
+      expr: spike_disposition_gate.disposition_call == promote
+      fallback_gate: spike_promotion_routing   # runtime predicate (spike_disposition_gate) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Reads the already-cleared spike_disposition gate's own recorded
+      # call — deterministic, the human judgment already happened at the gate.
     branches:
       true: [promote_to_discovery]
       false: [archive_spike]

@@ -166,7 +166,12 @@ steps:
 
       - id: traffic_shift_check
         type: decision_node
-        predicate: parallel_run_status == clean AND parallel_run_verification_gate.cleared == true
+        predicate:
+          expr: parallel_run_status == clean AND parallel_run_verification_gate.cleared == true
+          fallback_gate: parallel_run_clean_boundary   # runtime predicate (parallel_run) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+          on_fail: route_back
+          # parallel_run_verification_gate (human gate) already precedes this
+          # node in the loop; no additional fallback_gate needed.
         branches:
           true: [incremental_traffic_shift]
           false: [freeze_and_fix]
@@ -200,7 +205,12 @@ steps:
   # ------------------------------------------------------------------
   - id: final_cutover_check
     type: decision_node
-    predicate: increment_loop.all_seams_migrated == true AND increment_loop.parallel_run_deltas_below_threshold == true
+    predicate:
+      expr: increment_loop.all_seams_migrated == true AND increment_loop.parallel_run_deltas_below_threshold == true
+      fallback_gate: increment_completion_boundary   # runtime predicate (increment_loop) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Mirrors increment_loop's own loop_contract.exit_criteria (above);
+      # legacy_decommission_approval_gate is the human stop after this.
     branches:
       true: [legacy_decommission]
       false: [stay_dual_and_escalate]

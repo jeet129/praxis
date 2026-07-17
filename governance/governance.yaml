@@ -242,6 +242,24 @@ gates:
       - spike_report
       - disposition_call
 
+  ideation_refinement_approval:
+    description: |
+      Activated at the end of workflows/ideation-refinement-loop.yaml. The
+      principal approves the refined ideation artifact (or requests another
+      pass / redirects). The refinement loop's convergence is machine-checked:
+      the arbiter persists a verdict (recommended_disposition, computed from
+      "no findings >= major AND next-pass value cosmetic/low") to
+      .project/working/ideation-convergence.yaml, and the loop_decision reads it
+      via check: status_field. This gate is the separate HUMAN sign-off on the
+      converged artifact before it enters discovery.
+    primary_approver: principal   # team mode: product_owner
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: refinement_disposition
+    evidence_required:
+      - refined_artifact
+      - convergence_summary
+      - unresolved_findings
+
   modernization_strategy_sign_off:
     description: |
       Activated before the increment loop begins in workflows/modernization.yaml.

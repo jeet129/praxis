@@ -4,6 +4,7 @@ description: The 16th and final agent — the cross-cutting role that watches th
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: cross-cutting
 tier: cross-cutting
 ---

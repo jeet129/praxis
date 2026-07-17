@@ -40,6 +40,11 @@ context - a long-running/background request implies unattended):
   path. Stop cleanly the moment any non-negotiable stop or the dial's
   boundary is reached.
 
+--workflow (or "drive the whole workflow") runs the top-level loop over
+workflow steps, each on its phase-tier model, stopping at governance gates
+and non-machine-verifiable boundaries (see skills/autonomous-drive's
+"Workflow-drive" section and references/phase-gates.md).
+
 Do NOT invent a task ledger to make a slice appear drive-eligible - route
 through /slice first. Do NOT loop past a decision point, governance gate,
 or budget/stall condition because "it's close to done." Do NOT skip

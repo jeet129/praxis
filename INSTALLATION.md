@@ -16,7 +16,7 @@ Before installing, calibrate expectations. The library ships with:
 ✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 6 `deep`, 10 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
 ✅ **9 workflows** orchestrating multi-step delivery.
 ✅ **11 slash commands** that map intent to skill sequences: `/start /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
-✅ **6 hook subscriptions** (SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop) driving a universal artifact tap.
+✅ **Hook subscriptions driving a universal artifact tap** — harness-appropriate event sets that share one `hooks/tap.sh`. Claude Code: SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop. Codex has no `SessionEnd` (its turn-scoped `Stop` is the analog), so the generated Codex package swaps `SessionEnd` → `Stop` and the tap emits the JSON acknowledgement `Stop` requires; end-of-session token capture is an upsert (one line per session, never double-counted).
 ✅ **Capability-tier routing** — `governance/model-routing.yaml` resolves each agent's tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/flash/flash-lite), applied by `scripts/apply-model-routing.py`. At runtime `delivery-lead` shifts ±1 tier per task via the `adaptive-model-routing` rubric.
 ✅ **Telemetry stack, three layers** — (a) checkpoint records: `.project/episodic/checkpoint-*.md`, written by delivery-lead at every gate/phase/slice/loop closure, mined by `scripts/factory-usage-report.py` (the primary, near-100%-capture usage source); (b) structured JSONL streams under `.project/telemetry/` — `agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl` (deterministic, hook/runner-written) and `model-routing.jsonl` (delivery-lead discipline), aggregated by `scripts/factory-routing-report.py`; (c) a thin stub layer (command invocations + human `/factory-record` observations; the old per-Read skill/agent/session stubs are retired). Full explanation in `docs/telemetry.md`.
 ✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry (now reading against the checkpoint-record baseline, not the retired stub types).
@@ -502,6 +502,7 @@ Same library; different addressing:
 
 ```bash
 codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+# from a specific branch, add: --ref features/improvements
 ./install.sh --tool=cursor ~/dev/test-aidp
 ./install.sh --tool=gemini ~/dev/test-aidp
 ./install.sh --tool=copilot ~/dev/test-aidp
@@ -526,7 +527,7 @@ After move/clone, run install.sh as usual.
 Two paths:
 
 1. **Each developer installs locally.** Works; everyone has their own copy.
-2. **Publish as a Claude Code marketplace plugin.** The `.claude-plugin/marketplace.json` is pre-configured; you'd substitute the github source and push. Then teammates can `/plugin marketplace add <your-org>/praxis`. See `docs/claude-code-setup.md`.
+2. **Publish as a plugin (Claude Code and/or Codex).** Both manifests are pre-configured (`.claude-plugin/marketplace.json` for Claude Code, `.agents/plugins/marketplace.json` for Codex). Teammates install with `/plugin marketplace add jeet129/praxis` (Claude Code) or `codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex` (Codex). To pin a branch, append `@features/improvements` (Claude Code) or `--ref features/improvements` (Codex). Full branch/local-clone instructions are in `docs/claude-code-setup.md` and `docs/codex-setup.md`.
 
 ### Updating to a new library version
 

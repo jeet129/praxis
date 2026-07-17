@@ -22,6 +22,14 @@ version: 1
 #           expensive at phase starts)
 #   gate  — continuous: run until a governance gate, decision point, or
 #           budget stop. Slice-close summaries are still posted asynchronously.
+#
+# workflow-drive (scripts/praxis-drive.sh --workflow, references/phase-gates.md)
+# reads this SAME dial, one altitude up (steps, not tasks):
+#   step  — pause after every workflow step (the workflow-drive analogue of `task`)
+#   phase — pause at workflow phase boundaries (same token as above; slice-drive
+#           reads it as slice-phase, workflow-drive reads it as workflow-phase)
+#   gate  — continuous, same meaning as above: run to the next governance gate,
+#           fallback_gate boundary, decision point, or budget/stall stop
 stop_after: gate
 
 # Async summaries — posted even when the loop does not wait.
@@ -36,6 +44,8 @@ run_budget:
   max_task_attempts: 3            # per task: attempt, fix, tier-promoted retry
   cost_ceiling_proxy: 120         # tier-weighted units per governance/model-routing.yaml cost_weights
   max_budget_usd: null            # passed to the harness natively where supported (e.g. claude -p --max-budget-usd)
+  # max_steps_per_run: 12         # workflow-drive only (--workflow): steps processed per run.
+                                   # Defaults to max_slices_per_run above when unset.
 
 # Ceremony — engagement-level switches for the adaptive ceremony rubric in
 # skills/autonomous-drive (full | expedited | spike per slice, scored by
@@ -57,9 +67,17 @@ harnesses:
   claude-code:
     command: claude -p "{prompt}" --max-turns 30
     budget_flag: --max-budget-usd
+    model_flag: --model            # per-iteration model = the task tier's resolved model
+    effort_flag: --effort          # per-iteration reasoning depth = the task tier's resolved effort (governance/model-routing.yaml claude-code.effort_map)
   codex:
     command: codex exec "{prompt}"
     budget_flag: null
+    model_flag: -m                 # per-iteration model (codex exec -m); OMITTED when the tier maps to `auto` (model-routing.yaml codex.model_map is all auto by default -> codex uses its configured model)
+    effort_flag: -c                # per-iteration reasoning effort via a config override token: `-c model_reasoning_effort=<level>`
+    effort_arg_prefix: "model_reasoning_effort="   # rendered as: -c model_reasoning_effort=high  (level from model-routing.yaml codex.map)
+    json_output_flag: --json
+    usage_parse: codex-json
   gemini-cli:
     command: gemini -p "{prompt}"
     budget_flag: null
+    model_flag: -m                 # per-iteration model = the task tier's resolved model

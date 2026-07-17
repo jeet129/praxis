@@ -4,6 +4,7 @@ description: The mobile specialist — implements user-facing slices as a native
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: specialist
 tier: 2
 ---

@@ -134,7 +134,7 @@ Each agent declares a `capability_tier:` in its frontmatter; `scripts/apply-mode
 
 | Agent | Tier | Why |
 |---|---|---|
-| delivery-lead | deep | Orchestration routing compounds; wrong routes waste hours |
+| delivery-lead | standard | Routine orchestration is mechanical; deep moments (re-plans, ambiguous decision nodes) escalate per session/spawn — measured evidence: routing sessions were the largest deep-tier cost center |
 | product-manager | standard | Structured elicitation is mechanical after first pass |
 | solution-architect | deep | Architecture decisions are irreversible |
 | architecture-challenger | deep | Adversarial depth is the role's value |
@@ -152,7 +152,7 @@ Each agent declares a `capability_tier:` in its frontmatter; `scripts/apply-mode
 | ux-designer | standard | Structured design |
 | system-steward | standard | Digest + proposal work; promotions are human-gated anyway |
 
-Result: 6 deep / 10 standard / 1 light. Deep concentrated where irreversibility and adversarial depth matter; generation work runs on cheaper tiers because the thinking is carried by the implementation packet.
+Result: 5 deep / 11 standard / 1 light. Deep concentrated where irreversibility and adversarial depth matter; generation work runs on cheaper tiers because the thinking is carried by the implementation packet.
 
 ---
 

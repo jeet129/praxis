@@ -4,6 +4,7 @@ description: The specialist who owns the model plane AND the agentic AI plane. A
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: deep
 model: opus
+effort: high
 capability: specialist
 tier: 2
 ---

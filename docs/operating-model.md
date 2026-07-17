@@ -44,6 +44,10 @@ flowchart TD
     DR["Drive mode — scripts/praxis-drive.sh<br/>+ skills/autonomous-drive + /drive command"]
     DR -. "loop arrow: keeps AG -> WP -> GT moving<br/>between human touchpoints, per governance/autonomy.yaml" .-> AG
     GT -. "non-negotiable stop" .-> DR
+
+    WD["Workflow-drive — scripts/praxis-drive.sh --workflow<br/>(outer ring over workflow STEPS, opt-in; references/phase-gates.md)"]
+    WD -. "loops phase steps (WF-A, WF-B, WF-C1, ...),<br/>each on its phase-tier model; C-phase steps<br/>delegate to a nested slice-drive run over DR" .-> DL
+    GT -. "gate / A-B human stop" .-> WD
 ```
 
 Drive mode doesn't replace the gate/human-approval boundary — it's the loop
@@ -51,6 +55,18 @@ arrow that repeatedly re-invokes the agent/skill/tier-routing step so a
 slice can advance through multiple tasks without a human re-prompting each
 one, and it hands control back to the human at every gate, decision point,
 or budget stop per `governance/autonomy.yaml`.
+
+**Workflow-drive is the outer ring around that loop.** Where drive mode
+(above) loops a slice's *tasks*, `scripts/praxis-drive.sh --workflow` loops a
+whole workflow's *phase steps*, one altitude up: `user → workflow-drive loops
+phase steps (each launched on its phase-tier model, per
+`skills/adaptive-model-routing`'s phase defaults) → within a C-phase step,
+slice-drive loops tasks → specialists`. Its genuine unattended span is the
+**C→D autonomy zone** only (implementation → release) — A (discovery) and B
+(architecture) stay human-gated because that's where downstream exit
+criteria are authored and frozen, and every `kind: gate` step is always a
+human stop regardless of the dial. Opt-in via `--workflow`; schema and step
+kinds in `references/phase-gates.md`, protocol in `skills/autonomous-drive`.
 
 The 9 workflow files above are templates, not project plans — `delivery-planner`
 instantiates each per-project (activating/deactivating branches by flag), and a
@@ -156,5 +172,8 @@ field semantics: `references/loop-contracts.md` §2.
   drive loop's cost proxy and the routing report.
 - `references/loop-contracts.md` — the loop contract and task ledger
   schemas referenced by diagrams 3 and 4.
+- `references/phase-gates.md` — the workflow-step ledger schema, the
+  phase-exit predicate registry, and the C→D autonomy zone that
+  workflow-drive (diagram 1) reads.
 - `skills/using-praxis/SKILL.md` — the front door and orchestration runtime
   referenced in diagram 1.

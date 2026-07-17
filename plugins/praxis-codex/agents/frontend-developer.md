@@ -4,6 +4,7 @@ description: The frontend specialist — implements user-facing slices against t
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: specialist
 tier: 2
 ---

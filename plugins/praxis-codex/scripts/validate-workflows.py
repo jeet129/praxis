@@ -23,6 +23,20 @@ Loop contracts (references/loop-contracts.md section 1):
     directly, e.g. `from(runtime_bindings.max_passes)`), and `on_exhaustion`.
     Missing any of these is a hard error.
 
+Phase-exit predicates (references/phase-gates.md section 2):
+  * every `type: decision_node` step must resolve its predicate to EITHER a
+    registered `check:` kind (`command | artifact_exists | artifact_contains |
+    verdict_file`) OR a declared `fallback_gate:`. A decision_node with only
+    a bare prose predicate and neither is a hard error — a silent LLM
+    assertion of a boundary is a protocol violation, the same failure class
+    as the `pending` status escape.
+  * every `name:` on a `type: gate` / `kind: gate` step is cross-checked
+    against governance/governance.yaml (warning, not a hard error — same
+    tolerance as the from(...) check below). `fallback_gate:` values are NOT
+    cross-checked: per references/phase-gates.md §2 a fallback_gate is a human
+    review BOUNDARY (predicate not machine-checkable), distinct from a
+    governance-matrix gate, and is not required to appear in governance.yaml.
+
 Exit codes:
   1 — hard failure (missing agent, missing skill, missing workflow file referenced
       by a command)
@@ -41,6 +55,7 @@ AGENTS_DIR = ROOT / "agents"
 SKILLS_DIR = ROOT / "skills"
 WORKFLOWS_DIR = ROOT / "workflows"
 COMMANDS_DIR = ROOT / "commands"
+GOVERNANCE_PATH = ROOT / "governance" / "governance.yaml"
 
 EXTERNAL_CONTEXT_KEYWORDS = {
     "parent", "planner", "self", "governance", "principal", "principal_intent",
@@ -53,6 +68,21 @@ AGENT_RE = re.compile(r"^\s*agent:\s*(\S+)")
 SKILL_RE = re.compile(r"^\s*skills?:\s*(\S+)\s*$")
 LIST_ITEM_RE = re.compile(r"^\s*-\s*([A-Za-z0-9_-]+)\s*(#.*)?$")
 PREDICATE_RE = re.compile(r"^\s*predicate:\s*(.*)$")
+DECISION_NODE_RE = re.compile(r"^\s*type:\s*decision_node\s*$", re.M)
+GATE_STEP_RE = re.compile(r"^\s*(?:type|kind):\s*gate\s*$", re.M)
+# Trailing `# comment` is tolerated: the drive runner strips comments before
+# parsing (line.split("#", 1)[0]), so the validator must not be fooled into
+# "no check here" by an inline comment on a check line.
+CHECK_KIND_RE = re.compile(
+    r"^\s*check:\s*(command|artifact_exists|artifact_contains|verdict_file|status_field)\s*(?:#.*)?$", re.M
+)
+# A `check: command` predicate MUST carry a runnable cmd/command arg; without
+# one the runner builds an empty command that exits 0 → a SILENT FALSE-PASS.
+COMMAND_CHECK_RE = re.compile(r"^\s*check:\s*command\s*(?:#.*)?$", re.M)
+COMMAND_ARG_RE = re.compile(r"^\s*(cmd|command):\s*\S", re.M)
+FALLBACK_GATE_RE = re.compile(r"^\s*fallback_gate:\s*(\S+)", re.M)
+GATE_NAME_RE = re.compile(r"^\s*name:\s*(\S+)", re.M)
+GOVERNANCE_GATE_KEY_RE = re.compile(r"^  ([A-Za-z_][A-Za-z0-9_]*):\s*$")
 
 
 def known_agents():
@@ -67,7 +97,33 @@ def known_workflows():
     return {p.name for p in WORKFLOWS_DIR.glob("*.yaml")}
 
 
-def validate_workflow_file(path, agents, skills, errors, warnings, infos):
+def known_governance_gates():
+    """Top-level keys under governance.yaml's `gates:` block (2-space indent,
+    ending at the next 0-indent key). Tolerant line-based scan, same spirit
+    as the rest of this validator."""
+    if not GOVERNANCE_PATH.exists():
+        return None  # signals "governance file missing" — skip the cross-check
+    gates = set()
+    in_gates = False
+    for line in GOVERNANCE_PATH.read_text().splitlines():
+        if re.match(r"^gates:\s*$", line):
+            in_gates = True
+            continue
+        if not in_gates:
+            continue
+        if line.strip() == "" or line.lstrip().startswith("#"):
+            continue
+        if line.startswith("  ") and not line.startswith("    "):
+            m = GOVERNANCE_GATE_KEY_RE.match(line)
+            if m:
+                gates.add(m.group(1))
+            continue
+        if not line.startswith(" "):
+            in_gates = False  # dedent to col 0 -> end of gates: section
+    return gates
+
+
+def validate_workflow_file(path, agents, skills, errors, warnings, infos, governance_gates):
     lines = path.read_text().splitlines()
     step_ids = set()
 
@@ -136,6 +192,7 @@ def validate_workflow_file(path, agents, skills, errors, warnings, infos):
             infos.append(f"{path.name}:{lineno}: predicate: {pm.group(1)}")
 
     validate_loop_contracts(path, lines, errors)
+    validate_decision_node_predicates(path, lines, errors, warnings, governance_gates)
 
 
 def validate_loop_contracts(path, lines, errors):
@@ -184,6 +241,99 @@ def validate_loop_contracts(path, lines, errors):
             )
 
 
+def validate_decision_node_predicates(path, lines, errors, warnings, governance_gates):
+    """Per references/phase-gates.md section 2: every `type: decision_node`
+    must resolve its predicate to a registered `check:` kind OR declare a
+    `fallback_gate:`. Neither present is a hard error — a silent LLM
+    assertion of a phase boundary is a protocol violation, the same failure
+    class as the `pending` status escape.
+
+    Also cross-checks every `fallback_gate:` reference, and every `name:` on
+    a `type: gate` / `kind: gate` step, against the gates declared in
+    governance/governance.yaml (when that file is present) — a warning, not
+    a hard error, in the same spirit as the existing `from(...)` step-id
+    cross-check below.
+
+    Tolerant, line-based, same id-block technique as
+    `validate_loop_contracts`: a step's block runs from its `- id:` line up
+    to (but not including) the next `- id:` line at the same or shallower
+    indent (or EOF). Within that block, the step's OWN header — used to
+    decide whether *this* step is a decision_node/gate and whether *its own*
+    predicate carries a check/fallback_gate — stops at the first nested
+    child `- id:` line (if any), so a `bounded_loop` step whose loop body
+    contains a nested `decision_node` isn't misread as an ungated
+    decision_node itself.
+    """
+    id_lines = []
+    for i, line in enumerate(lines):
+        m = ID_RE.match(line)
+        if m:
+            indent = len(line) - len(line.lstrip())
+            id_lines.append((i, indent, m.group(1).strip()))
+
+    for idx, (start, indent, step_id) in enumerate(id_lines):
+        end = len(lines)
+        for nxt_i, nxt_indent, _ in id_lines[idx + 1:]:
+            if nxt_indent <= indent:
+                end = nxt_i
+                break
+        own_end = end
+        if idx + 1 < len(id_lines):
+            nxt_i = id_lines[idx + 1][0]
+            if nxt_i < end:
+                own_end = nxt_i  # first nested child id — this step's own header stops here
+        block = "\n".join(lines[start:own_end])
+
+        is_decision_node = bool(DECISION_NODE_RE.search(block))
+        is_gate_step = bool(GATE_STEP_RE.search(block))
+
+        fallback_m = FALLBACK_GATE_RE.search(block)
+
+        if is_decision_node:
+            has_check = bool(CHECK_KIND_RE.search(block))
+            if not has_check and not fallback_m:
+                errors.append(
+                    f"{path.name}:{start + 1}: decision_node '{step_id}' "
+                    "predicate is neither machine-checkable nor gated — a "
+                    "silent LLM assertion of a boundary is a protocol "
+                    "violation, see references/phase-gates.md §2"
+                )
+
+        # False-pass trap: any `check: command` (decision_node OR phase exit)
+        # without a runnable cmd/command arg makes the runner build an empty
+        # command that exits 0 = silent false-pass. This is the class the
+        # external reviewer found; fail hard on it.
+        if COMMAND_CHECK_RE.search(block) and not COMMAND_ARG_RE.search(block):
+            errors.append(
+                f"{path.name}:{start + 1}: step '{step_id}' uses `check: command` "
+                "with no `cmd:`/`command:` arg — the runner would build an empty "
+                "command that exits 0 (silent false-pass). Supply a real command, "
+                "use a check kind that reads state (status_field/artifact_*), or "
+                "declare a fallback_gate. See references/phase-gates.md §2."
+            )
+
+        # NOTE: a `fallback_gate:` is NOT cross-checked against governance.yaml.
+        # By definition (references/phase-gates.md §2) it is the case where the
+        # predicate is not machine-checkable, so the workflow-drive stops for a
+        # human review BOUNDARY — that is distinct from a governance-matrix gate
+        # (which has approvers + evidence). A fallback_gate MAY coincide with a
+        # governance gate (e.g. architecture_sign_off), but it is not required
+        # to, and warning on its absence contradicts the design. Only actual
+        # `kind: gate` / `type: gate` steps must be registered in governance.yaml
+        # (checked below).
+
+        if is_gate_step and governance_gates is not None:
+            name_m = GATE_NAME_RE.search(block)
+            if name_m:
+                gate_name = name_m.group(1).strip()
+                if gate_name not in governance_gates:
+                    warnings.append(
+                        f"{path.name}:{start + 1}: gate step '{step_id}' "
+                        f"name '{gate_name}' has no matching gate in "
+                        "governance/governance.yaml"
+                    )
+
+
 def validate_commands(workflows, errors, warnings):
     wf_ref_re = re.compile(r"workflows/([A-Za-z0-9_-]+\.yaml)")
     for path in sorted(list(COMMANDS_DIR.glob("*.md")) + list(COMMANDS_DIR.glob("*.toml"))):
@@ -200,6 +350,7 @@ def main():
     agents = known_agents()
     skills = known_skills()
     workflows = known_workflows()
+    governance_gates = known_governance_gates()
 
     errors = []
     warnings = []
@@ -211,7 +362,7 @@ def main():
         return 2
 
     for path in wf_files:
-        validate_workflow_file(path, agents, skills, errors, warnings, infos)
+        validate_workflow_file(path, agents, skills, errors, warnings, infos, governance_gates)
 
     validate_commands(workflows, errors, warnings)
 

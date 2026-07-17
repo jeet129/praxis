@@ -4,6 +4,7 @@ description: The Phase B+ lead — owns user experience design from requirements
 tools: Read, Write, Edit, Glob, Grep
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: phase-lead
 tier: 2
 ---

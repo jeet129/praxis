@@ -118,6 +118,12 @@ Rules:
   (`production_go_live` etc.) are untouched regardless of ceremony. Any
   security-bearing surface (auth, data-handling, public API, dependency
   changes) forces `full` regardless of score.
+- **`status` vocabulary is closed.** `open | in_progress | done | failed |
+  blocked` — nothing else. `pending` is not a status (a not-yet-touched task
+  is `open`); the drive runner hard-stops (exit 5) on unknown tokens rather
+  than silently draining past them. Interactive-only tasks are expressed as
+  `status: open` + `verify: null` — the runner skips them and names them at
+  drain.
 - **`attempts` is enforced.** At `max_task_attempts` (governance/autonomy.yaml)
   the task goes to `failed`, a `blocked` stop flag is raised, and the human
   gets the trail.

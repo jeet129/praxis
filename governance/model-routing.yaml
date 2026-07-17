@@ -17,6 +17,26 @@
 # Runtime override: delivery-lead applies the adaptive-model-routing rubric per task
 # and may shift an agent ±1 tier (see skills/adaptive-model-routing/SKILL.md,
 # "Routing the factory itself"). Static tiers here are defaults, not ceilings.
+#
+# On the `auto` value: a map entry of `auto` means "do not pin a value for this
+# field — omit it and let the harness use its own default." This is distinct
+# from a concrete model/effort string, which pins that exact value. `auto` is
+# valid for any per-harness `map` or the new `effort_map` / `model_map` below.
+#
+# Concrete values (models, and effort levels for non-auto entries) are this
+# repo's current-best-known choice for the harness, not a permanent pin —
+# override-friendly: edit the map and re-run `scripts/apply-model-routing.py`,
+# or set a per-engagement `.project/governance/model-routing.yaml` override.
+#
+# `effort` (claude-code only) is Claude's reasoning-DEPTH knob, orthogonal to
+# `model` (the model FAMILY knob). Raising effort on a fixed model is often the
+# cheaper lever than escalating model family — see skills/adaptive-model-routing
+# and skills/llm-cost-optimization.
+#
+# Per-engagement overrides: `.project/governance/model-routing.yaml`, read by
+# `scripts/apply-model-routing.py`, `scripts/praxis-drive.sh`, and the report
+# scripts before falling back to this plugin-shipped copy. Pin concrete
+# models/effort there for a specific engagement without editing this file.
 
 version: 1
 
@@ -29,12 +49,22 @@ harnesses:
       deep: opus
       standard: sonnet
       light: haiku
+    effort_field: effort            # written into agents/*.md frontmatter, alongside `model:`
+    effort_map:
+      deep: high
+      standard: medium
+      light: low
   codex:
     field: model_reasoning_effort   # written into codex-plugin-assets/codex-agents/*.toml
     map:
       deep: high
       standard: medium
       light: low
+    model_field: model              # written into codex-plugin-assets/codex-agents/*.toml (omitted when auto)
+    model_map:
+      deep: auto
+      standard: auto
+      light: auto
   gemini-cli:
     field: model
     map:

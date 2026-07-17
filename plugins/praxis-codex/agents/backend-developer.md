@@ -4,6 +4,7 @@ description: The backend specialist — implements server-side slices against th
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
+effort: medium
 capability: specialist
 tier: 2
 ---

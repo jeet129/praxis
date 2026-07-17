@@ -34,7 +34,12 @@ steps:
 
   - id: expedited_eligibility_check
     type: decision_node
-    predicate: severity in [P0, P1] OR principal_intent.change_class == critical_security_patch
+    predicate:
+      expr: severity in [P0, P1] OR principal_intent.change_class == critical_security_patch
+      fallback_gate: expedited_severity_eligibility   # runtime predicate (severity_classification) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # severity is incident-runbook's deterministic SEV1-5 classification;
+      # change_class is principal-declared upstream — not an LLM judgment call.
     branches:
       true: [scope_containment]
       false: [reroute_to_brownfield_enhancement]
@@ -104,7 +109,10 @@ steps:
 
   - id: expedited_review_check
     type: decision_node
-    predicate: blocker_findings.count == 0
+    predicate:
+      expr: blocker_findings.count == 0
+      fallback_gate: expedited_review_clearance   # runtime predicate (expedited_review) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [rollback_readiness_prep]
       false: [targeted_fix, with_blocker_findings_as_input]
@@ -148,7 +156,10 @@ steps:
 
   - id: deploy_result_check
     type: decision_node
-    predicate: deploy_status == succeeded
+    predicate:
+      expr: deploy_status == succeeded
+      fallback_gate: expedited_deploy_verification   # runtime predicate (deploy_with_rollback_readiness) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [retroactive_full_review]
       false: [rollback]

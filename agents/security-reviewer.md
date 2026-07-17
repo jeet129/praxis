@@ -4,6 +4,7 @@ description: The cross-cutting security gate spanning code review (sensitive sur
 tools: Read, Glob, Grep, Bash
 capability_tier: deep
 model: opus
+effort: high
 capability: gate-reviewer
 tier: cross-cutting
 ---

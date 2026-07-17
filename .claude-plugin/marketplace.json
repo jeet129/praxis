@@ -13,7 +13,7 @@
   "plugins": [
     {
       "name": "praxis",
-      "description": "90 SKILLs · 17 role agents · 9 workflows · 17 governance gates · 11 slash commands · SessionStart hook.",
+      "description": "91 SKILLs · 17 role agents · 9 workflows · 18 governance gates · 11 slash commands · SessionStart hook.",
       "source": "./",
       "homepage": "https://github.com/jeet129/praxis",
       "license": "MIT"
