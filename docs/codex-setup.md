@@ -154,18 +154,48 @@ checklist, in order:
 2. **Update or reinstall the plugin.** In Codex: `/plugins` → update (or
    remove and re-add) `praxis-codex` so the regenerated
    `plugins/praxis-codex/` package is picked up.
-3. **Start a fresh session.** Codex only reads plugin/skill/agent content at
+3. **Refresh project governance overrides.**
+   `.project/governance/model-routing.yaml` and `autonomy.yaml` are seeded
+   into your project ONCE, then win over the plugin's copies so your
+   per-engagement tuning survives updates — which also means **a plugin
+   refresh does not update them**. New defaults (e.g. the codex
+   `effort_flag: -c` / `effort_arg_prefix` keys that turn on per-iteration
+   reasoning-effort routing) stay absent until you merge them in.
+
+   You don't have to remember this: the SessionStart hook now **detects the
+   drift and prints a warning** with the exact command. To apply it (adds the
+   new keys, keeps your tuned values, writes a `.bak` first):
+
+   ```bash
+   PKG=$(find ~/.codex -type d -name praxis-codex 2>/dev/null | head -1)
+   bash "$PKG/scripts/refresh-governance-overrides.sh" --apply    # run from the project dir
+   ```
+
+   Omit `--apply` for a dry-run report. Changed defaults you may have tuned
+   (e.g. `model_flag`) are surfaced for review, never silently overwritten.
+   Skip this and drive in that project keeps running the OLD routing/autonomy
+   even though the plugin updated.
+4. **Start a fresh session.** Codex only reads plugin/skill/agent content at
    session start.
-4. **Re-run `$praxis-setup-subagents` and ALLOW it to overwrite.** Do not
+5. **Re-run `$praxis-setup-subagents` and ALLOW it to overwrite.** Do not
    skip the overwrite — old `.codex/agents/*.toml` files carry stale
-   `model_reasoning_effort` values from before the update.
-5. **Restart again.** A second restart/new session is required after
+   `model_reasoning_effort` values from before the update. This step now also
+   **applies your project's model routing** to the installed profiles: it runs
+   `apply-model-routing.py --project-dir . --codex-out .codex/agents`, resolving
+   each agent's `model` / `model_reasoning_effort` from
+   `.project/governance/model-routing.yaml` when present (your override wins),
+   else the plugin default. So to pin models or change effort per tier, edit
+   `model_map` / `map` in your **project** `.project/governance/model-routing.yaml`
+   and re-run `$praxis-setup-subagents` — no need to touch plugin defaults.
+   (Default `model_map: auto` writes no `model` line, so each subagent inherits
+   the Codex session's model.)
+6. **Restart again.** A second restart/new session is required after
    subagent profiles are rewritten — Codex loads `.codex/agents/` only at
-   session start, so the overwrite in step 4 doesn't take effect until this
+   session start, so the overwrite in step 5 doesn't take effect until this
    restart.
-6. **Trust the hooks.** Run `/hooks` and confirm the praxis hooks are
+7. **Trust the hooks.** Run `/hooks` and confirm the praxis hooks are
    trusted for the session.
-7. **Verify the refresh actually landed:**
+8. **Verify the refresh actually landed:**
    - `.codex/agents/` exists in the target repo and is non-empty.
    - Each installed `.codex/agents/*.toml` contains a
      `model_reasoning_effort` field.

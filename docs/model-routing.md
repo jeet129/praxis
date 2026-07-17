@@ -203,3 +203,66 @@ deep-tier sessions for architecture phases, re-plans, and judgment-heavy
 gate evaluations (see delivery-lead's "Your own tier" discipline).
 delivery-lead's static default is `standard`; deep is an escalation, never
 a resting state.
+
+## Drive and no-drive route identically
+
+One rule governs every spawn, whether or not the drive loop is running: the
+model + effort a sub-agent uses is `resolve(tier, harness)` against the
+**effective** routing table — `.project/governance/model-routing.yaml` if the
+project has one, else the plugin default — with `force_tier` applied. There is
+no second routing path.
+
+- **Drive** applies it in the runner (`praxis-drive.sh`): each iteration's
+  `--model`/`--effort` (Claude) or `-c model_reasoning_effort=` (Codex) comes
+  from the task tier resolved against that table; `force_tier` overrides the
+  task's declared tier.
+- **No-drive** applies it in the orchestrator: before each spawn, delivery-lead
+  resolves the chosen tier with `scripts/resolve-model.py --harness H --tier T
+  --project-dir .` (the single source of truth, same precedence and `force_tier`
+  handling as the runner) and passes the result as the Agent `model:` (Claude),
+  or relies on the Codex profile that `$praxis-setup-subagents` generated from
+  the same table.
+
+Because both resolve from the same table, a project override changes drive and
+no-drive the same way. `scripts/test-routing-parity.sh` asserts the resolver and
+the runner agree for every tier on both harnesses, and that an override moves
+both together.
+
+**Making the static default honor the override too.** The baked agent profile
+is only the fallback (used if a spawn skips the protocol). To make that fallback
+override-correct as well:
+
+- **Codex:** `$praxis-setup-subagents` regenerates `.codex/agents/*.toml` from
+  the effective table on install/refresh (Codex has no caller-side per-spawn
+  model override, so the profile *is* the routing — re-run it after changing the
+  override).
+- **Claude Code (plugin install):** agents load from the shared plugin, so run
+  `scripts/setup-claude-agents.sh` to materialize project-local
+  `.claude/agents/*.md` (which shadow the plugin agents) with frontmatter
+  resolved from the effective table. Only needed if you keep a project override;
+  re-run after editing it.
+
+### Do I need to run these every time? No.
+
+The **live path never needs regeneration** — it reads the effective table fresh
+on every spawn, so an override change is picked up on the next spawn with no
+script run at all. The setup scripts only refresh the **static fallback** (the
+baked profile used if a spawn skips the live protocol). So:
+
+| Your situation | Run a setup script? |
+|---|---|
+| No project override (plugin defaults) | Never — both paths are already correct. |
+| Override, trusting the live protocol | Not required — the live path honors it every spawn. |
+| Override + want the fallback correct too | Once **when the override changes** (or the plugin updates) — not per session, not per spawn. |
+
+It is a "my routing config changed" action, never a per-run one.
+
+**Two different `apply-model-routing.py` invocations — don't confuse them:**
+
+- **No args** = a *maintainer* step that rewrites the *plugin's own* source
+  agent files after editing the plugin's `governance/model-routing.yaml`. A
+  project user never runs this.
+- **`--project-dir . --claude-out … / --codex-out …`** = the *per-project*
+  regeneration that `setup-claude-agents.sh` and `$praxis-setup-subagents` wrap.
+  This is the only form a project user would run, and only when their override
+  changes.

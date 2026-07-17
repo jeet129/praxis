@@ -171,10 +171,19 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     if isinstance(harness_command, dict):
         harness_command = ""
 
-    gov = {"cost_weights": {}, "tier_models": {}, "tier_efforts": {}}
+    gov = {"cost_weights": {}, "tier_models": {}, "tier_efforts": {}, "force_tier": "null"}
     mr_path = Path(model_routing_path)
     if mr_path.exists():
         mr_tree = parse_scalar_block(mr_path)
+        # overrides.force_tier: a governance pin that forces EVERY iteration to
+        # one tier (e.g. a compliance engagement mandating deep everywhere). The
+        # no-drive resolver honors this too — parity depends on the runner
+        # applying it, not just the static agent frontmatter.
+        _ov = mr_tree.get("overrides", {}) or {}
+        _ft = _ov.get("force_tier", "null")
+        if isinstance(_ft, dict) or _ft in ("", "~", None):
+            _ft = "null"
+        gov["force_tier"] = _ft
         cw = mr_tree.get("cost_weights", {}) or {}
         for tier in VALID_TIERS:
             if tier in cw:
@@ -246,6 +255,7 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     # for claude, -m for gemini; codex has no per-call flag -> null) and the
     # tier->model map from governance/model-routing.yaml for this harness.
     sh("HARNESS_MODEL_FLAG", h.get("model_flag", "null") or "null")
+    sh("FORCE_TIER", gov.get("force_tier", "null"))
     sh("TIER_MODEL_DEEP", gov["tier_models"].get("deep", "null"))
     sh("TIER_MODEL_STANDARD", gov["tier_models"].get("standard", "null"))
     sh("TIER_MODEL_LIGHT", gov["tier_models"].get("light", "null"))
@@ -1240,6 +1250,10 @@ if (( WORKFLOW_MODE == 1 )); then
     if [[ "$MAX_BUDGET_USD" != "null" && "$HARNESS_BUDGET_FLAG" != "null" ]]; then
       cmd="$cmd $HARNESS_BUDGET_FLAG $MAX_BUDGET_USD"
     fi
+    # governance force_tier pin overrides the step's declared tier (compliance
+    # engagements mandating one tier everywhere) — honored here so drive matches
+    # the no-drive resolver.
+    [[ -n "${FORCE_TIER:-}" && "$FORCE_TIER" != "null" ]] && step_tier="$FORCE_TIER"
     case "$step_tier" in
       deep)  ITER_MODEL="$TIER_MODEL_DEEP" ;;
       light) ITER_MODEL="$TIER_MODEL_LIGHT" ;;
@@ -1690,6 +1704,9 @@ while true; do
   # orchestrator's static default is deep. Falls back to the harness default
   # model when the tier or flag is unmapped. Also recorded in drive.jsonl.
   ITER_TIER="${NEXT_TASK_TIER:-standard}"
+  # governance force_tier pin overrides the task's declared tier (honored here
+  # so drive matches the no-drive resolver — parity).
+  [[ -n "${FORCE_TIER:-}" && "$FORCE_TIER" != "null" ]] && ITER_TIER="$FORCE_TIER"
   case "$ITER_TIER" in
     deep)     ITER_MODEL="$TIER_MODEL_DEEP" ;;
     light)    ITER_MODEL="$TIER_MODEL_LIGHT" ;;

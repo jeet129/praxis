@@ -158,16 +158,48 @@ Result: 5 deep / 11 standard / 1 light. Deep concentrated where irreversibility 
 
 ## Agent spawn configuration
 
-When the Delivery Lead spawns a sub-agent, the agent's frontmatter already carries the tier-resolved model for the active harness. To adjust ±1 tier at spawn time, resolve the target tier through `governance/model-routing.yaml` and pass the harness-native override (Claude Code: `model` field on the spawn; Codex: `model_reasoning_effort`):
+**One routing rule for every spawn — drive or no-drive.** The model + effort a
+sub-agent runs on is `resolve(tier, harness)` against the **effective** routing
+table: `.project/governance/model-routing.yaml` if the project has one, else the
+plugin default. This is the SAME table and precedence the drive runner uses, so
+an interactive (no-drive) spawn routes exactly as the drive loop would for the
+same tier — a project override wins in both. Do NOT resolve against the plugin
+file directly, and do NOT rely on the baked frontmatter alone (that is only the
+fallback default).
+
+Resolve with the shared resolver (single source of truth), then pass the result
+on the spawn:
+
+```bash
+# tier decided by the rubric (may be a ±1 adjustment). Resolve from the
+# EFFECTIVE table — this honors a project override, same as drive:
+scripts/resolve-model.py --harness claude-code --tier deep --project-dir .
+#   -> model: opus   effort: high     ('inherit' = table maps this tier to auto)
+```
 
 ```
-# tier decided by rubric → resolved via governance/model-routing.yaml
 Agent({
   subagent_type: "solution-architect",
-  model: resolve(tier="deep", harness="claude-code"),   # never hardcode a model name here
+  model: <resolved model>,   # from resolve-model.py; omit / "inherit" when auto
   prompt: "..."
 })
 ```
+
+Harness specifics:
+
+- **Claude Code** — pass the resolved `model:` on the Agent spawn (Claude Code's
+  per-invocation model beats the frontmatter). This is how a ±1 adjustment *and*
+  a project override reach an interactive spawn. For belt-and-suspenders (so a
+  spawn that skips this protocol still honors the override), run
+  `scripts/setup-claude-agents.sh` to materialize project-local `.claude/agents/*.md`
+  whose frontmatter is resolved from the effective table — they shadow the
+  plugin agents.
+- **Codex** — a spawned sub-agent's model/effort come from its
+  `.codex/agents/*.toml` profile, which `$praxis-setup-subagents` regenerates
+  from the effective table (so the project override is baked into the profile).
+  Codex has no caller-side per-spawn model override, so re-run
+  `$praxis-setup-subagents` after changing the override; live ±1 at spawn isn't
+  available on Codex — set the tier in the profile instead.
 
 The routing decision is made BEFORE the spawn, and logged to `.project/telemetry/model-routing.jsonl` (timestamp, agent, task, per-signal scores, tier, resolved model, rationale). Load `references/routing-examples.md` for a fully worked log entry. Log entries serve the quarterly `llm-cost-optimization` review — frequency reports can show which agent types actually need the deep tier vs which are habitually over-provisioned.
 

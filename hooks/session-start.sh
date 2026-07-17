@@ -23,11 +23,21 @@ mkdir -p "$PROJ/.project/telemetry/summaries" 2>/dev/null || true
 # stop_after, run budgets); the project copies win over the plugin copies,
 # survive plugin updates, and belong in the project's git history.
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+GOV_DRIFT=""   # collected below; surfaced in the banner
 if [[ -d "$PROJ/.project" ]]; then
   mkdir -p "$PROJ/.project/governance" 2>/dev/null || true
   for gf in model-routing.yaml autonomy.yaml; do
-    if [[ ! -f "$PROJ/.project/governance/$gf" && -f "$PLUGIN_ROOT/governance/$gf" ]]; then
-      cp "$PLUGIN_ROOT/governance/$gf" "$PROJ/.project/governance/$gf" 2>/dev/null || true
+    plugin_gf="$PLUGIN_ROOT/governance/$gf"
+    proj_gf="$PROJ/.project/governance/$gf"
+    if [[ ! -f "$proj_gf" && -f "$plugin_gf" ]]; then
+      cp "$plugin_gf" "$proj_gf" 2>/dev/null || true   # seed once
+    elif [[ -f "$proj_gf" && -f "$plugin_gf" ]] && command -v python3 >/dev/null 2>&1 \
+         && [[ -f "$PLUGIN_ROOT/scripts/governance-overrides.py" ]]; then
+      # Already seeded: the project copy wins and survives updates, so a plugin
+      # update can leave it missing new keys. Detect (don't modify) and flag.
+      if ! python3 "$PLUGIN_ROOT/scripts/governance-overrides.py" diff "$plugin_gf" "$proj_gf" >/dev/null 2>&1; then
+        GOV_DRIFT="${GOV_DRIFT}${gf} "
+      fi
     fi
   done
 fi
@@ -122,6 +132,17 @@ if [[ -d "$PROJECT_DIR/operational/factory-metrics" ]]; then
       } >&2
     fi
   fi
+fi
+
+# Governance-override drift (a plugin update added keys your project copy lacks)
+if [[ -n "$GOV_DRIFT" ]]; then
+  {
+    echo ""
+    echo "⚠️  Governance overrides behind the plugin: ${GOV_DRIFT}(new keys in the"
+    echo "    plugin default aren't in your .project/governance/ copy — e.g. codex"
+    echo "    effort-routing). Your tuning is safe. To merge the new keys in:"
+    echo "      bash \"$PLUGIN_ROOT/scripts/refresh-governance-overrides.sh\" --apply \"$PROJ\""
+  } >&2
 fi
 
 # Slash command reminder

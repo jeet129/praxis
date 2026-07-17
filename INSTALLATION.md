@@ -545,6 +545,18 @@ cd ~/dev/tooling/praxis
 
 `--force` overwrites `.claude/` with the new version. Your `.project/` memory is preserved (it's not touched).
 
+For a **plugin** install (Claude Code `/plugin marketplace update praxis`, or Codex `/plugins` → update), the plugin files update but two project-local files do **not**: `.project/governance/model-routing.yaml` and `.project/governance/autonomy.yaml`. These are per-engagement overrides — seeded once, then they win over the plugin's copies so your tuning survives updates, which also means new defaults (e.g. the codex per-iteration effort-routing keys) don't reach an existing project on their own.
+
+You don't have to track this manually: the **SessionStart hook detects the drift** (a plugin default has keys your copy lacks) and prints a warning with the exact command. To apply it — adds the new keys, keeps your tuned values, writes a `.bak` first:
+
+```bash
+# Claude: PKG=$(dirname "$(dirname "$(find ~/.claude/plugins -name praxis-drive.sh | head -1)")")
+# Codex:  PKG=$(find ~/.codex -type d -name praxis-codex | head -1)
+bash "$PKG/scripts/refresh-governance-overrides.sh" --apply     # run from the project dir; omit --apply for a dry-run report
+```
+
+Changed defaults you may have tuned (e.g. `model_flag`) are surfaced for review, never silently overwritten. `governance.yaml` is **not** a project override — it's read from the plugin, so gate-topology changes (new/updated gates) propagate on update automatically. Only routing + autonomy are project-owned.
+
 ---
 
 ## 7. What about the "self-evolving" claim

@@ -24,6 +24,15 @@ CODEX_AGENTS = ROOT / "codex-plugin-assets" / "codex-agents"
 VALID_TIERS = ("deep", "standard", "light")
 
 
+def _arg(name, default=None):
+    """Value following `name` in argv, or default."""
+    if name in sys.argv:
+        i = sys.argv.index(name)
+        if i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return default
+
+
 def parse_routing(path: Path) -> dict:
     """Minimal parser for the known structure of model-routing.yaml.
 
@@ -89,7 +98,7 @@ def frontmatter_span(text: str):
     return m
 
 
-def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], list[str]]:
+def process_agents(cfg: dict, check: bool, out_dir=None) -> tuple[list[str], dict[str, str], list[str]]:
     """Returns (changed_files, agent->tier map, errors).
 
     Additive: alongside `model:` (from `field`/`map`), also writes/updates
@@ -97,6 +106,12 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
     declares them. A map value of `auto` OMITS that field entirely (removes
     any existing line rather than writing `effort: auto` / `model: auto`).
     Harnesses without effort_field/effort_map behave exactly as before.
+
+    `out_dir` (optional): write each agent to `out_dir/<name>.md` instead of
+    in place — used by the setup-claude-agents install path to materialize
+    project-local `.claude/agents/*.md` (which shadow the plugin agents) with
+    frontmatter resolved from the EFFECTIVE routing table. The plugin's own
+    agent files are never touched in this mode.
     """
     harness = cfg["harnesses"]["claude-code"]
     field, mapping = harness["field"], harness["map"]
@@ -104,6 +119,8 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
     effort_map = harness.get("effort_map") or {}
     force = cfg["force_tier"]
     changed, tiers, errors = [], {}, []
+    if out_dir is not None:
+        out_dir = Path(out_dir)
     for path in sorted(AGENTS.glob("*.md")):
         text = path.read_text()
         fm = frontmatter_span(text)
@@ -120,20 +137,28 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
             continue
         tiers[path.stem] = tier
         target = mapping[tier]
-        new_fm, n = re.subn(
-            rf"^{field}:\s*.*$", f"{field}: {target}", fm.group(1), flags=re.M
-        )
-        if n == 0:  # insert model line after capability_tier
-            new_fm = re.sub(
-                r"^(capability_tier:.*)$",
-                rf"\1\n{field}: {target}",
-                fm.group(1),
-                flags=re.M,
+        has_model_line = re.search(rf"^{field}:\s*.*$", fm.group(1), re.M) is not None
+        if target and target != "auto":
+            new_fm, n = re.subn(
+                rf"^{field}:\s*.*$", f"{field}: {target}", fm.group(1), flags=re.M
             )
+            if n == 0:  # insert model line after capability_tier
+                new_fm = re.sub(
+                    r"^(capability_tier:.*)$",
+                    rf"\1\n{field}: {target}",
+                    fm.group(1),
+                    flags=re.M,
+                )
+        elif has_model_line:
+            # auto => omit the model line (Claude then inherits the session model)
+            new_fm = re.sub(rf"^{field}:\s*.*\n", "", fm.group(1), flags=re.M)
+        else:
+            new_fm = fm.group(1)
 
         if effort_field and effort_map:
             effort_target = effort_map.get(tier)
             has_effort_line = re.search(rf"^{effort_field}:\s*.*$", new_fm, re.M) is not None
+            anchor = field if re.search(rf"^{field}:.*$", new_fm, re.M) else "capability_tier"
             if effort_target and effort_target != "auto":
                 if has_effort_line:
                     new_fm = re.sub(
@@ -141,7 +166,7 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
                     )
                 else:
                     new_fm = re.sub(
-                        rf"^({field}:.*)$",
+                        rf"^({anchor}:.*)$",
                         rf"\1\n{effort_field}: {effort_target}",
                         new_fm,
                         count=1,
@@ -151,10 +176,19 @@ def process_agents(cfg: dict, check: bool) -> tuple[list[str], dict[str, str], l
                 # auto (or unmapped) => omit the field entirely.
                 new_fm = re.sub(rf"^{effort_field}:\s*.*\n", "", new_fm, flags=re.M)
 
-        if new_fm != fm.group(1):
+        new_text = text[: fm.start(1)] + new_fm + text[fm.end(1):]
+        if out_dir is not None:
+            dest = out_dir / path.name
+            prior = dest.read_text() if dest.exists() else None
+            if prior != new_text:
+                changed.append(str(dest))
+                if not check:
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    dest.write_text(new_text)
+        elif new_fm != fm.group(1):
             changed.append(str(path.relative_to(ROOT)))
             if not check:
-                path.write_text(text[: fm.start(1)] + new_fm + text[fm.end(1):])
+                path.write_text(new_text)
     return changed, tiers, errors
 
 
@@ -212,7 +246,11 @@ def process_codex(cfg: dict, tiers: dict, check: bool) -> tuple[list[str], list[
                 new_text = re.sub(rf'^{model_field}\s*=\s*".*"\n', "", new_text, flags=re.M)
 
         if new_text != text:
-            changed.append(str(path.relative_to(ROOT)))
+            try:
+                rel = str(path.relative_to(ROOT))
+            except ValueError:
+                rel = str(path)  # target dir outside the repo (e.g. a project's .codex/agents)
+            changed.append(rel)
             if not check:
                 path.write_text(new_text)
     return changed, errors
@@ -254,26 +292,83 @@ def validate_pin_comment_context(routing_path: Path) -> list[str]:
     return warnings
 
 
+def _resolve_routing() -> Path:
+    """Which model-routing.yaml to apply. Precedence:
+      --routing PATH                                  (explicit)
+      --project-dir DIR -> DIR/.project/governance/model-routing.yaml  (if present)
+      else the plugin default (ROUTING).
+    This is what lets a PROJECT override drive the generated subagent profiles,
+    the same file the drive loop already honors at runtime."""
+    explicit = _arg("--routing")
+    if explicit:
+        return Path(explicit)
+    project_dir = _arg("--project-dir")
+    if project_dir:
+        cand = Path(project_dir) / ".project" / "governance" / "model-routing.yaml"
+        if cand.exists():
+            return cand
+    return ROUTING
+
+
 def main() -> int:
+    global CODEX_AGENTS
     check = "--check" in sys.argv
-    cfg = parse_routing(ROUTING)
+    routing_path = _resolve_routing()
+    # Targeted install paths write the (possibly project-overridden) routing
+    # into a project's agent dir instead of the plugin source, and DON'T touch
+    # the plugin's own files:
+    #   --codex-out DIR  -> resolve into DIR (a project's .codex/agents)
+    #   --claude-out DIR -> materialize project-local .claude/agents/*.md
+    #                        (they shadow the plugin agents) so no-drive Claude
+    #                        spawns honor the override too.
+    codex_out = _arg("--codex-out")
+    claude_out = _arg("--claude-out")
+    targeted = bool(codex_out or claude_out)
+    if codex_out:
+        CODEX_AGENTS = Path(codex_out)
+
+    if not routing_path.exists():
+        print(f"ERROR: routing file not found: {routing_path}", file=sys.stderr)
+        return 2
+    cfg = parse_routing(routing_path)
     for h in ("claude-code", "codex"):
         if h not in cfg["harnesses"]:
-            print(f"ERROR: harness '{h}' missing from {ROUTING}", file=sys.stderr)
+            print(f"ERROR: harness '{h}' missing from {routing_path}", file=sys.stderr)
             return 2
-    changed_a, tiers, errs_a = process_agents(cfg, check)
-    changed_c, errs_c = process_codex(cfg, tiers, check)
-    errs_pairing = validate_effort_pairing(cfg)
-    warnings = validate_pin_comment_context(ROUTING)
-    for w in warnings:
-        print(f"WARNING: {w}", file=sys.stderr)
-    errors = errs_a + errs_c + errs_pairing
+
+    # tiers always come from the canonical agents/*.md. In a codex-only targeted
+    # run the claude agents are read-only (never touched); with --claude-out we
+    # write them to the target dir; default writes them in place.
+    if claude_out:
+        changed_a, tiers, errs_a = process_agents(cfg, check, out_dir=claude_out)
+    else:
+        changed_a, tiers, errs_a = process_agents(cfg, check or targeted)
+    changed_c, errs_c = ([], [])
+    if codex_out or not targeted:
+        changed_c, errs_c = process_codex(cfg, tiers, check)
+
+    errors = list(errs_c)
+    if claude_out or not targeted:
+        errors += errs_a
+    if not targeted:
+        errors += validate_effort_pairing(cfg)
+        for w in validate_pin_comment_context(routing_path):
+            print(f"WARNING: {w}", file=sys.stderr)
     for e in errors:
         print(f"ERROR: {e}", file=sys.stderr)
-    changed = changed_a + changed_c
+
+    if not targeted:
+        changed = changed_a + changed_c
+    elif claude_out and codex_out:
+        changed = changed_a + changed_c
+    elif claude_out:
+        changed = changed_a
+    else:
+        changed = changed_c
+    src_label = routing_path if routing_path != ROUTING else "governance/model-routing.yaml"
     if check:
         if changed:
-            print("Out of sync with governance/model-routing.yaml:")
+            print(f"Out of sync with {src_label}:")
             for f in changed:
                 print(f"  {f}")
             return 1
@@ -285,6 +380,9 @@ def main() -> int:
         print(f"updated: {f}")
     if not changed:
         print("All files already in sync.")
+    if targeted and not errors:
+        dest = claude_out if claude_out else CODEX_AGENTS
+        print(f"Applied routing from {src_label} to {dest}")
     return 1 if errors else 0
 
 

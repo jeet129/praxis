@@ -46,8 +46,8 @@ def place_tree(source: Path, dest: Path):
     allowed even where unlink is blocked) and record every file it places
     relative to OUT, so reconciliation below knows exactly what belongs."""
     for p in source.rglob("*"):
-        if p.name == ".DS_Store":
-            continue
+        if p.name == ".DS_Store" or p.suffix == ".pyc" or "__pycache__" in p.parts:
+            continue  # never ship python bytecode
         rel = p.relative_to(source)
         target = dest / rel
         if p.is_dir():
@@ -127,6 +127,8 @@ record(marker)
 stale = []
 for p in sorted(out.rglob("*"), key=lambda x: len(x.parts), reverse=True):
     if p.is_file():
+        if p.suffix == ".pyc" or "__pycache__" in p.parts:
+            continue  # bytecode is gitignored cruft, not a tracked orphan
         if p.relative_to(out).as_posix() not in expected:
             stale.append(p)
 failed = []

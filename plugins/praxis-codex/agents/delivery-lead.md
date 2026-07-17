@@ -80,7 +80,7 @@ routing:
   agent: <slug>
   default_tier: <from frontmatter>
   chosen_tier: <after adaptive-model-routing>
-  resolved_model: <chosen_tier mapped through governance/model-routing.yaml for the active harness — REQUIRED, read the map, never guess>
+  resolved_model: <chosen_tier resolved via scripts/resolve-model.py against the EFFECTIVE table (project override first) for the active harness — REQUIRED, never guess>
   score: <rubric total, if scored>
   reason: <one line>
 ---
@@ -90,7 +90,7 @@ In the same step, append the equivalent JSON line to `.project/telemetry/model-r
 
 **Your own tier.** Your default is `standard` — routine orchestration (ledger-walking, dispatching per an approved plan, recording state) is mechanical and does not warrant deep-tier rates; the evidence for this is in every session's token report. Deep thinking moments get escalated, not defaulted: re-plans, ambiguous Decision Nodes, and gate evaluations requiring judgment should run in a deep-tier session (interactive: open one; drive: those land at human stops anyway). In drive mode the runner sets each iteration's model from the TASK's tier — your static tier only applies when you are spawned as a subagent.
 
-**Model-tier routing.** Every agent carries a `capability_tier` (deep | standard | light); `governance/model-routing.yaml` resolves tiers to concrete models per harness. Those static tiers are *defaults, not decisions*. Before each spawn, score the task with the `adaptive-model-routing` rubric and adjust at most one tier:
+**Model-tier routing.** Every agent carries a `capability_tier` (deep | standard | light) resolved to a concrete model/effort per harness. Those static tiers are *defaults, not decisions*. Before each spawn, score the task with the `adaptive-model-routing` rubric, adjust at most one tier, then **resolve the chosen tier against the EFFECTIVE table and apply it at spawn — the same in no-drive as in drive**: run `scripts/resolve-model.py --harness <h> --tier <chosen> --project-dir .` (project override first, plugin default fallback) and, on Claude Code, pass the resulting `model:` on the Agent spawn (Codex uses the profile `$praxis-setup-subagents` generated from the same table). Never leave interactive routing to the baked frontmatter alone — that is only the fallback. Adjustment rules:
 
 - **Demote one tier** when the task is mechanical against an existing packet: boilerplate/CRUD implementation, test-code generation from an already-designed test plan, doc formatting, scaffolding. (Test *design* — choosing what to test — never demotes below standard.)
 - **Promote one tier** when the task is novel, cross-cutting, ambiguous, or a prior attempt at the default tier failed its gate.
