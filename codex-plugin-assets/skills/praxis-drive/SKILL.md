@@ -18,7 +18,13 @@ references: [../../governance/autonomy.yaml, ../../references/loop-contracts.md]
 
 # Praxis Drive
 
-Start or resume autonomous drive. You do NOT loop internally — each iteration is a fresh delivery-lead invocation.
+Start or resume autonomous drive. There are two paths and they loop differently:
+the **unattended runner** loops for you (each `codex exec` it fires is one fresh
+delivery-lead iteration, and the runner re-invokes until a stop); the
+**in-session** path is a loop YOU run — you keep issuing iterations within this
+session until a stop boundary. Do not conflate the two: "one iteration then
+exit, no internal loop" applies to a delivery-lead invoked BY the runner, NOT to
+the in-session orchestrator, which must continue.
 
 ## Steps
 
@@ -28,9 +34,9 @@ Start or resume autonomous drive. You do NOT loop internally — each iteration 
 
 3. **State the budget and stops once.** Before iterating, tell the user (once): the `stop_after` dial, the `run_budget` caps, the three non-negotiable stops, and that slice-close summaries post to `.project/telemetry/summaries/` regardless of the dial.
 
-4. **Run it.** Offer both paths:
-   - **Unattended:** point the user at `scripts/praxis-drive.sh`, which invokes the harness headlessly and enforces caps outside this session's context.
-   - **In-session:** launch delivery-lead (`codex-agents/delivery-lead.toml`) in Drive mode, one iteration at a time — read ledger + named task context, dispatch/complete, run `verify`, update `status`/`attempts`, apply model routing — reporting the outcome each time and stopping the moment a non-negotiable stop or the dial's boundary is reached.
+4. **Run it.** Offer both paths (a long-running / "run without me" request implies unattended):
+   - **Unattended (deterministic loop):** point the user at `scripts/praxis-drive.sh --project-dir . --harness codex`, which invokes the harness headlessly, loops iteration-to-iteration itself, and enforces `run_budget` caps + stall detection outside this session's context. Each `codex exec` it fires is exactly one delivery-lead iteration; the runner handles the looping. This is the reliable way to drive a whole slice/workflow.
+   - **In-session (you run the loop):** iterate the drive protocol yourself, **continuously**, within this session. Each pass is delivery-lead (`codex-agents/delivery-lead.toml`) executing exactly one `autonomous-drive` iteration — read ledger + named task context, dispatch/complete, run `verify`, update `status`/`attempts`, apply model routing — then report the outcome and **immediately begin the next pass**. Do NOT stop after one task and wait: keep going through the slice **drain** (full-ceremony code review, security review, QA, closure evidence) and on into the next slice's ledger. Per `skills/autonomous-drive` "stop_after semantics", per-slice review/QA are part of the drain, NOT governance gates — under `stop_after: gate` they do not end the run. Stop cleanly ONLY when a non-negotiable stop (decision point, governance gate, budget/stall/exhaustion) or the dial's `stop_after` boundary is actually reached.
 
 ## What you must not do
 
