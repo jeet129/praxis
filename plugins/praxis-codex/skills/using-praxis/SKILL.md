@@ -98,6 +98,11 @@ USER INTENT
   │     → Skills: architecture-pattern-selection → api-design → data-modeling → resilience-patterns → threat-modeling → project-phasing
   │     → Plus: Architecture Challenger (5 sub-personas)
   │     → Gate: architecture_sign_off
+  ├─ "New story/epic/ticket arrived" / "here's a new requirement" (STEADY STATE — after initial discovery)
+  │     → /intake → runs requirements-intake triage (size + impact + owner) and ROUTES it for you (user picks nothing):
+  │       small ready story → /slice + /drive · touches existing behavior → impact-analysis → /slice
+  │       · epic/cross-cutting → group → /discover → /architect → project-phasing · unproven → spike · P0/P1 → expedited-change
+  │     → Writes .project/working/inbox.md + inbox-decisions.md; prevents FIFO churn + impulse coding
   ├─ "Build slice N" / "Implement feature X"
   │     → /slice → implementation-slice.yaml workflow (per Lead Dev decomposition)
   │     → Activates the right specialist: backend-developer | frontend-developer | data-engineer | ml-ai-engineer
@@ -161,6 +166,7 @@ scenario needs a new workflow or a planner flag.
 | Command | What it does | Maps to |
 |---|---|---|
 | `/start` | Bootstrap a new project | `delivery-planner` + architecture-doc skeleton |
+| `/intake` | Steady-state front door — triage & route any new requirement | `requirements-intake` → slice / discover / architect / spike / expedited |
 | `/discover` | Phase A — requirements + NFRs | PM + 4 skills + `requirements_freeze` |
 | `/architect` | Phase B — architecture + threat model + Challenger | SA + 7 skills + `architecture_sign_off` |
 | `/slice` | One implementation slice | `implementation-slice.yaml` workflow |

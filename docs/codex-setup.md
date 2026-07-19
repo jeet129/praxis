@@ -71,6 +71,7 @@ $praxis-start
 Then use:
 
 ```text
+$praxis-intake     # steady state: the single front door for any new requirement — triages & routes it
 $praxis-discover
 $praxis-architect
 $praxis-audit

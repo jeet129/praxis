@@ -49,6 +49,7 @@ Once installed, you drive the platform through slash commands that run workflows
 | You want to… | Command | Workflow |
 |---|---|---|
 | Bootstrap a project | `/start` | (sets charter; picks greenfield/brownfield) |
+| Handle any new requirement (steady state) | `/intake` | triages & routes it for you — no manual choice |
 | Build something new | `/discover` → `/architect` → `/slice` | greenfield-saas / greenfield-api-service |
 | Change an existing system | `/audit` → `/slice` | brownfield-enhancement |
 | Ship one slice | `/slice` | implementation-slice |

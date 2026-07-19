@@ -148,7 +148,7 @@ fi
 # Slash command reminder
 {
   echo ""
-  echo "Slash commands: /start  /discover  /architect  /slice  /release  /audit  /steward"
+  echo "Slash commands: /start  /intake  /discover  /architect  /slice  /release  /audit  /steward"
   echo "Front-door SKILL: using-praxis"
   echo "================================================================"
   echo ""

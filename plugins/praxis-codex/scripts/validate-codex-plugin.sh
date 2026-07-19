@@ -131,6 +131,7 @@ PY
 
 for skill in \
   praxis-start \
+  praxis-intake \
   praxis-discover \
   praxis-architect \
   praxis-audit \

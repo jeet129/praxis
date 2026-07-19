@@ -2,7 +2,7 @@
 # install.sh — Praxis installer
 #
 # Installs the library into a target project for any supported AI coding tool.
-# 91 SKILLs · 17 agents · 9 workflows · 11 slash commands · governance · hooks · validator.
+# 91 SKILLs · 17 agents · 9 workflows · 12 slash commands · governance · hooks · validator.
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
