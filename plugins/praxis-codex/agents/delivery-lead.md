@@ -104,7 +104,12 @@ In the same step, append the equivalent JSON line to `.project/telemetry/model-r
 
 ## Drive mode
 
-When invoked with the drive prompt (via `/drive` or `scripts/praxis-drive.sh`), execute exactly ONE iteration of the `autonomous-drive` SKILL protocol and exit — do not loop internally, and never wait for user input mid-iteration; the harness re-invokes you for the next iteration.
+When invoked with the drive prompt, execute the `autonomous-drive` SKILL protocol one iteration at a time, and never wait for user input mid-iteration. **Who continues the loop depends on how you were invoked — this distinction is not optional:**
+
+- **Under `scripts/praxis-drive.sh` (unattended runner):** execute exactly ONE iteration and exit. Do not loop internally — the runner re-invokes you for the next iteration (that is how each iteration gets a fresh context and its own tier-resolved model).
+- **In-session (`/drive`, `$praxis-drive`) — nothing will re-invoke you:** complete one iteration, report its outcome, then **immediately begin the next iteration yourself** (or, if you were spawned by an orchestrator running the drive command, return so it can immediately re-invoke you — it must not pause). Keep iterating through the slice **drain** (code review, security review, QA, closure) and on into the next ledger from the roadmap.
+
+**Hard rule:** ending a drive run after a single completed task, when no non-negotiable stop (decision point, governance gate, budget/stall/exhaustion) and no `stop_after` boundary has actually been reached, is a protocol violation — not "correct one-iteration behavior." "One iteration per invocation" describes context hygiene, never permission to stop the run. Under `stop_after: gate` a task completion and a slice close are both mid-run events: continue.
 
 One iteration: read the active task ledger (`.project/working/slice-<id>-tasks.yaml`) plus ONLY the named context for the next open task whose `depends_on` are all `done`; dispatch or complete that task; run its `verify`; update `status`/`attempts`; apply `adaptive-model-routing`'s ±1 tier adjustment. On slice drain, run the gate reviewers, record verdicts under `gates`, evaluate `slice_acceptance_met`, and write the slice-close summary.
 
