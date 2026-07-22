@@ -138,7 +138,13 @@ progress, distinct from a hard exhaustion (`max_task_attempts`) on one task.
 session. You watch each iteration land, ledger updates are visible in your
 own context, and you can interrupt at any point — this is the way to build
 trust in a new workflow or harness before handing it to the unattended
-runner.
+runner. In-session drive **loops continuously**: after each iteration it
+immediately begins the next — through the slice drain and into the next
+ledger — stopping only at a non-negotiable stop or the `stop_after`
+boundary. An in-session run that halts after one completed task with no
+stop reached is a protocol violation (see `agents/delivery-lead.md` Drive
+mode), not expected behavior; "one iteration then exit" applies only to a
+delivery-lead invoked BY the unattended runner, which re-invokes it.
 
 **Locating the runner:** the script ships inside the plugin, NOT your
 project. Plugin/marketplace installs (Claude Code):

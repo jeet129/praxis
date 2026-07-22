@@ -62,7 +62,7 @@ Once installed, you drive the platform through slash commands that run workflows
 
 ## What the plugin gives you
 
-Installed as a plugin, the content lives in the plugin (nothing is copied into your repo) — 17 role agents, 91 SKILLs, 9 workflows, `governance.yaml` (6 core + 11 conditional gates), 11 slash commands, the SessionStart hook, plus scripts, patterns, and references. The only thing created in your project is the `.project/` memory tree (populated as you work).
+Installed as a plugin, the content lives in the plugin (nothing is copied into your repo) — 17 role agents, 91 SKILLs, 9 workflows, `governance.yaml` (6 core + 11 conditional gates), 12 slash commands, the SessionStart hook, plus scripts, patterns, and references. The only thing created in your project is the `.project/` memory tree (populated as you work).
 
 The copy-based `install.sh` alternative instead writes that same content into a `your-project/.claude/` directory (frozen snapshot) — see `INSTALLATION.md` for when to prefer it (multi-tool installs, offline/CI, pinned team versions).
 
@@ -71,6 +71,7 @@ The copy-based `install.sh` alternative instead writes that same content into a 
 | Command | Action |
 |---|---|
 | `/start` | Bootstrap project (run delivery-planner, set charter) |
+| `/intake` | Steady-state front door — triage & route any new requirement (no manual workflow choice) |
 | `/discover` | Phase A (PM + requirements_freeze gate) |
 | `/architect` | Phase B (SA + Architecture Challenger + architecture_sign_off) |
 | `/slice` | One implementation slice |

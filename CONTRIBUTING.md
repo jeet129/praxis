@@ -217,6 +217,22 @@ push.
 | `python3 scripts/apply-model-routing.py --check` | Every agent's `model:` (or Codex `model_reasoning_effort:`) field matches what `governance/model-routing.yaml` resolves for its `capability_tier`. Exits 1 on drift, writes nothing. | `agents/*.md` frontmatter, `governance/model-routing.yaml` |
 | `python3 scripts/build-registry.py --check` | Skill/agent/workflow/gate counts quoted across `README.md`, plugin manifests, `GEMINI.md`, `.cursor/rules/`, and a few SKILL bodies match the actual directory contents. Exits 1 on drift, writes nothing. | Anything that adds/removes a SKILL, agent, workflow, or gate |
 
+One additional test guards routing behavior: `bash scripts/test-routing-parity.sh`
+asserts the no-drive resolver (`scripts/resolve-model.py`) and the drive runner
+(`scripts/praxis-drive.sh`) resolve every tier to the same model/effort on both
+harnesses, and that a project override (incl. `force_tier`) moves both together.
+Run it when you touch `resolve-model.py`, `praxis-drive.sh`'s routing, or
+`governance/model-routing.yaml`'s structure.
+
+Operator-facing scripts you may also touch (not PR-gating validators):
+`scripts/resolve-model.py` (tier→model/effort from the EFFECTIVE table — the
+single source of truth for spawn routing), `scripts/setup-claude-agents.sh` and
+`apply-model-routing.py --claude-out/--codex-out` (materialize project-local
+agent profiles from a project routing override), and
+`scripts/governance-overrides.py` + `scripts/refresh-governance-overrides.sh`
+(diff/merge a project's `.project/governance/` overrides against plugin
+defaults; the SessionStart hook warns on drift).
+
 Two additional scripts aggregate telemetry rather than validate structure —
 not required for a PR to pass, but useful when working on telemetry-adjacent
 changes: `scripts/factory-frequency.sh` (usage aggregation) and

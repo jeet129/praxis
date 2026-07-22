@@ -178,7 +178,7 @@ scenario needs a new workflow or a planner flag.
 | `/review` | On-demand closed-loop artifact review | reviewer roles + `.project/operational/reviews/` |
 | `/factory-record` | Capture a rich telemetry observation | `scripts/factory-record.sh` |
 
-Each slash command is a Markdown file (YAML frontmatter + prompt) under `.claude/commands/` for Claude Code; Gemini CLI uses the TOML variants under `.gemini/commands/`. Read the command file if you want to see exactly which SKILLs it invokes.
+Each slash command is a Markdown file (YAML frontmatter + prompt) under `.claude/commands/` for Claude Code; Gemini CLI uses the TOML variants under `.gemini/commands/`; Codex ships each command as a `$praxis-<name>` command skill (generated into the Codex plugin's `skills/praxis-*` from `codex-plugin-assets/`). Read the command file if you want to see exactly which SKILLs it invokes.
 
 ## Agent → role mapping
 
@@ -224,7 +224,7 @@ Every `decision_node`'s predicate must resolve to a registered `check` kind or d
 
 ## Model selection before agent spawn
 
-Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct capability tier (deep | standard | light), resolve it against the **effective** routing table (project override first, plugin default fallback) via `scripts/resolve-model.py`, and pass the result as the `model:` field in the Agent tool call. This is identical whether or not the drive loop is running — no-drive routes the same as drive because both resolve from the same table. Do not default to the deep tier without scoring — deep-tier budget is finite. Fast reference: Architecture Challenger / threat-modeling / novel cross-cutting ADR → `deep`; everything else → score the rubric, default `standard`; classification / intent detection / pre-flight → `light`. Log every decision to `.project/telemetry/model-routing.jsonl`. Each agent's frontmatter `model:` field is the fallback default when spawned without an explicit routing decision; `adaptive-model-routing` overrides it when the task profile warrants.
+Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct capability tier (deep | standard | light) and resolve it against the **effective** routing table (project override first, plugin default fallback) via `scripts/resolve-model.py`. Applying the result is harness-specific: on **Claude Code**, pass it as the `model:` field in the Agent tool call (per-spawn override is supported); on **Codex**, there is NO per-spawn model override — the resolved tier reaches the sub-agent via its `.codex/agents/*.toml` profile, which `$praxis-setup-subagents` regenerates from the same table (re-run it after a routing change). The RESOLUTION is identical whether or not the drive loop is running — no-drive routes the same as drive because both resolve from the same table; only the application mechanism differs per harness. Do not default to the deep tier without scoring — deep-tier budget is finite. Fast reference: Architecture Challenger / threat-modeling / novel cross-cutting ADR → `deep`; everything else → score the rubric, default `standard`; classification / intent detection / pre-flight → `light`. Log every decision to `.project/telemetry/model-routing.jsonl`. Each agent's frontmatter `model:` field is the fallback default when spawned without an explicit routing decision; `adaptive-model-routing` overrides it when the task profile warrants.
 
 ## Agent routing model
 

@@ -24,17 +24,21 @@ Task({
   1. Open the slice. Update .project/working/active-workflow.md.
 
   2. Spawn lead-developer FIRST. Give it the slice spec, AC, and touched
-     modules. Wait for its output — the implementation packet at
-     .project/working/slice-<slice-id>-packet.md, which includes:
-       - decomposed tasks per specialist
-       - dependencies between tasks
-       - relevant NFRs
-       - test-plan skeleton
+     modules. Wait for its output — BOTH artifacts, not just the first:
+       - the implementation packet at
+         .project/working/slice-<slice-id>-packet.md (decomposed tasks per
+         specialist, dependencies, relevant NFRs, test-plan skeleton)
+       - the task ledger at .project/working/slice-<slice-id>-tasks.yaml
+         (per references/loop-contracts.md §2: per-task agent, tier, ac,
+         verify command, depends_on). The ledger is what makes the slice
+         drive-eligible — without it /drive has nothing to iterate.
 
-  3. ONLY AFTER the packet exists, spawn specialists per the decomposition.
-     For each dispatched specialist, pass the specialist's portion of
-     the packet as its input. Run specialists in parallel where the
-     decomposition allows.
+  3. ONLY AFTER the packet + ledger exist, dispatch specialists.
+     PREFERRED: lead-developer dispatches them per the ledger's dependency
+     DAG (two-tier delegation — you route phases, Lead Developer routes
+     tasks). FALLBACK: only if the harness cannot nest agent spawns, you
+     dispatch specialists yourself, passing each its portion of the packet.
+     Run specialists in parallel where the DAG allows.
 
   4. When every specialist has produced a PR, spawn (in parallel):
        - code-reviewer for every PR

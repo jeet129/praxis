@@ -17,6 +17,22 @@ New here? Start with [`quickstart.md`](quickstart.md) instead — the 5-minute p
 | Kiro | Adapter shipped, structurally validated — not yet exercised end-to-end | [`kiro-setup.md`](kiro-setup.md) |
 | Antigravity | Adapter shipped, structurally validated — not yet exercised end-to-end | [`antigravity-setup.md`](antigravity-setup.md) |
 
+## Plugin install first (Claude Code + Codex)
+
+On the two primary harnesses, Praxis installs as a **plugin** — no file copying, updates arrive by updating the plugin. This is the recommended path:
+
+```text
+# Claude Code
+/plugin marketplace add jeet129/praxis      # append @<branch> to pin a branch
+/plugin install praxis@praxis
+
+# Codex
+codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+/plugins   → install praxis-codex           # add --ref <branch> to pin a branch
+```
+
+Full detail: `docs/claude-code-setup.md` · `docs/codex-setup.md`. The copy-based installer below covers the other six harnesses (and frozen-snapshot/offline installs).
+
 ## One installer for all
 
 The bundled `install.sh` script handles every tool with a single flag:
@@ -39,12 +55,12 @@ Flags: `--dry-run` (preview), `--force` (overwrite), `--user` (Claude Code user-
 
 Same content, different addressing:
 
-- **90 active SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
+- **91 SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
 - **17 role agents**, each declaring an abstract `capability_tier` (`deep | standard | light`) instead of a hardcoded model — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / ML-AI / Mobile specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, UX Designer, System Steward.
 - **9 workflows** — greenfield-api-service, greenfield-saas, brownfield-enhancement, implementation-slice, production-release, ideation-refinement-loop, expedited-change, spike, modernization.
 - **Governance** — 17 gates (6 core + 11 conditional) with approver matrix and evidence packs.
 - **Capability-tier model routing** — `governance/model-routing.yaml` maps each tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/-flash/-flash-lite); `adaptive-model-routing` SKILL shifts the tier ±1 per task at runtime. See [`model-routing.md`](model-routing.md).
-- **11 slash commands** — `/start /discover /architect /slice /release /audit /steward /review /refine-idea /factory-record /drive`.
+- **12 slash commands** — `/start /discover /architect /slice /release /audit /steward /review /refine-idea /factory-record /drive`.
 - **6 hook subscriptions** — SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop; drive the deterministic JSONL streams (`agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl`) and command stubs. The old per-Read skill/agent/session stub types are retired (~5% real-world capture).
 - **Telemetry, three layers** — (a) checkpoint records (`.project/episodic/checkpoint-*.md`, the primary near-100%-capture usage source, mined by `scripts/factory-usage-report.py`), (b) deterministic JSONL streams (`scripts/factory-routing-report.py`), (c) a thin legacy stub layer (`factory-aging.sh` coverage gate, `factory-frequency.sh` legacy aggregation). See [`telemetry.md`](telemetry.md).
 - **Validator suite** — `validate-skills.sh`, `validate-manifests.sh`, `validate-workflows.py`, `validate-references.py`, `apply-model-routing.py --check`, `build-registry.py --check`, `validate-codex-plugin.sh`. All run in CI.

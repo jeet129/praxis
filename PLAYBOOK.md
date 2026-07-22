@@ -77,7 +77,7 @@ Flags:
 |---|---|
 | `--user` | Install user-global (`~/.claude/`) instead of project-local. |
 | `--codex` | Codex addressing (`.team/` + `AGENTS.md` at repo root). |
-| `--both` | Install both Claude Code and Codex layouts side by side. |
+| `--both` | Alias for `--tool=all`: installs EVERY harness layout side by side (all 8), not just Claude Code + Codex. |
 | `--dry-run` | Print what would happen; change nothing. |
 | `--force` | Overwrite existing install. |
 | `--skip-memory` | Skip `.project/` memory tree creation. |
@@ -104,16 +104,21 @@ touch "$TARGET/.project/operational/debt-register.md"
 
 For Codex, substitute `.team/` for `.claude/` and add an `AGENTS.md` routing file at the repo root (see §9 for the template).
 
-### 2.3 The polished path — Claude Code plugin (future)
+### 2.3 The polished path — plugin install (RECOMMENDED, available now)
 
-Once you've tested the library and it's stable, the cleanest distribution is a **Claude Code plugin**. The library is well-structured for it — skills + agents + workflows in the standard layout, governance under its own directory. Packaging it as a `.plugin` file means:
+Praxis IS a plugin on both primary harnesses — this is the recommended install, ahead of the copy paths above:
 
-- One-click install in Claude Code.
-- Versioned releases (v1.0, v1.1, etc.).
-- Shareable across teams without copying directories.
-- Marketplace-ready if you ever want to distribute beyond your own use.
+```text
+# Claude Code (marketplace + plugin manifests ship at the repo root)
+/plugin marketplace add jeet129/praxis          # append @<branch> to pin a branch
+/plugin install praxis@praxis
 
-The `create-cowork-plugin` skill (bundled with Cowork mode) walks through plugin authoring. After your first round of real-project testing, ask for the plugin packaging. The install script will still work for development iteration; the plugin is the production distribution.
+# Codex (generated package under plugins/praxis-codex/)
+codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+/plugins   → install praxis-codex               # add --ref <branch> to pin a branch
+```
+
+Nothing is copied into your repo; updates arrive by updating the plugin. Full detail: `docs/claude-code-setup.md` and `docs/codex-setup.md`. The `install.sh` copy paths above remain for the other six harnesses, frozen snapshots, and offline/CI use.
 
 ### 2.4 Sanity check
 
@@ -125,7 +130,7 @@ and skills, and tell me which roles and which skills are available. Then read
 the governance.yaml and summarize the active gates.
 ```
 
-You should see Claude Code list **17 agents**, **90 skills**, and the **6 core governance gates** (plus 11 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
+You should see Claude Code list **17 agents**, **91 skills**, and the **6 core governance gates** (plus 11 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
 
 ---
 
@@ -153,7 +158,7 @@ Four layers. Each invocation flows top-down.
 └────────────────────────┬────────────────────────────────┘
                          │ consume
 ┌────────────────────────▼────────────────────────────────┐
-│ SKILLS — the 90 SKILL.md bundles                        │
+│ SKILLS — the 91 SKILL.md bundles                        │
 │   (foundation, lifecycle, discovery, architecture,      │
 │    stack packs, quality+security, build+deploy,         │
 │    infra, ops, data, ml, agentic-ai, maintenance, ...)  │
@@ -970,7 +975,7 @@ should consult the files below per task type.
 
 ```
 You: Read AGENTS.md and confirm you can navigate to .team/agents/ and
-.team/skills/. Then list the 17 agents and the 90 skills you can see.
+.team/skills/. Then list the 17 agents and the 91 skills you can see.
 Read governance.yaml and summarize active gates.
 ```
 

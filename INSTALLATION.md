@@ -12,8 +12,8 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 
 Before installing, calibrate expectations. The library ships with:
 
-✅ **90 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
-✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 6 `deep`, 10 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
+✅ **91 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
+✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 5 `deep`, 11 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
 ✅ **9 workflows** orchestrating multi-step delivery.
 ✅ **12 slash commands** that map intent to skill sequences: `/start /intake /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
 ✅ **Hook subscriptions driving a universal artifact tap** — harness-appropriate event sets that share one `hooks/tap.sh`. Claude Code: SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop. Codex has no `SessionEnd` (its turn-scoped `Stop` is the analog), so the generated Codex package swaps `SessionEnd` → `Stop` and the tap emits the JSON acknowledgement `Stop` requires; end-of-session token capture is an upsert (one line per session, never double-counted).
@@ -108,7 +108,7 @@ ls agents/
 
 Expected:
 - README.md, PLAYBOOK.md (this file too), install.sh, uninstall.sh are present
-- `skills/` has 90 subdirectories (all active)
+- `skills/` has 91 subdirectories (all active)
 - `agents/` has 17 .md files
 
 If anything is missing, re-download or restore.
@@ -137,7 +137,7 @@ Expected output:
 ==> Installing Claude Code layout → /home/you/dev/test-aidp/.claude
   [dry-run] would create /home/you/dev/test-aidp/.claude
   [dry-run] would copy agents/ (17 files)
-  [dry-run] would copy skills/ (90 active; skipped 0 tombstones)
+  [dry-run] would copy skills/ (91 skills; skipped 0 tombstones)
   [dry-run] would copy workflows/ (9 files)
   ...
 ==> Creating project memory tree → /home/you/dev/test-aidp/.project
@@ -177,7 +177,7 @@ ls -la .claude/
 #           hooks/ scripts/ commands/ .claude-plugin/ README.md PLAYBOOK.md
 
 find .claude/skills -name SKILL.md | wc -l
-# Expected: 90
+# Expected: 91
 
 find .claude/agents -name '*.md' | wc -l
 # Expected: 17
@@ -186,7 +186,7 @@ find .claude/workflows -name '*.yaml' | wc -l
 # Expected: 9
 
 ls .claude/commands/
-# Expected: 11 .md files (start, discover, architect, audit, slice, release, review, steward, refine-idea, factory-record, drive)
+# Expected: 12 .md files (start, intake, discover, architect, audit, slice, release, review, steward, refine-idea, factory-record, drive)
 
 find .project -type d | wc -l
 # Expected: 18 (the root + 17 subdirs)
@@ -195,7 +195,7 @@ find .project -type d | wc -l
 **Check 2 — Validator passes:**
 ```bash
 bash .claude/scripts/validate-skills.sh ~/dev/test-aidp/.claude
-# Expected: "✓ Library health: 90 active skills in target 70-90 band."
+# Expected: a "Library health" line reporting 91 skills (a ⚠ review-zone note above ~90 is informational, not a failure)
 # Failures = 0
 ```
 
@@ -243,9 +243,9 @@ The bundled `try-as-plugin.sh` script:
 Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `--help`.
 
 **What you get with plugin-dir loading:**
-- All 90 SKILLs available.
+- All 91 SKILLs available.
 - All 17 agents available.
-- All 11 slash commands available (`/start`, `/discover`, etc.).
+- All 12 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
 - Governance gates accessible.
 
@@ -274,11 +274,11 @@ Confirm you can see the Praxis. Specifically:
    11 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 11 slash commands, 90 SKILLs, 17 agents, governance gates as listed.
+Expected: 12 slash commands, 91 SKILLs, 17 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 11 slash commands, the workflow routing tree, 6+11 gates (17 total), 90 SKILLs, 17 agents.
+Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 91 SKILLs, 17 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 
@@ -379,7 +379,7 @@ Claude Code reads commands from `.claude/commands/*.md` (Markdown with YAML fron
 **Diagnosis:**
 ```bash
 ls .claude/commands/
-# Should show: architect.md audit.md discover.md drive.md factory-record.md refine-idea.md release.md review.md slice.md start.md steward.md
+# Should show: architect.md audit.md discover.md drive.md factory-record.md intake.md refine-idea.md release.md review.md slice.md start.md steward.md
 ```
 
 **Fixes:**

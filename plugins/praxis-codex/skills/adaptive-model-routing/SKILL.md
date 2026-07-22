@@ -33,6 +33,7 @@ consumers:
   - agentic-architecture (session-as-agent configuration)
 references:
   - llm-cost-optimization.md
+  - routing-examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -111,7 +112,7 @@ Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasonin
 
 | Agent | Tier | `model_reasoning_effort` | Why |
 |---|---|---|---|
-| delivery-lead | deep | high | Orchestration routing compounds; wrong routes waste hours |
+| delivery-lead | standard | medium | Routine orchestration is mechanical; deep moments (re-plans, ambiguous decision nodes) escalate per session/spawn — measured evidence: routing sessions were the largest deep-tier cost center |
 | product-manager | standard | medium | Structured elicitation is mechanical after first pass; escalate on vague briefs per fast-path |
 | solution-architect | deep | high | Architecture decisions are irreversible |
 | architecture-challenger | deep | high | Adversarial depth is the role's value |
@@ -129,7 +130,7 @@ Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasonin
 | ux-designer | standard | medium | Structured design |
 | system-steward | standard | medium | Digest + proposal work; promotions are human-gated anyway |
 
-Result: **6 high / 10 medium / 1 low** — identical tier assignments to every other harness, resolved from each agent's `capability_tier` by `scripts/apply-model-routing.py`. Do not edit `codex-agents/*.toml` reasoning efforts by hand; change the tier in the canonical agent or the mapping in `governance/model-routing.yaml` and re-run the script.
+Result: **5 high / 11 medium / 1 low** — identical tier assignments to every other harness, resolved from each agent's `capability_tier` by `scripts/apply-model-routing.py`. Do not edit `codex-agents/*.toml` reasoning efforts by hand; change the tier in the canonical agent or the mapping in `governance/model-routing.yaml` and re-run the script.
 
 ---
 
@@ -210,6 +211,7 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 
 ```markdown
 # Model Escalation Log
+```
 
 ## Worked example, anti-rationalization table, and red flags
 

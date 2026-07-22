@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionStart || { SCRIPT=\"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true; }"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionStart || { SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true; }"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PostToolUse || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PostToolUse || true"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStart || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStart || true"
           }
         ]
       }
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
           }
         ]
       }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" Stop || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" Stop || true"
           }
         ]
       }

@@ -80,7 +80,7 @@ flowchart TD
     USER["User"]
     CMD["Commands (optional entry)<br/>commands/*.md — /start /discover /architect /slice<br/>/release /audit /steward /review /refine-idea<br/>/factory-record /drive"]
     WFL["Workflows<br/>workflows/*.yaml — 9 named compositions"]
-    SKL["Skills<br/>skills/*/SKILL.md — 90 active SKILLs, incl. skills/using-praxis (front door)<br/>and skills/autonomous-drive (drive protocol)"]
+    SKL["Skills<br/>skills/*/SKILL.md — 91 SKILLs, incl. skills/using-praxis (front door)<br/>and skills/autonomous-drive (drive protocol)"]
     AGH["Agents / harnesses<br/>agents/*.md role personas, run via each harness<br/>(claude-code / codex / gemini-cli)"]
     MOD["Models via capability tiers<br/>governance/model-routing.yaml — deep / standard / light"]
 

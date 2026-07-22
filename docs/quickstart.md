@@ -48,8 +48,8 @@ tell me how many SKILLs and agents you can see, and read
 .claude/governance/governance.yaml to list the 6 core gates + 11 conditional.
 ```
 
-Expected: 11 slash commands (`/start /discover /architect /slice /release
-/audit /steward /review /refine-idea /factory-record /drive`), 90 SKILLs, 17 agents,
+Expected: 12 slash commands (`/start /discover /architect /slice /release
+/audit /steward /review /refine-idea /factory-record /drive`), 91 SKILLs, 17 agents,
 17 gates (6 core + 11 conditional). If any count is off, re-run the install
 with `--dry-run` first and compare against what it says it would create.
 
@@ -141,7 +141,7 @@ at `.gemini/`. Slash commands mirror Claude Code's set:
 
 ```
 Read GEMINI.md and confirm you can navigate to .gemini/skills/ and
-.gemini/agents/. List the 17 agents and 90 SKILLs.
+.gemini/agents/. List the 17 agents and 91 SKILLs.
 ```
 
 Full detail: [`docs/gemini-cli-setup.md`](gemini-cli-setup.md).

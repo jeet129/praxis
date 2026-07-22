@@ -277,7 +277,11 @@ end.
 session's own transcript into `.project/telemetry/tokens.jsonl` — one
 record per session with input/output/cache tokens and per-model output.
 This fires for ALL workflow executions, interactive or driven; drive runs
-additionally get per-iteration usage in `drive.jsonl`.
+additionally get per-iteration usage in `drive.jsonl`. On **Codex** the
+same handler fires on `Stop` (Codex has no SessionEnd; Stop is turn-scoped
+and may fire repeatedly), so the capture is an UPSERT keyed by session id —
+one line per session, refreshed in place, never double-counted — and the
+hook prints the `{}` JSON acknowledgement Stop requires.
 
 Everything above — `cost_proxy`, tier totals, the "cost proxy" figures in
 `factory-routing-report.py` — is a RELATIVE unit (`cost_weights` from

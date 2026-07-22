@@ -16,7 +16,7 @@
 #
 # Runtime override: delivery-lead applies the adaptive-model-routing rubric per task
 # and may shift an agent ±1 tier (see skills/adaptive-model-routing/SKILL.md,
-# "Routing the factory itself"). Static tiers here are defaults, not ceilings.
+# "Agent spawn configuration"). Static tiers here are defaults, not ceilings.
 #
 # On the `auto` value: a map entry of `auto` means "do not pin a value for this
 # field — omit it and let the harness use its own default." This is distinct

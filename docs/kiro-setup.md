@@ -14,7 +14,7 @@ end-to-end on a real engagement — expect rough edges; issues welcome.
 ```
 your-project/
 ├── .kiro/
-│   ├── skills/             90 SKILLs (Kiro auto-discovers under .kiro/skills/)
+│   ├── skills/             91 SKILLs (Kiro auto-discovers under .kiro/skills/)
 │   ├── agents/, workflows/, governance/, references/, patterns/
 │   └── README.md, PLAYBOOK.md
 ├── AGENTS.md               ← Kiro also supports AGENTS.md

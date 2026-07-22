@@ -96,6 +96,21 @@ if hooks_json.exists():
     hooks.pop("SessionEnd", None)   # Codex has no SessionEnd
     tap_cmd = 'TAP="${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh"; [ -f "$TAP" ] && bash "$TAP" Stop || true'
     hooks["Stop"] = [{"hooks": [{"type": "command", "command": tap_cmd}]}]
+    # Env robustness for the MIRROR: the canonical commands resolve tap.sh via
+    # ${CLAUDE_PLUGIN_ROOT}; if the Codex runtime exposes a different var the
+    # [ -f "$TAP" ] guard silently no-ops every hook. Rewrite all commands to a
+    # fallback chain so either var works.
+    chain = "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}"
+    def _rewrite(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("command"), str):
+                node["command"] = node["command"].replace("${CLAUDE_PLUGIN_ROOT}", chain)
+            for v in node.values():
+                _rewrite(v)
+        elif isinstance(node, list):
+            for v in node:
+                _rewrite(v)
+    _rewrite(hooks)
     data["hooks"] = hooks
     hooks_json.write_text(json.dumps(data, indent=2) + "\n")
 

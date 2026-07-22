@@ -14,8 +14,8 @@ end-to-end on a real engagement — expect rough edges; issues welcome.
 ```
 your-project/
 ├── .gemini/
-│   ├── skills/             90 SKILLs
-│   ├── commands/           11 slash commands
+│   ├── skills/             91 SKILLs
+│   ├── commands/           12 slash commands
 │   ├── agents/, workflows/, governance/, references/, patterns/
 │   └── README.md, PLAYBOOK.md
 ├── GEMINI.md               ← routing file at repo root
@@ -42,7 +42,7 @@ Same 11 as Claude Code, mirrored at `.gemini/commands/`:
 Type:
 ```
 "Read GEMINI.md and confirm you can navigate to .gemini/skills/ and .gemini/agents/.
-List the 17 agents and the 90 SKILLs."
+List the 17 agents and the 91 SKILLs."
 ```
 
-You should see: 17 agents, 90 SKILLs listed by name. If the count is off, re-run `./install.sh --tool=gemini --dry-run` and compare.
+You should see: 17 agents, 91 SKILLs listed by name. If the count is off, re-run `./install.sh --tool=gemini --dry-run` and compare.

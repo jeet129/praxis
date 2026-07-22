@@ -110,6 +110,8 @@ scripts/install-git-hooks.sh   # one-time per clone
 
 This points `core.hooksPath` at `.githooks/`, where `pre-commit` runs `build-codex-plugin.sh` + `validate-codex-plugin.sh` and auto-stages the regenerated `plugins/praxis-codex/` so the source change and the built package land in one atomic commit. See CONTRIBUTING.md for details + escape hatches (`git commit --no-verify`).
 
+Note on build hygiene: `build-codex-plugin.sh` reconciles the mirror against exactly the file set it produced and **fails (exit 4) rather than publish a dirty package** if a stale file can't be removed (e.g. a delete-restricted filesystem) — a generated public plugin never silently retains orphaned skills/hooks. It also rewrites the mirror's hooks to Codex's event vocabulary (`Stop` replaces `SessionEnd`) with an env fallback chain for the plugin-root variable, and excludes Python bytecode.
+
 The generated package must contain:
 
 ```text
