@@ -1,5 +1,8 @@
 # GitHub Copilot Setup
 
+Status: adapter shipped, structurally validated, not yet exercised
+end-to-end on a real engagement — expect rough edges; issues welcome.
+
 ## Install
 
 ```bash
@@ -46,3 +49,13 @@ audit this PR."
 
 - Copilot doesn't have native slash commands like Claude Code; the routing happens through `copilot-instructions.md` + persona references.
 - Workflows are referenced but the agent must walk them step-by-step.
+
+## Verify your install
+
+```bash
+ls .github/copilot-instructions.md
+find .github/praxis/skills -name SKILL.md | wc -l    # expect 90
+ls .github/agents | wc -l                             # expect 17
+```
+
+Then run the sanity-check prompt above. You should see Copilot confirm it read `copilot-instructions.md`, list the front-door SKILL's routing, and name a workflow. If the counts are off, re-run `./install.sh --tool=copilot --dry-run` and compare.

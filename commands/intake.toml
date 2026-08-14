@@ -1,0 +1,17 @@
+description = "Single entry point for any new requirement in steady state (story, epic, ticket, change). Runs requirements-intake to triage, right-size, and route — you never pick a workflow by hand."
+
+prompt = """
+A new requirement has arrived in steady state (a story, epic, ticket, stakeholder ask, or change request, after the initial discovery + architecture rounds are done). Run the `requirements-intake` discipline — do NOT decide the workflow yourself and do NOT jump straight to coding.
+
+1. Append the ask to `.project/working/inbox.md` (append-only queue).
+2. Triage: size (one slice | several slices | needs architecture), blast radius (modules impact-analysis must cover), owner. Record in `.project/working/inbox-decisions.md`.
+3. Right-size and route — pick the LIGHTEST safe path:
+   - Small, well-understood, low blast radius, clear AC → produce a slice ledger and hand to slice-drive (`/drive`). No full ceremony.
+   - Touches load-bearing / existing behavior → run `impact-analysis` FIRST, then slice.
+   - Large or cross-cutting (new subsystem, schema, NFR) → group with related items and route to `/discover` → `/architect` (gated at architecture_sign_off) → `project-phasing`.
+   - Feasibility genuinely unknown → spike.
+   - P0/P1 production break → expedited-change.
+4. State the routing decision + WHY in one or two lines, then proceed — stopping only at the one human gate the route requires.
+
+Avoid the two failure modes: FIFO churn (every small ask gets full ceremony) and impulse coding (a small ask skips impact-analysis and breaks a load-bearing module).
+"""

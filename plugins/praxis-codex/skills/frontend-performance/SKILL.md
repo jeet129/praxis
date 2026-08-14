@@ -32,7 +32,10 @@ consumers:
  - ux-designer (consumes budgets for design choices)
  - platform-sre (wires Lighthouse CI + RUM)
  - cicd-pipeline (enforces budgets as merge gate)
-references: []
+references:
+ - performance-budget-template.md
+ - lighthouse-ci-config.md
+ - route-monitoring-template.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -68,26 +71,7 @@ Each project's NFR register specifies targets per route — typically "Good" for
 
 ## The performance budget
 
-Per route, the budget specifies:
-
-```yaml
-# routes: /products/:id
-budget:
- lcp_p75_ms: 2500 # 75th percentile field data
- inp_p75_ms: 200
- cls_p75: 0.1
-
- javascript_kb_compressed: 200 # bundled + compressed
- css_kb_compressed: 30
- images_kb_total: 500
- fonts_kb_total: 100
- total_kb_compressed: 850
-
- lighthouse_performance_min: 90
- lighthouse_accessibility_min: 95
- lighthouse_best_practices_min: 95
- lighthouse_seo_min: 90
-```
+Per route, the budget specifies LCP/INP/CLS thresholds, per-asset-class KB budgets, and Lighthouse category minimums. Load references/performance-budget-template.md for the full budget YAML template.
 
 Budgets are tracked per route, not just app-wide. The home page's budget differs from the admin dashboard's.
 
@@ -176,22 +160,7 @@ For most user-facing pages, SSR or SSG. CSR for app-like surfaces where data is 
 
 ## Lighthouse CI
 
-Per PR, Lighthouse runs against built artifacts (often via Storybook or ephemeral preview deployments) and verifies budgets:
-
-```yaml
-# lighthouse-budget.json (per route)
-{
- "path": "/products",
- "timings": [
- { "metric": "interactive", "budget": 3000 },
- { "metric": "first-contentful-paint", "budget": 1500 }
- ],
- "resourceSizes": [
- { "resourceType": "script", "budget": 200 },
- { "resourceType": "total", "budget": 850 }
- ]
-}
-```
+Per PR, Lighthouse runs against built artifacts (often via Storybook or ephemeral preview deployments) and verifies budgets. Load references/lighthouse-ci-config.md for the lighthouse-budget.json example.
 
 CI fails the PR on budget breaches. Per-route budgets prevent the "but only this route got slower" pattern.
 
@@ -208,33 +177,7 @@ Per-route RUM dashboards in `observability` . Regression detection: 75th percent
 
 ## Per-route monitoring strategy
 
-For each significant route:
-
-```markdown
-# Route: /products/:id
-
-## Budget
-- LCP target: 2.5s (75th percentile, mobile)
-- INP target: 200ms
-- CLS target: 0.1
-- JS budget: 200KB compressed
-- Total page weight: 850KB
-
-## Lighthouse CI
-- Lighthouse Performance score ≥ 90
-- Budget enforced per PR
-
-## RUM tracking
-- LCP / INP / CLS reported via web-vitals
-- Dashboard in [observability tool]
-- Alert if 7-day p75 exceeds budget
-
-## Optimization tactics applied
-- LCP image: hero.webp, optimized, priority hint, preloaded
-- Font: Inter subset, self-hosted, font-display: swap
-- JS: route-split; ProDashboard lazy-loaded per tier
-- Third-party: 1 analytics script (deferred), 0 others
-```
+For each significant route, document the budget, Lighthouse CI status, RUM tracking, and optimization tactics applied. Load references/route-monitoring-template.md for the full per-route template.
 
 ## Outputs
 

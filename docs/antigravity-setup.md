@@ -1,5 +1,8 @@
 # Antigravity CLI Setup
 
+Status: adapter shipped, structurally validated, not yet exercised
+end-to-end on a real engagement — expect rough edges; issues welcome.
+
 ## Install
 
 ```bash
@@ -34,12 +37,15 @@ agy plugin install ./praxis
 
 ## Slash commands
 
-Same 7 as Claude Code, copied to `commands/` at repo root:
-`/start /discover /architect /slice /release /audit /steward`
+Same 11 as Claude Code, copied to `commands/` at repo root:
+`/start /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`
 
-## Sanity check
+## Verify your install
 
+Type:
 ```
 "Confirm plugin.json is loaded and the Praxis is available.
 Read skills/using-praxis/SKILL.md and summarize the routing tree."
 ```
+
+You should see: a routing summary mapping intents to workflows, agents, and skills. List `commands/` — you should see 11 `.md` files. If `plugin.json` isn't picked up, confirm it's at repo root next to `agents/`, `skills/`, `commands/`.

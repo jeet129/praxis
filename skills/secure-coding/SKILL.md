@@ -31,10 +31,10 @@ consumers:
  - security-reviewer (uses as review baseline)
  - code-review (uses for security-aspect of reviews)
 references:
- - java-spring.md
- - node-ts.md
- - python.md
- - web-frontend.md
+ - ../engineering-standards/references/java-spring.md
+ - ../engineering-standards/references/node-ts.md
+ - ../engineering-standards/references/python.md
+ - ../engineering-standards/references/web-frontend.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -157,10 +157,10 @@ The pass/fail verdict: **any `blocker` fails the gate**. Major findings require 
 
 Concrete sinks, safe APIs, and common violations per language live in the references:
 
-- `references/java-spring.md` — Spring Security configuration, JPA parameterization, Jackson safety, common Spring security pitfalls.
-- `references/node-ts.md` — Express/Fastify/NestJS specifics, prototype-pollution, npm security tooling.
-- `references/python.md` — Django / FastAPI / Flask specifics, pickle/yaml load safety, SQLAlchemy parameterization.
-- `references/web-frontend.md` — XSS, CSRF, CSP, secure cookies, SRI, postMessage hardening.
+- `../engineering-standards/references/java-spring.md` — Spring Security configuration, JPA parameterization, Jackson safety, common Spring security pitfalls.
+- `../engineering-standards/references/node-ts.md` — Express/Fastify/NestJS specifics, prototype-pollution, npm security tooling.
+- `../engineering-standards/references/python.md` — Django / FastAPI / Flask specifics, pickle/yaml load safety, SQLAlchemy parameterization.
+- `../engineering-standards/references/web-frontend.md` — XSS, CSRF, CSP, secure cookies, SRI, postMessage hardening.
 
 ## Mode handling (G/B)
 

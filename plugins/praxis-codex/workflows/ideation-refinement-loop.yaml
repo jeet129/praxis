@@ -1,0 +1,272 @@
+# Workflow: ideation-refinement-loop
+# Iteratively refine an ideation artifact by binding swappable agentic harnesses
+# to creator, reviewer, enhancer, and arbiter roles.
+
+name: ideation-refinement-loop
+version: 1
+description: |
+  Refine an ideation artifact through a bounded creator/reviewer/enhancer loop.
+  The workflow treats agentic harnesses as runtime bindings rather than hardcoded
+  products, so Claude, Codex, Gemini, Cursor, OpenCode, or a custom harness can
+  be swapped into creator, reviewer, enhancer, or arbiter roles.
+
+entry_criteria:
+  - artifact_or_topic_identified == true
+  - creator_harness_bound == true
+  - reviewer_harness_bound == true
+  - max_passes >= 1
+
+runtime_bindings:
+  creator_harness:
+    default: claude
+    supplied_by: command.args.creator
+    role: ideation_author
+  reviewer_harness:
+    default: codex
+    supplied_by: command.args.reviewer
+    role: critical_reviewer
+  enhancer_harness:
+    default: same_as(creator_harness)
+    supplied_by: command.args.enhancer
+    role: critical_editor
+  arbiter_harness:
+    default: codex
+    supplied_by: command.args.arbiter
+    role: convergence_evaluator
+  quality_bar:
+    default: high
+    allowed: [standard, high, rigorous]
+  max_passes:
+    default: 5
+  review_lenses:
+    default:
+      - clarity
+      - internal_consistency
+      - assumptions
+      - feasibility
+      - risks
+      - missing_stakeholders
+      - decision_readiness
+      - implementation_implications
+
+harness_contract:
+  required_capabilities:
+    - accept_structured_prompt
+    - return_structured_markdown_or_json
+    - preserve_artifact_version_labels
+    - separate_findings_from_rewrites
+  required_outputs:
+    creator:
+      - artifact_draft
+      - assumptions
+      - open_questions
+    reviewer:
+      - severity_tagged_findings
+      - rationale
+      - must_fix_items
+      - nice_to_have_items
+    enhancer:
+      - revised_artifact
+      - change_log
+      - rejected_feedback_with_rationale
+    arbiter:
+      - convergence_score
+      - unresolved_findings
+      - recommended_disposition
+
+steps:
+  - id: initialize_refinement_run
+    type: orchestration
+    skill: agentic-harness-orchestration
+    inputs:
+      artifact_or_topic: from(command.args.artifact_or_topic)
+      creator_harness: from(runtime_bindings.creator_harness)
+      reviewer_harness: from(runtime_bindings.reviewer_harness)
+      enhancer_harness: from(runtime_bindings.enhancer_harness)
+      arbiter_harness: from(runtime_bindings.arbiter_harness)
+      quality_bar: from(runtime_bindings.quality_bar)
+      max_passes: from(runtime_bindings.max_passes)
+    outputs:
+      - run_id
+      - working_artifact_path
+      - role_binding_record
+      - refinement_log_path
+    notes: |
+      Record the selected harness for every role before the first generation.
+      The run must remain reproducible even when defaults are used.
+
+  - id: creator_pass
+    type: harness_invocation
+    harness: from(runtime_bindings.creator_harness)
+    role: creator
+    skill: agentic-harness-orchestration
+    inputs:
+      artifact_or_topic: from(initialize_refinement_run.artifact_or_topic)
+      current_artifact: from(initialize_refinement_run.working_artifact_path, if_exists)
+      quality_bar: from(runtime_bindings.quality_bar)
+    outputs:
+      - artifact_draft
+      - creator_assumptions
+      - creator_open_questions
+
+  - id: refinement_loop
+    type: bounded_loop
+    max_iterations: from(runtime_bindings.max_passes)
+    iteration_label: pass_number
+    loop_contract:
+      exit_criteria:
+        - convergence_achieved: "unresolved_findings has none at or above major severity AND next_pass_expected_value in [cosmetic, low]"
+      max_iterations: from(runtime_bindings.max_passes)
+      on_no_progress: stop_and_flag
+      on_exhaustion: escalate_to_human
+    loop_state:
+      # Explicit artifact state. All in-loop references use these names.
+      current_artifact:
+        initial: from(creator_pass.artifact_draft)
+        updated_by: update_artifact_state   # becomes enhancer_pass.revised_artifact each pass
+      previous_artifact:
+        initial: null
+        updated_by: update_artifact_state   # snapshot of current_artifact before the enhancer applied changes
+    steps:
+      - id: reviewer_pass
+        type: harness_invocation
+        harness: from(runtime_bindings.reviewer_harness)
+        role: reviewer
+        skill: agentic-harness-orchestration
+        inputs:
+          artifact: from(loop_state.current_artifact)
+          review_lenses: from(runtime_bindings.review_lenses)
+          quality_bar: from(runtime_bindings.quality_bar)
+          prior_findings: from(initialize_refinement_run.refinement_log_path, if_exists)
+        outputs:
+          - severity_tagged_findings
+          - must_fix_items
+          - nice_to_have_items
+          - reviewer_verdict
+
+      - id: enhancer_pass
+        type: harness_invocation
+        harness: from(runtime_bindings.enhancer_harness)
+        role: enhancer
+        skill: agentic-harness-orchestration
+        inputs:
+          artifact: from(loop_state.current_artifact)
+          reviewer_findings: from(reviewer_pass.severity_tagged_findings)
+          creator_assumptions: from(creator_pass.creator_assumptions)
+          quality_bar: from(runtime_bindings.quality_bar)
+        outputs:
+          - revised_artifact
+          - change_log
+          - rejected_feedback_with_rationale
+
+      - id: convergence_check
+        type: harness_invocation
+        harness: from(runtime_bindings.arbiter_harness)
+        role: arbiter
+        skill: agentic-harness-orchestration
+        inputs:
+          prior_artifact: from(loop_state.current_artifact)   # not yet updated — still the pre-enhancer version
+          revised_artifact: from(enhancer_pass.revised_artifact)
+          reviewer_findings: from(reviewer_pass.severity_tagged_findings)
+          change_log: from(enhancer_pass.change_log)
+          quality_bar: from(runtime_bindings.quality_bar)
+        outputs:
+          - convergence_score
+          - unresolved_findings
+          - next_pass_expected_value
+          - recommended_disposition
+        verdict_artifact:
+          # The arbiter MUST persist its verdict here so the loop exit is
+          # machine-checkable (loop_decision below reads it via check:
+          # status_field) rather than an LLM self-asserting the boundary.
+          path: .project/working/ideation-convergence.yaml
+          # recommended_disposition is computed DETERMINISTICALLY from the same
+          # criteria as the loop_contract exit_criteria:
+          #   converged     iff unresolved_findings has none >= major
+          #                     AND next_pass_expected_value in [cosmetic, low]
+          #   another_pass   otherwise
+          required_fields: [recommended_disposition, convergence_score, next_pass_expected_value]
+          disposition_values: [converged, another_pass]
+
+      - id: update_artifact_state
+        type: state_update
+        updates:
+          loop_state.previous_artifact: from(loop_state.current_artifact)
+          loop_state.current_artifact: from(enhancer_pass.revised_artifact)
+        notes: |
+          The enhancer's revision is accepted into loop state only after the
+          convergence check has scored it. Both versions stay addressable:
+          current_artifact (post-enhancer) and previous_artifact (pre-enhancer).
+
+      - id: loop_decision
+        type: decision_node
+        predicate:
+          name: ideation_convergence
+          # machine-checkable: reads the arbiter's persisted verdict file
+          check: status_field
+          args:
+            path: .project/working/ideation-convergence.yaml   # written by convergence_check.verdict_artifact
+            field: recommended_disposition
+            expect: converged
+          on_fail: route_back
+          # Equivalent expr the arbiter computes into recommended_disposition
+          # (kept for humans; the runner evaluates the status_field check):
+          #   unresolved_findings.none_severity_at_or_above("major")
+          #   and next_pass_expected_value in ["cosmetic", "low"]
+        branches:
+          true: [prepare_user_approval_summary]
+          false: [reviewer_pass]   # next pass reviews loop_state.current_artifact (the enhancer's revision)
+
+  - id: prepare_user_approval_summary
+    type: harness_invocation
+    harness: from(runtime_bindings.arbiter_harness)
+    role: arbiter
+    skill: agentic-harness-orchestration
+    inputs:
+      final_artifact: from(loop_state.current_artifact)
+      refinement_log: from(initialize_refinement_run.refinement_log_path)
+      convergence_score: from(convergence_check.convergence_score)
+      unresolved_findings: from(convergence_check.unresolved_findings)
+    outputs:
+      - user_summary
+      - final_artifact_path
+      - remaining_risks
+      - recommendation
+    notes: |
+      Present findings to the user and explicitly ask whether to approve the
+      artifact or run another pass with the same or different harness bindings.
+
+  - id: user_approval_gate
+    type: gate
+    name: ideation_refinement_approval
+    approver: principal
+    evidence:
+      - user_summary
+      - final_artifact_path
+      - remaining_risks
+      - recommendation
+      - role_binding_record
+
+exit_criteria:
+  - user_approval_gate.approved == true
+  - no_unresolved_findings_at_or_above_major
+  - final_artifact_path_exists == true
+
+failure_paths:
+  harness_unavailable:
+    - pause_workflow
+    - ask_principal_for_replacement_harness
+    - resume_from_last_completed_pass
+  non_convergence:
+    - stop_after_max_passes
+    - present_remaining_findings_to_user
+    - ask_user_to_approve_or_run_another_pass
+  disputed_feedback:
+    - record_rejected_feedback_with_rationale
+    - ask_arbiter_for_disposition
+    - surface_to_user_if_major_or_higher
+
+notes: |
+  The creator, reviewer, enhancer, and arbiter are roles. Claude and Codex are
+  valid bindings, not assumptions. Keep all prompts and evidence role-oriented
+  so a future harness can be substituted without rewriting the workflow.

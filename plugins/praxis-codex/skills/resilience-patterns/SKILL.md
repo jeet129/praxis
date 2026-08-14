@@ -1,6 +1,6 @@
 ---
 name: resilience-patterns
-description: "Single-component-failure-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, idempotency, outbox, saga. Applied during architecture (where) and implementation (how) to make services tolerant of the inevitable failures of dependencies. Distinct from `distributed-systems-patterns` (which addresses correctness across components — consensus, replication, consistency) and from `chaos-engineering` (which verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility."
+description: "In-process / service-level fault-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, per-call idempotency (idempotency keys). Applied during architecture (where) and implementation (how) to make one service tolerant of one dependency's failure. Distinct from `distributed-systems-patterns` (cross-service coordination and correctness — saga, outbox, consensus, replication, consistency), `reliability-dr` (system-level availability architecture — redundancy, failover, RTO/RPO), and `chaos-engineering` (verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility."
 ---
 
 # Resilience Patterns
@@ -25,14 +25,14 @@ outputs:
   - idempotency strategy per mutation
   - bulkhead and rate-limit placement
   - graceful-degradation policy
-  - outbox/saga design for cross-service consistency
 consumers:
   - solution-architect (designs resilience into the architecture)
   - backend-developer (implements per stack pack)
   - chaos-engineering (verifies these patterns)
   - architecture-challenger (reliability-challenger sub-persona attacks these)
-  - distributed-systems-patterns (consumes for cross-component correctness)
-references: []
+  - distributed-systems-patterns (consumes per-call resilience patterns; owns saga/outbox for cross-service consistency)
+references:
+  - references/examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -64,26 +64,7 @@ Timeout placement:
 - Cache lookup (very short — cache is meant to be fast or absent).
 - External API (longer, reflects vendor SLO).
 
-Configuration in code:
-
-```typescript
-// Per dependency, with explicit values matching its SLO + buffer
-const externalApi = {
-  connectTimeoutMs: 2000,
-  readTimeoutMs: 5000,    // vendor SLO: p99 < 3s; +2s buffer
-  totalTimeoutMs: 7000,   // upper bound
-};
-
-const internalService = {
-  connectTimeoutMs: 200,
-  readTimeoutMs: 500,     // internal: p99 < 300ms; +200ms buffer
-  totalTimeoutMs: 1000,
-};
-
-const cacheLookup = {
-  readTimeoutMs: 50,      // very tight; cache is fast or absent
-};
-```
+Configuration in code: per-dependency timeout values matching each SLO + buffer — see `references/examples.md#timeout-configuration-in-code`.
 
 ### 2. Retries with exponential backoff + jitter
 
@@ -139,22 +120,7 @@ Examples:
 - **Separate thread pools per call type** — async background work in one pool, request-response in another.
 - **Per-tenant quotas in multi-tenant systems** — one heavy tenant doesn't starve others.
 
-Configuration:
-
-```yaml
-order_service_pool:
-  max_size: 20
-  queue_size: 100
-billing_service_pool:
-  max_size: 20
-  queue_size: 100
-notification_service_pool:
-  max_size: 10
-  queue_size: 50
-external_payment_pool:
-  max_size: 5      # smaller; external API has its own rate limit
-  queue_size: 20
-```
+Configuration: separate pool per downstream dependency with its own max size + queue — see `references/examples.md#bulkhead-pool-configuration`.
 
 Without bulkheads, all dependencies share the same pool → the slowest dependency consumes everything.
 
@@ -193,53 +159,11 @@ Every mutation must be safe to retry — because retries *will* happen (network 
 
 Every mutation in the API has one of these. Per `api-design`'s discipline.
 
-### 7. Outbox
+### 7. Cross-service consistency (outbox, saga)
 
-For cross-service consistency: a service that needs to *both* persist locally and publish an event must not do these in two separate transactions (the second can fail leaving inconsistent state).
+When a mutation must both persist locally and notify other services, or a workflow spans multiple services, that's cross-service coordination, not single-dependency fault handling. `distributed-systems-patterns` owns the outbox pattern (atomic commit-and-publish) and the saga pattern (compensating transactions across services) — see that skill for the full design and templates.
 
-The outbox pattern:
-
-```
-WITHIN ONE TRANSACTION:
-  1. INSERT INTO orders (...) VALUES (...);
-  2. INSERT INTO outbox (event_type, payload) VALUES (...);
-COMMIT;
-
-ASYNCHRONOUSLY, A BACKGROUND PROCESS:
-  3. SELECT * FROM outbox WHERE published_at IS NULL;
-  4. Publish to message bus.
-  5. UPDATE outbox SET published_at = NOW() WHERE id = ...;
-```
-
-The outbox row is written in the same transaction as the business state. The publisher is at-least-once (idempotent consumers handle duplicates).
-
-This eliminates the "wrote to DB but failed to publish" inconsistency that plagues naive dual-writes.
-
-### 8. Saga
-
-For long-running, cross-service workflows that need to maintain consistency without distributed transactions, the saga pattern decomposes the workflow into local transactions per service + compensating actions for rollback.
-
-```
-Workflow: Place Order
-  Step 1: Reserve inventory (Inventory service)
-    → Compensation: Release reservation
-  Step 2: Authorize payment (Payment service)
-    → Compensation: Void authorization
-  Step 3: Create shipment (Shipping service)
-    → Compensation: Cancel shipment
-
-If Step 3 fails:
-  - Run Step 2's compensation (void authorization)
-  - Run Step 1's compensation (release reservation)
-```
-
-Two implementations:
-- **Choreography** — services react to events; no central coordinator. Simpler but harder to reason about.
-- **Orchestration** — a saga orchestrator (often a workflow engine like Temporal, Camunda) coordinates. More visible state; preferred for complex sagas.
-
-Sagas are inherently eventually-consistent. They don't *prevent* failures; they ensure the system reaches a consistent state (success or compensated-rollback) regardless of mid-workflow failures.
-
-### 9. Graceful degradation
+### 8. Graceful degradation
 
 When a dependency is down or slow, what does the service *still* do?
 
@@ -258,7 +182,7 @@ Order service: "place an order"
 
 The discipline: catalog the dependencies; for each, decide what degradation is acceptable; design for it explicitly.
 
-### 10. Health checks for the integration
+### 9. Health checks for the integration
 
 The three K8s probes from `platform-k8s`:
 
@@ -270,20 +194,7 @@ Designed at the resilience-pattern level; implemented at the stack-pack level.
 
 ## Per-integration design template
 
-For each dependency the service calls:
-
-```markdown
-## Dependency: External Payment API
-
-- **Timeout**: connect 2s; read 5s; total 7s.
-- **Retries**: 2 retries with exponential backoff (100ms, 200ms) + 30% jitter. Retry on: 429, 503, network errors. No retry on: 400, 401, 402 (payment declined is final).
-- **Circuit breaker**: opossum; threshold 50% failure in 30 reqs / 30s; cool-down 60s.
-- **Bulkhead**: separate connection pool (max 5, queue 20).
-- **Idempotency**: idempotency-key from client; 24h window; stored in Redis.
-- **Rate limit (outgoing)**: respect vendor's 100 RPS limit (token bucket via Redis).
-- **Fallback (degradation)**: queue payment for async retry; respond to customer with "processing" state; reconcile asynchronously.
-- **Observability**: per-call duration, success/failure tags, circuit-breaker state metric.
-```
+For each dependency the service calls, document timeout / retries / circuit breaker / bulkhead / idempotency / rate limit / fallback / observability in one block — full worked example at `references/examples.md#per-integration-design-template`.
 
 ## Outputs
 
@@ -304,7 +215,8 @@ For each dependency the service calls:
 ## What this skill does not do
 
 - Verify the patterns actually work — that's `chaos-engineering`.
-- Define correctness across components — that's `distributed-systems-patterns`.
+- Cross-service coordination and correctness (saga, outbox, consensus, replication, consistency models) — that's `distributed-systems-patterns`.
+- System-level availability architecture (redundancy, failover, RTO/RPO, DR tiers, backup/restore) — that's `reliability-dr`.
 - Implement per stack — that's the stack pack patterns.
 - Run on-call — that's `incident-runbook`.
 

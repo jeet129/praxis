@@ -50,6 +50,9 @@ steps:
   - id: requirements_complete_check
     type: decision_node
     predicate: requirements_complete(requirements_brief, user_stories, scope_boundary, nfr_register, open_questions)
+    # Judgment call — "complete" means good enough to freeze, not just present.
+    # Phase A stays human-gated per references/phase-gates.md §1.
+    fallback_gate: requirements_freeze
     branches:
       true: [requirements_freeze_gate]
       false: [requirements_elicitation, with_gaps_as_input]
@@ -93,13 +96,24 @@ steps:
   - id: challenger_findings_resolved
     type: decision_node
     predicate: challenger_findings_addressed(challenge_report, architecture_decision)
+    # Judgment call — did SA incorporate vs. reject each finding, and is any
+    # rejection's rationale sound? Rejections route through the dedicated
+    # governance gate rather than being self-certified here.
+    fallback_gate: challenger_objection_override
     branches:
       true: [nfr_check]
       false: [architecture_design, with_challenge_report_as_input]
 
   - id: nfr_check
     type: decision_node
-    predicate: nfr_satisfied(architecture_decision, nfr_register)
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
     branches:
       true: [project_phasing]
       false: [architecture_design, with_nfr_violations_as_input]

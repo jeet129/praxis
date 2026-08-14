@@ -49,7 +49,12 @@ steps:
 
   - id: capacity_adjustments_applied
     type: decision_node
-    predicate: capacity_verdict == sufficient OR capacity_adjustments_applied == true
+    predicate:
+      expr: capacity_verdict == sufficient OR capacity_adjustments_applied == true
+      fallback_gate: capacity_verification   # runtime predicate (capacity_check) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Evidence-existence check in Phase D's autonomous span; the human stop
+      # for this release is production_go_live_gate downstream.
     branches:
       true: [dr_readiness_check]
       false: [apply_capacity_adjustments]
@@ -67,7 +72,13 @@ steps:
 
   - id: dr_readiness_check
     type: decision_node
-    predicate: dr_drill_recent_pass(within_cadence_days=90)
+    predicate:
+      name: dr_drill_recent_pass
+      check: artifact_exists
+      args:
+        path: .project/operational/drills/
+        within_cadence_days: 90
+      on_fail: escalate_to_human
     branches:
       true: [observability_readiness_check]
       false: [escalate_dr_overdue]
@@ -127,8 +138,11 @@ steps:
         3. Capacity sizing verified
         4. Observability wired (SLOs, dashboards, alerts)
         5. Rollback plan documented and trigger conditions explicit
-        6. Chaos engineering pass recent (Wave 4 — skipped here)
-        7. Compliance evidence (Wave 4 — skipped if no regime applies)
+        6. Chaos engineering pass recent (conditional — assemble if flagged in scope by
+           governance as resilience-critical/multi-AZ-region; otherwise record N/A with
+           justification)
+        7. Compliance evidence (conditional — assemble if flagged in scope by governance
+           as a regulated regime; otherwise record N/A with justification)
 
 # ==================================================================
 # PHASE 3 — Governance gate: production_go_live
@@ -177,7 +191,7 @@ steps:
         inputs:
           environment: production
           deployment: from(production_deploy.production_deployment_id)
-          smoke_suite: from(release_changes.smoke_tests)
+          smoke_suite: from(parent.release_changes.smoke_tests)   # release-changes manifest from .project/working memory
         outputs: [smoke_status]
         notes: |
           Smoke suite specifically curated for prod-safe verification — fast,
@@ -199,12 +213,15 @@ steps:
 
   - id: production_verified_check
     type: decision_node
-    predicate: |
-      smoke_status == pass AND
-      error_budget_consumption < threshold AND
-      p99_latency < nfr.p99_target AND
-      error_rate < nfr.error_rate_target AND
-      business_metrics_anomaly == none
+    predicate:
+      expr: |
+        smoke_status == pass AND
+        error_budget_consumption < threshold AND
+        p99_latency < nfr.p99_target AND
+        error_rate < nfr.error_rate_target AND
+        business_metrics_anomaly == none
+      fallback_gate: post_deploy_verification_boundary   # runtime predicate (post_deploy_verification) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [record_release]
       false: [production_rollback]
@@ -242,7 +259,7 @@ steps:
     action: record_release
     inputs:
       production_deployment: from(production_deploy.production_deployment_id)
-      release_version: from(semantic_version_bump)
+      release_version: from(parent.semantic_version_bump)   # computed by delivery-lead from conventional commits
       changelog_entry: from(parent.active_slices.changelog_summary)
       evidence_pack: from(assemble_evidence.evidence_pack_path)
     outputs:
@@ -284,16 +301,19 @@ notes: |
   greenfield-saas) trigger this on their chosen cadence.
 
   Wave 4 will add:
-    - chaos-engineering pass-recency check as an evidence requirement
     - performance-testing soak result as an evidence requirement
     - reliability-dr drill verification
-    - compliance-privacy evidence for regulated regimes
+    - compliance-privacy evidence tooling for regulated regimes
     - incident-runbook integration for rollback → postmortem flow
     - distributed-systems-patterns operational sanity checks
 
   The evidence-required list in governance.yaml's production_go_live gate already
-  references several Wave-4 items (chaos_engineering_pass_recent, etc.) so the
-  gate's full set is satisfied once Wave 4 lands. In Wave 3, those items are
-  noted as deferred and the gate enforces the Wave-3-feasible subset:
+  references several Wave-4 items (chaos_engineering_pass_recent, etc.). Chaos
+  engineering and compliance evidence (items 6-7 above) are CONDITIONAL: assemble
+  them when governance flags the change as resilience-critical/multi-AZ-region or
+  regulated, respectively; otherwise record N/A with justification in the evidence
+  pack. The remaining Wave-4 items are not yet feasible and are deferred until
+  Wave 4 lands. In Wave 3, the gate always enforces the Wave-3 baseline:
   pre-prod gates cleared + DR drill + capacity verified + observability live +
-  rollback plan documented.
+  rollback plan documented, plus the conditional chaos/compliance items above
+  when in scope.

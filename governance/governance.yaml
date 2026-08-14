@@ -199,6 +199,109 @@ gates:
   # Optional / project-specific gates (activated by delivery-planner per
   # project characteristics; not all projects use all gates).
 
+  expedited_change_approval:
+    description: |
+      Activated when workflows/expedited-change.yaml is running a P0/P1
+      incident fix or critical security patch. Single-approver, compressed
+      gate — approves the targeted fix for deploy with rollback armed.
+    primary_approver: principal   # team mode: tech_lead OR on-call incident commander
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr
+    evidence_required:
+      - fix_diffs
+      - blast_radius_note
+      - tests_passing
+      - rollback_plan
+
+  expedited_change_retro:
+    description: |
+      Activated after an expedited-change deploy, within the declared retro
+      window. Approves that the mandatory retroactive rigor actually
+      happened: full-bar review, postmortem, and a tech-debt entry for every
+      shortcut taken during the emergency. Missing this gate is a governance
+      violation, not a shortcut.
+    primary_approver: principal   # team mode: engineering_manager
+    escalation: principal          # team mode: principal_engineer
+    decision_artifact: adr
+    evidence_required:
+      - retro_review_complete
+      - postmortem_doc
+      - action_items
+      - tech_debt_entries
+
+  spike_disposition:
+    description: |
+      Activated at the end of workflows/spike.yaml. Approves the spike
+      report and records the explicit archive/promote call. Spike code
+      itself is never in scope for this gate — it never merges regardless
+      of the call.
+    primary_approver: principal   # team mode: product_owner OR tech_lead
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr
+    evidence_required:
+      - spike_report
+      - disposition_call
+
+  ideation_refinement_approval:
+    description: |
+      Activated at the end of workflows/ideation-refinement-loop.yaml. The
+      principal approves the refined ideation artifact (or requests another
+      pass / redirects). The refinement loop's convergence is machine-checked:
+      the arbiter persists a verdict (recommended_disposition, computed from
+      "no findings >= major AND next-pass value cosmetic/low") to
+      .project/working/ideation-convergence.yaml, and the loop_decision reads it
+      via check: status_field. This gate is the separate HUMAN sign-off on the
+      converged artifact before it enters discovery.
+    primary_approver: principal   # team mode: product_owner
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: refinement_disposition
+    evidence_required:
+      - refined_artifact
+      - convergence_summary
+      - unresolved_findings
+
+  modernization_strategy_sign_off:
+    description: |
+      Activated before the increment loop begins in workflows/modernization.yaml.
+      Approves the target architecture, migration plan, data migration
+      strategy, coexistence contract, and the Challenger's migration-specific
+      findings.
+    primary_approver: principal   # team mode: tech_lead + engineering_manager
+    escalation: principal          # team mode: cto
+    decision_artifact: adr_plus_architecture_doc
+    evidence_required:
+      - target_architecture_decision
+      - migration_plan
+      - data_migration_strategy
+      - coexistence_contract
+      - challenge_report
+
+  parallel_run_verification:
+    description: |
+      Activated per increment in workflows/modernization.yaml, before traffic
+      shifts from the legacy implementation to the replacement for that seam.
+      Approves the comparison telemetry and delta report as within tolerance.
+    primary_approver: principal   # team mode: tech_lead + sre_lead
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: delta_report
+    evidence_required:
+      - comparison_telemetry
+      - delta_report
+      - characterization_test_suite
+
+  legacy_decommission_approval:
+    description: |
+      Activated after final cutover is clean in workflows/modernization.yaml.
+      Approves legacy data archival, infra teardown, and tech-debt closure
+      for the decommissioned system.
+    primary_approver: principal   # team mode: tech_lead + security_lead
+    escalation: principal          # team mode: cto
+    decision_artifact: adr
+    evidence_required:
+      - data_archival_record
+      - teardown_record
+      - tech_debt_entries_closed
+
   tenant_isolation_review:
     description: |
       Activated when is_multi_tenant == true. Approves the tenancy model

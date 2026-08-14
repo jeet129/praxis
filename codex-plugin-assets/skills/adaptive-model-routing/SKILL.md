@@ -1,6 +1,6 @@
 ---
 name: adaptive-model-routing
-description: "Routes tasks to the right OpenAI reasoning-effort tier (high / medium / low) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
+description: "Routes tasks to the right reasoning-effort tier (high / medium / low — the Codex resolution of Praxis capability tiers deep / standard / light per governance/model-routing.yaml) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
 ---
 
 # Adaptive Model Routing (Codex variant)
@@ -26,13 +26,14 @@ outputs:
   - reasoning-effort selection (per session or specialist launch)
   - complexity score + rationale
   - escalation recommendation (when prior attempt fails)
-  - routing log entry at .project/working/model-routing-log.yaml
+  - routing log entry at .project/telemetry/model-routing.jsonl
 consumers:
   - delivery-lead (primary — runs this SKILL before every specialist launch)
   - using-praxis (consumes routing decision when selecting reasoning effort for orchestration)
   - agentic-architecture (session-as-agent configuration)
 references:
   - llm-cost-optimization.md
+  - routing-examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -40,15 +41,7 @@ The Codex variant of `adaptive-model-routing`. Same underlying routing rubric as
 
 ## What differs from the Claude Code variant
 
-| Aspect | Claude Code | Codex |
-|---|---|---|
-| Tier parameter | `model:` frontmatter (opus / sonnet / haiku) | `model_reasoning_effort` in `codex-agents/*.toml` (high / medium / low) |
-| Sub-agent spawn | `Agent({ subagent_type, model, prompt })` — in-process, per-spawn model | Session-as-agent: launch a new Codex CLI session with the specialist's TOML config |
-| Model switch mid-session | `/model <name>` slash command | Not supported — restart the session with the new agent config |
-| Quota model | Weekly rate limits per plan | Per-token API cost + org rate limits |
-| Model itself | Distinct models per tier (Opus / Sonnet / Haiku) | Typically ONE base model; `reasoning_effort` is what tunes cost + quality |
-
-**What stays the same:** the 5-signal rubric, fast-path rules, phase-level defaults, per-agent assignments, escalation protocol, anti-rationalization table, red flags. Those are model-agnostic engineering discipline.
+Codex resolves tiers via `model_reasoning_effort` in `codex-agents/*.toml` (high / medium / low) on typically one base model; agents run as launched CLI sessions (no mid-session model switch — relaunch with the new config), and cost is per-token API spend rather than plan quota. Everything else — the 5-signal rubric, fast-path rules, phase defaults, per-agent assignments, escalation protocol — is identical model-agnostic discipline shared with every harness.
 
 The principle: **default to medium reasoning; escalate to high only when specific complexity signals are present; never use high for tasks a competent medium-reasoning run completes correctly.**
 
@@ -93,33 +86,7 @@ Score the task on five signals. Each signal is 0–2. Total score determines the
 
 ## Task-type fast path
 
-Before scoring, check these fast-path rules. If a rule matches, it overrides the score.
-
-### Always medium (regardless of score)
-- Implementing a slice with a clear spec from the Lead Developer
-- Writing code that follows an established pattern already in the codebase
-- Applying a praxis SKILL where the application is routine (cicd-pipeline, containerization, observability wiring)
-- Producing documentation, release notes, runbook templates
-- Summarizing, extracting, or classifying structured content
-- Routine gate checks (evidence package assembly for production release)
-- Frontend component implementation per design system spec
-
-### Always high (regardless of score)
-- Solution Architect producing the primary architecture decision (`architecture-pattern-selection`) for a system with > 2 capability flags active
-- Architecture Challenger adversarial sub-personas
-- Security threat model (`threat-modeling` SKILL — stakes are always 2)
-- Requirements elicitation with a genuinely vague brief (`requirements-interrogation` KUACQ pass on ambiguous scope)
-- Cross-cutting ADR with > 3 affected services or teams
-- Production incident post-mortem for a P0/P1
-- Any task that explicitly failed a prior medium-reasoning run (escalation is non-negotiable)
-
-### Consider low
-- Intent classification before routing to the right agent
-- Pre-flight checks (does this file exist? is the spec complete?)
-- Structured extraction from well-defined inputs
-- Routing decisions where the input is already structured
-
----
+Fast-path rules override the score. Summary: routine implementation against a clear packet, pattern-following code, docs/release notes, structured summarization/extraction, and routine gate checks are **always medium**. Primary architecture decisions (>2 flags), challenger sub-personas, threat models, vague-brief elicitation, cross-cutting ADRs (>3 services), P0/P1 post-mortems, and any task that failed a prior medium run are **always high**. Intent classification, pre-flight checks, and structured extraction from well-defined inputs may drop to **low**. Load `references/routing-examples.md` for the full lists.
 
 ## Phase-level defaults (workflow integration)
 
@@ -141,57 +108,64 @@ Per-agent defaults are captured in each specialist's `codex-agents/<name>.toml` 
 
 ## Per-agent default assignments
 
-Each Codex agent has a canonical reasoning tier declared in `codex-agents/<name>.toml` via `model_reasoning_effort`. The current defaults:
+Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasoning_effort` GENERATED from the canonical agent's `capability_tier` via `governance/model-routing.yaml`:
 
-| Agent | Default `model_reasoning_effort` | Why |
-|---|---|---|
-| delivery-lead | medium | Orchestration is mostly routing decisions; escalate for cross-cutting routing calls |
-| product-manager | **high** | Discovery + elicitation depth-of-questioning benefits from high reasoning on ambiguous briefs |
-| solution-architect | **high** | Architecture decisions are irreversible |
-| architecture-challenger | **high** | Adversarial depth is the role's value |
-| lead-developer | **high** | Task decomposition across specialists surfaces cross-cutting risks; high reasoning catches more |
-| backend-developer | medium | Implementation is pattern-matching |
-| frontend-developer | medium | Same |
-| data-engineer | **high** | Data-plane design (models + pipelines + quality) has high blast radius; conservative default |
-| ml-ai-engineer | **high** | Research-heavy, novel problems, eval design |
-| code-reviewer | **high** | Missing a bug in review is expensive |
-| security-reviewer | **high** | Adversarial + high-stakes; false negatives catastrophic |
-| qa-engineer | medium | Test writing is mechanical translation |
-| tech-writer | medium | Translation task |
-| platform-sre | **high** | Infra + reliability + secrets + observability wiring — mistakes cost incidents |
-| ux-designer | medium | Structured design |
-| system-steward | **high** | Library evolution decisions across projects |
+| Agent | Tier | `model_reasoning_effort` | Why |
+|---|---|---|---|
+| delivery-lead | standard | medium | Routine orchestration is mechanical; deep moments (re-plans, ambiguous decision nodes) escalate per session/spawn — measured evidence: routing sessions were the largest deep-tier cost center |
+| product-manager | standard | medium | Structured elicitation is mechanical after first pass; escalate on vague briefs per fast-path |
+| solution-architect | deep | high | Architecture decisions are irreversible |
+| architecture-challenger | deep | high | Adversarial depth is the role's value |
+| lead-developer | standard | medium | Task decomposition against defined spec is execution |
+| backend-developer | standard | medium | Implementation is pattern-matching against the packet |
+| frontend-developer | standard | medium | Same |
+| mobile-developer | standard | medium | Same — implementation against the packet and stack-flutter |
+| data-engineer | standard | medium | Pipeline implementation is mostly mechanical; escalate high-blast-radius designs |
+| ml-ai-engineer | deep | high | Research-heavy, novel problems, eval design |
+| code-reviewer | deep | high | Missing a bug in review is expensive |
+| security-reviewer | deep | high | Adversarial + high-stakes; false negatives catastrophic |
+| qa-engineer | standard | medium | Test code is mechanical; test design stays standard |
+| tech-writer | light | low | Translation/formatting task; promote for novel architecture docs |
+| platform-sre | standard | medium | Mostly execution; escalate for incidents per fast-path |
+| ux-designer | standard | medium | Structured design |
+| system-steward | standard | medium | Digest + proposal work; promotions are human-gated anyway |
 
-Result: **10 high / 6 medium.** More conservative than the Claude Code variant (which is 7 opus / 9 sonnet).
-
-**Why the Codex defaults are more high-heavy than the Claude Code defaults:**
-- Codex CLI cost varies with reasoning effort; the previous configuration prioritized quality on higher-blast-radius roles (data-engineer, platform-sre, product-manager, lead-developer) rather than saving cost on them.
-- These are all roles where a wrong decision costs multi-day cleanup; the routing rubric would have scored them 6-7 on stakes anyway.
-- Users on tighter Codex budgets can override in `.project/procedural/model-routing-overrides.md` — the routing SKILL will honor the override.
-
-To change a default, edit the corresponding `.toml` in `codex-plugin-assets/codex-agents/` AND this table, then re-run `scripts/build-codex-plugin.sh` to regenerate the plugin package.
+Result: **5 high / 11 medium / 1 low** — identical tier assignments to every other harness, resolved from each agent's `capability_tier` by `scripts/apply-model-routing.py`. Do not edit `codex-agents/*.toml` reasoning efforts by hand; change the tier in the canonical agent or the mapping in `governance/model-routing.yaml` and re-run the script.
 
 ---
 
 ## Session launch configuration
 
-When the Delivery Lead opens a new specialist session in Codex:
+The Codex CLI has no `--agent <file>` launch flag on its `exec`/interactive
+commands — there is no per-invocation agent-file argument. Specialist
+routing works differently:
 
-```bash
-# Launch solution-architect on high reasoning for a real architecture call
-codex --agent codex-agents/solution-architect.toml
+1. **Installation.** `$praxis-setup-subagents` copies the bundled
+   `codex-agents/*.toml` profiles into the target repo's `.codex/agents/`
+   directory. Each profile's `model_reasoning_effort` (high / medium / low)
+   was GENERATED from the canonical agent's `capability_tier` by
+   `scripts/apply-model-routing.py` — never hand-edited.
+2. **Loading.** Codex reads `.codex/agents/` at session start only. After
+   installing or refreshing profiles, restart Codex or start a new session
+   before the updated `model_reasoning_effort` values take effect.
+3. **Engagement.** Once a session is running with the profiles loaded, the
+   Delivery Lead engages a specialist through Codex's custom-agent selection
+   (choosing the agent BY NAME — e.g. `solution-architect`, backed by
+   `.codex/agents/solution-architect.toml`) rather than by passing a file
+   path per invocation. The reasoning effort applied to that specialist's
+   turns comes from the installed TOML, not from a launch-time flag.
+4. **Ad-hoc override.** If a task warrants a higher tier than the agent's
+   installed default (per the routing rubric above), regenerate/re-tier via
+   `scripts/apply-model-routing.py` and restart the session — Codex CLI has
+   no documented mid-session or per-call `--model-reasoning-effort` override
+   flag today. Treat "launch on high for this one task" as "temporarily
+   route this agent's tier to high, rebuild, restart" rather than a
+   per-command flag.
 
-# Launch backend-developer on medium for a routine slice
-codex --agent codex-agents/backend-developer.toml
-
-# For an ad-hoc override (task warrants higher tier than the agent's default):
-codex --agent codex-agents/backend-developer.toml --model-reasoning-effort high
-```
-
-The routing decision is made BEFORE the `codex` invocation. Log it:
+The routing decision is made BEFORE the specialist is engaged. Log it:
 
 ```yaml
-# .project/working/model-routing-log.yaml (append each entry)
+# .project/telemetry/model-routing.jsonl (append each entry)
 - timestamp: 2026-07-02T10:00:00
   agent: solution-architect
   task: "architecture-pattern-selection for payment service"
@@ -237,59 +211,23 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 
 ```markdown
 # Model Escalation Log
-
-## 2026-07-02 — requirements-elicitation for payments feature
-- First attempt: medium reasoning
-- Failure: Missed 4 compliance NFRs; scope too broad; output not actionable
-- Escalation: high reasoning with failure context and compliance mandate
-- Outcome: high-reasoning session produced complete NFR register; passed requirements_freeze gate
-- Learning: requirements-elicitation with compliance scope → always high
 ```
 
-Escalation logs feed the fast-path rules above. Three escalations on the same task type → promote it to "Always high" in this project's local fast-path override.
+## Worked example, anti-rationalization table, and red flags
 
----
+Load `references/routing-examples.md` for the dated worked case study, the full anti-rationalization table, and the red-flags checklist.
 
 ## Cost management heuristics
 
 Codex API cost scales roughly linearly with reasoning effort. When API spend is running high:
 
-1. Audit what's been using high. Check `.project/working/model-routing-log.yaml`.
+1. Audit what's been using high. Check `.project/telemetry/model-routing.jsonl`.
 2. Identify tasks that could have been medium (score ≤ 6 that were routed to high by habit).
 3. Tighten the default: treat score 7 as "medium with elevated review" rather than automatic high, reserving high for 8+.
 4. **Never downgrade these regardless of cost:** threat-modeling, architecture sign-off for systems > 2 flags, P0 post-mortems, escalations after medium failure.
 5. For cheap classifications and pre-flight checks, drop to low — often 5-10× cheaper than medium.
 
 The goal is never quality regression — cost management is about eliminating high on tasks that don't need it, not downgrading tasks that genuinely do.
-
----
-
-## Anti-rationalization
-
-The reason this discipline holds is that both directions are seductive — high feels safer, medium feels cheaper.
-
-| Shortcut you'll be tempted to take | Why it's tempting | What actually happens | Hold the line |
-|---|---|---|---|
-| "Use high by default; it's better" | Zero cognitive overhead | Monthly API spend blows past budget; ops questions your ROI | The 5-second scoring cost pays back 10x by preserving high for when it matters |
-| "Use medium for everything to save cost" | Feels frugal | Medium writes a subtle bug in the migration script; multi-day cleanup dwarfs the token savings | If a mistake costs > 1 day, that's not a medium task regardless of visible complexity |
-| "High is stuck, retry with more context" | Sunk cost fallacy | High loops on the same wrong hypothesis; wastes 2x tokens | If medium is stuck, clarify the problem first. Ambiguity ≠ complexity |
-| "This is architectural, must be high" | Nominal category match | The "architectural" task is renaming a class; judgment already happened | Look at what the task actually requires, not what it's labeled |
-| "Medium is fine, it's just implementation" | It IS implementation | The implementation touches auth, cross-tenant boundaries, or migration | "Implementation" that touches load-bearing modules is high-worthy regardless of task label |
-| "Leave session on high, cheaper than relaunching" | Session restart feels like friction | Every message on high that could be on medium burns API budget | In Codex, session restart IS the pattern — no cost to relaunching |
-| "Re-try medium on a failed task" | Might work this time | Same reasoning tier + same task rarely fixes the failure | Escalate with failure context, per escalation protocol |
-| "Skip the routing log — I'll remember" | Log feels bureaucratic | Steward can't tell what actually needed high; can't tighten routing rules | The log is 10 seconds; the quarterly cost audit needs it |
-| "Downgrade threat-modeling to save cost" | Cost pressure | Security corners cut for budget; incident 6 months later | Threat-modeling is never downgraded — cost is not an excuse |
-| "Escalate preemptively before any medium attempt" | Feels safer | High produces marginal answer to ambiguous problem; you burn budget on a bad question | Try medium first with explicit failure criteria; escalate only on evidence |
-
----
-
-## Red flags during routing
-
-- **High session running > 2 hours on a single problem.** Either escalate the problem (break it up, get help) or restart on medium — this is the "stuck in a loop" signal.
-- **Medium asked to make a decision without context.** Escalation is wrong response; clarify the decision criteria first.
-- **High used for a mechanical task > 3 times in a week.** Update routing table — habit forming.
-- **Medium used for a review that later missed a bug.** Update escalation trigger table — this class of PR is high-worthy.
-- **Never varying reasoning tier across sessions.** Different tasks warrant different tiers; sticking to one is either underspending or overspending.
 
 ---
 
@@ -320,7 +258,7 @@ Steps where reasoning tier is always fixed (no evaluation needed):
 
 | Output | Location |
 |---|---|
-| Per-session routing decision | `.project/working/model-routing-log.yaml` |
+| Per-session routing decision | `.project/telemetry/model-routing.jsonl` |
 | Escalation log | `.project/episodic/model-escalations.md` |
 | Fast-path overrides (project-local) | `.project/procedural/model-routing-overrides.md` |
 
@@ -333,7 +271,7 @@ Before ending a routing decision as final:
 - [ ] The task has been scored on all five signals (or a fast-path rule matched).
 - [ ] The rationale is stated in 1-2 sentences (not "vibes").
 - [ ] The reasoning tier is selected and recorded.
-- [ ] The session launch command includes the correct `model_reasoning_effort` (via TOML or `--model-reasoning-effort` flag override).
+- [ ] The session launch command includes the correct `model_reasoning_effort` (via installed TOML profile (regenerated by apply-model-routing.py)).
 - [ ] The routing log entry is appended.
 - [ ] If this is an escalation: the failure context is passed to the new session; the escalation log is updated.
 - [ ] For phase transitions: any per-project override in `.project/procedural/model-routing-overrides.md` is reviewed.

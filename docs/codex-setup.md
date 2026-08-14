@@ -2,9 +2,11 @@
 
 Praxis ships to Codex as a repo-backed plugin package. The Claude Code plugin remains separate and unchanged.
 
+Status: tested end-to-end on real engagements.
+
 ## Install From GitHub Marketplace
 
-Add this repo as a Codex plugin marketplace:
+Add this repo as a Codex plugin marketplace (default branch). `--sparse` limits the checkout to the two paths Codex needs — the marketplace manifest and the generated package:
 
 ```bash
 codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
@@ -17,6 +19,28 @@ Then open Codex and install the plugin:
 ```
 
 Select `praxis-codex`.
+
+### Install from a specific branch (e.g. `features/improvements`)
+
+`codex plugin marketplace add` takes `--ref <branch>` (or an `owner/repo@ref` shorthand) alongside the sparse paths:
+
+```bash
+codex plugin marketplace add jeet129/praxis --ref features/improvements \
+  --sparse .agents/plugins --sparse plugins/praxis-codex
+```
+
+Then `/plugins` → install `praxis-codex`.
+
+Note: this pulls the branch **as pushed to GitHub**, and it installs the *generated* `plugins/praxis-codex/` package — so the branch must have a freshly built, committed mirror (the pre-commit hook rebuilds it; or run `scripts/build-codex-plugin.sh` and commit before pushing). Commit and push first, or the install won't include un-pushed local work.
+
+### Install from a local clone
+
+Codex also accepts a local marketplace root directory. Point it at a checkout that contains `.agents/plugins/marketplace.json` and `plugins/praxis-codex/`:
+
+```bash
+git clone -b features/improvements https://github.com/jeet129/praxis.git
+codex plugin marketplace add ./praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+```
 
 ## What The Codex Plugin Contains
 
@@ -47,6 +71,7 @@ $praxis-start
 Then use:
 
 ```text
+$praxis-intake     # steady state: the single front door for any new requirement — triages & routes it
 $praxis-discover
 $praxis-architect
 $praxis-audit
@@ -55,6 +80,16 @@ $praxis-release
 $praxis-steward
 $praxis-review
 ```
+
+## How to use it — the workflows
+
+The `$praxis-*` commands run the same 9 workflows as Claude Code's slash commands; workflows without a dedicated command (spike, expedited-change, modernization) are invoked by describing the intent in a Codex session. The full guide — what each workflow is for, how to invoke it, its gates, and autonomous execution — is in **`docs/workflows.md`**. Quick map: `$praxis-discover`→`$praxis-architect`→`$praxis-slice` to build; `$praxis-release` to ship; `$praxis-refine-idea` to refine an idea; describe an incident for the P0/P1 expedited path; "can we do X?" for a spike; "modernize this" for the strangler-fig path; `$praxis-drive` to run autonomously.
+
+## Telemetry hooks (token capture)
+
+The Codex package ships a hooks manifest wired to Codex's own event vocabulary — notably `Stop` (Codex's turn-scoped end event; Codex has no `SessionEnd`, which is Claude Code's event). On `Stop`, the tap writes a valid JSON acknowledgement and records this session's token totals to `.project/telemetry/tokens.jsonl` as an upsert (one line per session, refreshed — never double-counted, even though `Stop` can fire per turn). Run `/hooks` after install and confirm the Praxis hooks are trusted for the session, or capture won't run.
+
+Per-iteration model routing for `codex exec` (in the drive loop) is applied as `-c model_reasoning_effort=<level>` from the task's capability tier; `model` stays the harness default while `governance/model-routing.yaml`'s `codex.model_map` is `auto`. See `docs/model-routing.md`.
 
 ## Development Workflow
 
@@ -108,3 +143,78 @@ For maintainer build and release details, see `docs/plugin-builds.md`.
 ## Legacy Installer
 
 `install.sh --tool=codex` is the older `.team/` + `AGENTS.md` copy-based setup. Prefer the plugin marketplace path above for Codex distribution.
+
+## Refreshing after a Praxis update
+
+Whenever the plugin source (canonical `skills/`/`agents/`/etc., or
+`codex-plugin-assets/`) changes upstream, refresh a Codex install with this
+checklist, in order:
+
+1. **Refresh the plugin source.** Pull the latest Praxis repo / marketplace
+   source so the canonical directories and `codex-plugin-assets/` are current.
+2. **Update or reinstall the plugin.** In Codex: `/plugins` → update (or
+   remove and re-add) `praxis-codex` so the regenerated
+   `plugins/praxis-codex/` package is picked up.
+3. **Refresh project governance overrides.**
+   `.project/governance/model-routing.yaml` and `autonomy.yaml` are seeded
+   into your project ONCE, then win over the plugin's copies so your
+   per-engagement tuning survives updates — which also means **a plugin
+   refresh does not update them**. New defaults (e.g. the codex
+   `effort_flag: -c` / `effort_arg_prefix` keys that turn on per-iteration
+   reasoning-effort routing) stay absent until you merge them in.
+
+   You don't have to remember this: the SessionStart hook now **detects the
+   drift and prints a warning** with the exact command. To apply it (adds the
+   new keys, keeps your tuned values, writes a `.bak` first):
+
+   ```bash
+   PKG=$(find ~/.codex -type d -name praxis-codex 2>/dev/null | head -1)
+   bash "$PKG/scripts/refresh-governance-overrides.sh" --apply    # run from the project dir
+   ```
+
+   Omit `--apply` for a dry-run report. Changed defaults you may have tuned
+   (e.g. `model_flag`) are surfaced for review, never silently overwritten.
+   Skip this and drive in that project keeps running the OLD routing/autonomy
+   even though the plugin updated.
+4. **Start a fresh session.** Codex only reads plugin/skill/agent content at
+   session start.
+5. **Re-run `$praxis-setup-subagents` and ALLOW it to overwrite.** Do not
+   skip the overwrite — old `.codex/agents/*.toml` files carry stale
+   `model_reasoning_effort` values from before the update. This step now also
+   **applies your project's model routing** to the installed profiles: it runs
+   `apply-model-routing.py --project-dir . --codex-out .codex/agents`, resolving
+   each agent's `model` / `model_reasoning_effort` from
+   `.project/governance/model-routing.yaml` when present (your override wins),
+   else the plugin default. So to pin models or change effort per tier, edit
+   `model_map` / `map` in your **project** `.project/governance/model-routing.yaml`
+   and re-run `$praxis-setup-subagents` — no need to touch plugin defaults.
+   (Default `model_map: auto` writes no `model` line, so each subagent inherits
+   the Codex session's model.)
+6. **Restart again.** A second restart/new session is required after
+   subagent profiles are rewritten — Codex loads `.codex/agents/` only at
+   session start, so the overwrite in step 5 doesn't take effect until this
+   restart.
+7. **Trust the hooks.** Run `/hooks` and confirm the praxis hooks are
+   trusted for the session.
+8. **Verify the refresh actually landed:**
+   - `.codex/agents/` exists in the target repo and is non-empty.
+   - Each installed `.codex/agents/*.toml` contains a
+     `model_reasoning_effort` field.
+   - `scripts/praxis-drive.sh --harness codex` produces a
+     `.project/telemetry/drive.jsonl` record with non-null token fields
+     (`input_tokens`/`output_tokens`/etc.) — confirms the `--json` capture
+     and `codex-json` usage parsing are wired up end to end.
+
+## Verify your install
+
+```text
+/plugins
+```
+
+Confirm `praxis-codex` shows as installed. Then, in a Codex session:
+
+```text
+$praxis-start
+```
+
+You should see the delivery-planner bootstrap questions (mode, data plane, ML, compliance, scale, stack) — the same interview Claude Code's `/start` runs. If `$praxis-*` commands aren't recognized, re-run `$praxis-setup-subagents` and start a new Codex session (subagent profiles only load at session start).

@@ -36,7 +36,8 @@ consumers:
  - compliance-privacy (consumes for regulated-regime evidence)
  - product-manager (consumes for harm-scenario design)
  - production-release.yaml workflow (consumes responsible_ai_review gate evidence)
-references: []
+references:
+  - worked-examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -68,46 +69,7 @@ Does the model perform equally well across groups, especially protected classes?
 
 No single metric captures fairness perfectly; the metrics conflict in many situations. The team **picks the relevant metric explicitly per problem** and documents the choice in the model card.
 
-Implementation: per-slice metrics from `ml-training-evaluation`, audited against thresholds, with disparate-impact findings flagged.
-
-Example fairness audit excerpt:
-
-```markdown
-# Fairness Audit — Hiring Resume Screening Model v2.1
-
-## Protected attributes (per legal review)
-- Gender (inferred from name + signals; itself problematic)
-- Race (inferred from school + location; itself problematic)
-- Age (from graduation year)
-
-## Metric: equal opportunity (since we care about not missing qualified candidates)
-
-| Group | TPR (recall) | Volume | Threshold (0.7 ± 5%) |
-|---|---|---|---|
-| Gender: Male | 0.73 | 50,000 | within |
-| Gender: Female | 0.71 | 35,000 | within |
-| Race: White | 0.74 | 60,000 | within |
-| Race: Black | 0.62 | 8,000 | **OUT (4.5% below floor)** |
-| Race: Hispanic | 0.69 | 12,000 | within |
-| Race: Asian | 0.75 | 10,000 | within |
-| Age: 22-30 | 0.75 | 40,000 | within |
-| Age: 31-45 | 0.72 | 30,000 | within |
-| Age: 46+ | 0.65 | 10,000 | **OUT (5% below floor)** |
-
-## Findings
-- Recall significantly lower for Black candidates and 46+ candidates.
-- Root cause investigation: training data underrepresents both groups in successful-hire labels (selection bias — past hiring practices).
-
-## Mitigations applied
-- Threshold tuning per group to equalize recall (controversial; documented).
-- Additional training data sourcing from non-traditional channels.
-- Human review mandatory for borderline cases in underrepresented groups.
-
-## Residual risk
-- Threshold tuning may itself be problematic per emerging regulation.
-- Continuous monitoring required.
-- Annual third-party fairness audit.
-```
+Implementation: per-slice metrics from `ml-training-evaluation`, audited against thresholds, with disparate-impact findings flagged. Load `references/worked-examples.md` for a full worked fairness-audit excerpt (Hiring Resume Screening Model, equal-opportunity metric, per-group TPR table, findings, mitigations, residual risk).
 
 Fairness audits are uncomfortable. The discomfort is the work — it surfaces what would otherwise stay hidden until lawsuit or news story.
 
@@ -161,76 +123,11 @@ What's the worst this model can do? What controls prevent it?
 - **Audit trail** — every consequential decision logged with model version, inputs, prediction, and human override (if any).
 - **Kill switch** — ability to disable the model instantly when harm signal triggers.
 
-The human-in-the-loop policy is explicit per model:
-
-```markdown
-# Human-in-the-Loop Policy — Loan Approval Model v3.0
-
-## Mandatory review (model decision → human approves before action)
-- All denials.
-- All approvals above $50K loan amount.
-- All applications flagged by adversarial-input detector.
-- Random 1% sample (audit + monitoring purposes).
-
-## Optional review (model decision auto-applied; human reviews later)
-- All approvals below $50K.
-- Discretionary: random 5% sample for ongoing quality assurance.
-
-## Audit
-- All model decisions logged with version + input + prediction + threshold.
-- Monthly review of model decisions on protected-class boundary cases.
-
-## Override
-- Loan officers can override approvals (require documented reason).
-- Underwriting can override denials (require documented reason).
-- Override patterns monitored for systematic disagreement (signal of model drift or fairness issue).
-```
+The human-in-the-loop policy is explicit per model (mandatory-review triggers, optional-review defaults, audit logging, override handling). Load `references/worked-examples.md` for a full worked HITL policy (Loan Approval Model v3.0).
 
 ## Datasheet for the training data
 
-A **datasheet** documents the training data with the same rigor as a model card documents the model. Per Gebru et al.'s *Datasheets for Datasets*:
-
-```markdown
-# Datasheet — Resume Screening Training Data v3.2
-
-## Motivation
-- Built to train the resume screening model.
-- Created by: Hiring data team.
-- Funding: Internal product budget.
-
-## Composition
-- 100K resumes from past 3 years of hiring.
-- Labels: hired (positive) vs not hired (negative).
-- Selection: all applicants to engineering roles.
-
-## Collection process
-- Sourced from ATS system.
-- No explicit consent for ML use (raised as compliance issue; deferred to legal).
-
-## Preprocessing / cleaning
-- PII removed (names, contact info, addresses).
-- Demographics inferred for fairness audit; not used as model input.
-
-## Uses
-- Resume screening model training.
-- NOT intended for: candidate ranking, hiring quotas, downstream HR decisions.
-
-## Distribution
-- Internal only.
-- Not shared externally.
-
-## Known biases
-- Reflects past hiring practices; if past hiring was biased, training data is biased.
-- Under-represents successful candidates from non-traditional backgrounds.
-- Geographic bias toward our existing office locations.
-
-## Maintenance
-- Refresh quarterly with new hires.
-- Bias audit annually.
-- Sunset criteria: regulatory change OR major business pivot.
-```
-
-The datasheet is required output; consumed by `compliance-privacy` for regulated regimes.
+A **datasheet** documents the training data with the same rigor as a model card documents the model, per Gebru et al.'s *Datasheets for Datasets* (motivation, composition, collection process, preprocessing, uses, distribution, known biases, maintenance). Load `references/worked-examples.md` for a full worked datasheet (Resume Screening Training Data v3.2). The datasheet is required output; consumed by `compliance-privacy` for regulated regimes.
 
 ## The responsible-AI gate
 

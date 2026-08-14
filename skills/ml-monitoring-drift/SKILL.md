@@ -42,6 +42,8 @@ references:
   - whylabs.md
   - arize.md
   - vertex-model-monitoring.md
+  - dashboard-templates.md
+  - retraining-triggers.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -103,21 +105,7 @@ Performance monitoring strategies:
 - **Proxy metrics** — metrics computable without labels (prediction calibration, prediction variance).
 - **Shadow / champion-challenger** — run a champion model and a known-good challenger; performance gap indicates drift.
 
-Dashboards show performance metrics with label-lag explicitly:
-
-```markdown
-# Performance — Fraud Detection v1.4
-
-| Metric | 7-day lagged | 30-day lagged | 90-day lagged |
-|---|---|---|---|
-| F1 | 0.83 | 0.82 | 0.81 |
-| Precision | 0.85 | 0.84 | 0.83 |
-| Recall | 0.81 | 0.80 | 0.79 |
-
-(7-day = labels that arrived within 7 days of prediction; 90-day = essentially all labels in)
-
-Last week: 7-day F1 = 0.79 → 4-point drop → triggered investigation.
-```
+Dashboards show performance metrics with label-lag explicitly. See references/dashboard-templates.md for a worked example (lagged F1/precision/recall table + investigation trigger).
 
 ### 4. Train-serve skew detection (production-side)
 
@@ -147,27 +135,11 @@ Three classes:
 
 ### 1. Drift-based
 
-When drift metric crosses threshold:
-
-```yaml
-trigger:
-  type: drift
-  feature: customer_30d_purchase_count
-  metric: psi
-  threshold: 0.25
-  action: schedule_retraining
-```
+When drift metric crosses threshold. See references/retraining-triggers.md for example drift-based and cadence-based trigger configs.
 
 ### 2. Cadence-based
 
-Periodic regardless of drift:
-
-```yaml
-trigger:
-  type: cadence
-  schedule: monthly_on_first_monday
-  action: schedule_retraining
-```
+Periodic regardless of drift.
 
 ### 3. Manual
 
@@ -190,24 +162,7 @@ Alerts include the affected model, the drift signal, the dashboard link, and the
 
 ## Dashboard structure
 
-Per model, three tiers:
-
-**Tier 1 — "Is the model healthy?"**
-- Service metrics (RED).
-- Drift-summary indicators (red / yellow / green).
-- Latest performance metrics with label-lag context.
-
-**Tier 2 — "Drift detail"**
-- Per-feature drift over time.
-- Prediction drift over time.
-- Performance lagged metrics.
-
-**Tier 3 — "Investigation"**
-- Per-slice metrics (drill into the failing segment).
-- Sample errors with input features.
-- Comparison vs offline baseline.
-
-Tier 1 lives on the on-call's home screen (alongside service Tier 1).
+Per model, three tiers: health ("is the model healthy?"), drift detail (per-feature/prediction drift + lagged performance), and investigation (per-slice metrics, sample errors, offline-baseline comparison). Tier 1 lives on the on-call's home screen (alongside service Tier 1). See references/dashboard-templates.md for the full tier breakdown.
 
 ## Incident response for models
 

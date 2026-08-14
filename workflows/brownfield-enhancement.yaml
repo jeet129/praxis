@@ -124,7 +124,14 @@ steps:
 
   - id: nfr_check
     type: decision_node
-    predicate: nfr_satisfied(architecture_decision, nfr_register)
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
     branches:
       true: [impact_analysis]
       false: [architecture_evaluation, with_nfr_violations_as_input]

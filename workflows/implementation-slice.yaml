@@ -77,7 +77,15 @@ steps:
   # ------------------------------------------------------------------
   - id: ux_handoff_check
     type: decision_node
-    predicate: slice_has_ui(slice, implementation_packet)
+    predicate:
+      name: slice_has_ui
+      check: artifact_contains
+      args:
+        path: .project/working/implementation-packet-{slice}.md
+        must_contain: "ui_tasks: true"
+      on_fail: route_back
+      # Phase C routing — data-driven flag from build_implementation_packet,
+      # not a judgment boundary; no fallback_gate needed.
     branches:
       true: [ux_handoff]
       false: [lead_developer_decompose]
@@ -90,9 +98,14 @@ steps:
       slice: from(parent.current_slice)
       journey_maps: from(parent.journey_maps)
       design_system: from(parent.design_system)
-    outputs: [wireframes, interaction_notes, a11y_expectations, i18n_requirements, performance_budget]
+    outputs: [wireframes, design_tokens, design_plan, interaction_notes, a11y_expectations, i18n_requirements, performance_budget]
     notes: |
-      UX Designer assembles the FE-facing portion of the implementation packet.
+      UX Designer assembles the FE-facing portion of the implementation packet,
+      including design-tokens.json (the contract artifact FE tasks depend on)
+      and the frontend-design plan (palette/type/layout/signature) that the
+      visual review will score against. Uses the design-tool chain in
+      frontend-design/references/design-tooling.md at the highest tier the
+      project has (design_fidelity per planner characterization).
 
   # ------------------------------------------------------------------
   # Lead Developer decomposes the slice
@@ -104,16 +117,25 @@ steps:
     inputs:
       implementation_packet: from(build_implementation_packet.implementation_packet)
       ux_handoff: from(ux_handoff.outputs, if_exists)
-    outputs: [task_dag, specialist_assignments, dependency_graph]
+    outputs: [task_dag, specialist_assignments, dependency_graph, task_ledger]
     notes: |
       Lead Developer maps the slice to per-specialist tasks with inputs/outputs/AC
-      mapping and dependency sequencing.
+      mapping and dependency sequencing. Also emits the machine-readable task_ledger
+      (.project/working/slice-<id>-tasks.yaml, per references/loop-contracts.md §2) —
+      the fuel for drive-mode execution of this slice.
 
   # ------------------------------------------------------------------
-  # Parallel implementation by active specialists
+  # Parallel implementation by active specialists.
+  # DISPATCH OWNERSHIP: lead-developer dispatches these branches per its
+  # ledger DAG and validates integration when they complete (two-tier
+  # hierarchy). delivery-lead dispatches only as a fallback on harnesses
+  # that cannot nest agent spawns — and then strictly per the ledger.
+  # Parallelism rule: branch dependencies are on CONTRACT ARTIFACTS
+  # (API spec, schema), not on sibling implementations finishing.
   # ------------------------------------------------------------------
   - id: implementation_parallel
     type: parallel
+    owner: lead-developer
     branches:
       - condition: task_dag.has_backend_tasks
         id: backend_implementation
@@ -148,7 +170,10 @@ steps:
         inputs:
           tasks: from(lead_developer_decompose.task_dag.ml_tasks)
 
-    outputs: [all_prs_opened, all_tests_passing]
+    outputs: [all_prs_opened, all_tests_passing, ui_screenshots]
+    # ui_screenshots: FE/mobile branches capture their implemented screens
+    # (Playwright/Storybook where available) as evidence for visual_review;
+    # empty for slices with no UI tasks.
 
   # ------------------------------------------------------------------
   # Pre-merge gate: Code Review + Security Review (parallel)
@@ -174,9 +199,41 @@ steps:
         # Security Reviewer fires only on PRs touching auth/data/public-surface/deps;
         # for non-security-bearing PRs, Code Reviewer's security dimension is sufficient.
 
+      - id: visual_review
+        agent: ux-designer
+        inputs:
+          screenshots: from(implementation_parallel.ui_screenshots)
+          design_plan: from(ux_handoff.design_plan)
+          design_tokens: from(ux_handoff.design_tokens)
+          wireframes: from(ux_handoff.wireframes)
+        outputs: [visual_review_verdict, visual_findings]
+        condition: slice_has_ui_tasks(task_dag)
+        # Visual design review — fires only when the slice produced user-facing
+        # pixels. Evidence: screenshots at 2-3 viewports incl. empty/loading/error
+        # states (Playwright/Storybook or harness browser tools; see
+        # frontend-design/references/design-tooling.md). Scored against the
+        # design plan, the token system, and frontend-design's calibration
+        # (references/design-craft.md): hierarchy, spacing rhythm, contrast,
+        # state coverage, anti-generic check, copy rules. Severity-tagged
+        # findings; blockers feed the same fix loop as code review. Tier:
+        # promote to deep (multimodal judgment) per adaptive-model-routing.
+
   - id: review_findings_resolved
     type: decision_node
-    predicate: all_blocker_findings_resolved(code_review_findings, security_findings)
+    predicate:
+      name: all_blocker_findings_resolved
+      check: verdict_file
+      args:
+        files:
+          - path: .project/working/review-*.md
+            clear_of: [BLOCK]
+          - path: .project/working/security-review-*.md
+            clear_of: [BLOCK]
+            condition: security_review_ran
+          - path: .project/working/visual-review-*.md
+            clear_of: [BLOCK]
+            condition: visual_review_ran
+      on_fail: route_back
     branches:
       true: [merge_prs]
       false: [implementation_parallel, with_findings_as_input]
@@ -186,7 +243,20 @@ steps:
   # ------------------------------------------------------------------
   - id: merge_prs
     type: decision_node
-    predicate: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped)
+    predicate:
+      expr: code_review_verdict == PASS AND (security_review_verdict == PASS OR security_review_skipped) AND (visual_review_verdict == PASS OR visual_review_skipped)
+      check: verdict_file
+      args:
+        files:
+          - path: .project/working/review-*.md
+            clear_of: [FAIL, PASS_WITH_MAJORS]
+          - path: .project/working/security-review-*.md
+            clear_of: [FAIL, PASS_WITH_MAJORS]
+            condition: security_review_ran
+          - path: .project/working/visual-review-*.md
+            clear_of: [FAIL]
+            condition: visual_review_ran
+      on_fail: route_back
     branches:
       true: [cicd_pipeline_run]
       false: [implementation_parallel, with_review_failures_as_input]
@@ -217,7 +287,10 @@ steps:
 
   - id: pipeline_gate
     type: decision_node
-    predicate: pipeline_status == passed
+    predicate:
+      expr: pipeline_status == passed
+      fallback_gate: pipeline_pass_verification   # runtime predicate (cicd_pipeline_run) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [staging_deploy]
       false: [implementation_parallel, with_pipeline_failures_as_input]
@@ -232,7 +305,7 @@ steps:
     inputs:
       image_digest: from(cicd_pipeline_run.signed_image_digest)
       environment: staging
-      strategy: from(release_strategy_adr.staging_strategy)   # typically rolling for staging
+      strategy: from(parent.release_strategy_adr.staging_strategy)   # release-strategy ADR from .project/decision memory; typically rolling for staging
     outputs:
       - staging_deployment_id
       - staging_rollout_state   # progressing | succeeded | failed
@@ -268,7 +341,10 @@ steps:
 
   - id: staging_verified_check
     type: decision_node
-    predicate: smoke_test_status == pass AND slo_status == healthy AND error_rate < nfr.error_rate_target
+    predicate:
+      expr: smoke_test_status == pass AND slo_status == healthy AND error_rate < nfr.error_rate_target
+      fallback_gate: staging_verification_boundary   # runtime predicate (staging_verification) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
     branches:
       true: [acceptance_testing]
       false: [auto_rollback_staging, then_back_to_implementation_parallel]
@@ -308,7 +384,13 @@ steps:
 
   - id: acceptance_check
     type: decision_node
-    predicate: acceptance_verdict == ACCEPTED OR (acceptance_verdict == ACCEPTED_WITH_CAVEATS AND caveats_acknowledged)
+    predicate:
+      expr: acceptance_verdict == ACCEPTED OR (acceptance_verdict == ACCEPTED_WITH_CAVEATS AND caveats_acknowledged)
+      check: verdict_file
+      args:
+        path: .project/working/qa-acceptance-*.md
+        must_not_contain: "Verdict: REJECTED"
+      on_fail: route_back
     branches:
       true: [integration_validation]
       false: [implementation_parallel, with_acceptance_failures_as_input]
@@ -387,6 +469,18 @@ failure_paths:
         cycles without resolution, escalates to the principal — repeated failures
         usually mean the slice is over-scoped, the AC is unclear, or there's a
         deeper architectural issue.
+    # This implement→review→fix cycle is a failure-path primitive (retry_n), not a
+    # `bounded_loop` step type — the loop_contract below still applies per
+    # references/loop-contracts.md §1, so drive-mode iterations can enforce it.
+    - loop_contract:
+        exit_criteria:
+          - tests_pass: "verify command exits 0"
+          - no_blocker_findings: "review verdict file contains no BLOCK"
+          - dod_met: "definition-of-done checklist satisfied for the slice"
+        max_iterations: 3
+        on_no_progress: stop_and_flag
+        on_exhaustion: escalate_to_human
+        escalation: promote_one_tier_and_retry_once
 
   escalate:
     - pause_workflow

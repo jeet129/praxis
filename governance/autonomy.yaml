@@ -1,0 +1,83 @@
+# Autonomy configuration — how far the factory runs between human touchpoints.
+#
+# Consumed by scripts/praxis-drive.sh (the drive runner) and by delivery-lead
+# (the drive protocol in skills/autonomous-drive). Edit per engagement.
+#
+# The dial moves the OPTIONAL human boundary. Three stops are NON-NEGOTIABLE
+# and fire regardless of this file:
+#   1. Decision points — any decision_node whose predicate is not machine-
+#      evaluable, anything that produces an ADR, any KUACQ escalation with
+#      required: true, any delivery-planner re-plan trigger.
+#   2. Governance gates — per governance/governance.yaml, always pause.
+#   3. Budget/stall/exhaustion — run budget hit, ledger stalled, or a task
+#      exhausted its loop contract. Clean stop at the next task boundary.
+
+version: 1
+
+# Where the drive loop stops for a human, beyond the non-negotiable stops:
+#   task  — pause after every task (use while building trust in a new workflow)
+#   slice — pause after every slice closes
+#   phase — pause at phase boundaries (also: FIRST slice of any new phase
+#           always pauses, regardless of setting — intent drift is most
+#           expensive at phase starts)
+#   gate  — continuous: run until a governance gate, decision point, or
+#           budget stop. Slice-close summaries are still posted asynchronously.
+#
+# workflow-drive (scripts/praxis-drive.sh --workflow, references/phase-gates.md)
+# reads this SAME dial, one altitude up (steps, not tasks):
+#   step  — pause after every workflow step (the workflow-drive analogue of `task`)
+#   phase — pause at workflow phase boundaries (same token as above; slice-drive
+#           reads it as slice-phase, workflow-drive reads it as workflow-phase)
+#   gate  — continuous, same meaning as above: run to the next governance gate,
+#           fallback_gate boundary, decision point, or budget/stall stop
+stop_after: gate
+
+# Async summaries — posted even when the loop does not wait.
+summaries:
+  slice_close: .project/telemetry/summaries/   # slice-<id>-summary.md per close
+  notify: terminal                             # terminal | file-only
+
+# Run budget — a drive session stops cleanly when any of these is hit.
+run_budget:
+  max_slices_per_run: 3
+  max_iterations_per_run: 40
+  max_task_attempts: 3            # per task: attempt, fix, tier-promoted retry
+  cost_ceiling_proxy: 120         # tier-weighted units per governance/model-routing.yaml cost_weights
+  max_budget_usd: null            # passed to the harness natively where supported (e.g. claude -p --max-budget-usd)
+  # max_steps_per_run: 12         # workflow-drive only (--workflow): steps processed per run.
+                                   # Defaults to max_slices_per_run above when unset.
+
+# Ceremony — engagement-level switches for the adaptive ceremony rubric in
+# skills/autonomous-drive (full | expedited | spike per slice, scored by
+# Lead Developer at slice open). Governance gates are never affected by
+# these switches; they only gate whether a slice may scale DOWN pre-merge
+# review intensity at all.
+ceremony:
+  allow_expedited: true          # false forces every slice to full ceremony
+  allow_spike: true              # false disables spike-ceremony slices; compliance engagements set both false
+
+# Stall detection (the "witness" check): if the task ledger hash is unchanged
+# after this many consecutive iterations, stop and flag — the loop is spinning.
+stall:
+  max_iterations_without_ledger_change: 2
+
+# Per-harness headless invocation used by scripts/praxis-drive.sh.
+# {prompt} is replaced with the drive prompt; budget flags applied when non-null.
+harnesses:
+  claude-code:
+    command: claude -p "{prompt}" --max-turns 30
+    budget_flag: --max-budget-usd
+    model_flag: --model            # per-iteration model = the task tier's resolved model
+    effort_flag: --effort          # per-iteration reasoning depth = the task tier's resolved effort (governance/model-routing.yaml claude-code.effort_map)
+  codex:
+    command: codex exec "{prompt}"
+    budget_flag: null
+    model_flag: -m                 # per-iteration model (codex exec -m); OMITTED when the tier maps to `auto` (model-routing.yaml codex.model_map is all auto by default -> codex uses its configured model)
+    effort_flag: -c                # per-iteration reasoning effort via a config override token: `-c model_reasoning_effort=<level>`
+    effort_arg_prefix: "model_reasoning_effort="   # rendered as: -c model_reasoning_effort=high  (level from model-routing.yaml codex.map)
+    json_output_flag: --json
+    usage_parse: codex-json
+  gemini-cli:
+    command: gemini -p "{prompt}"
+    budget_flag: null
+    model_flag: -m                 # per-iteration model = the task tier's resolved model

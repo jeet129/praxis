@@ -1,6 +1,6 @@
 ---
 name: observability
-description: "The three pillars + correlation, instrumented per service. Structured logging, RED/USE metrics, distributed tracing (OpenTelemetry-first), SLI/SLO/error-budget definition, dashboards, and alerting that pages on symptoms not causes. Developers add the instrumentation hooks as they write the code; SRE wires the collectors and dashboards . Use whenever new services or endpoints are being implemented, when defining SLOs from NFRs, or when troubleshooting requires the instrumentation that isn't there yet. Pushy trigger because retrofitting observability is dramatically more expensive than adding it upfront."
+description: "The three pillars + correlation, instrumented per service. Structured logging, RED/USE metrics, distributed tracing (OpenTelemetry-first), SLI/SLO/error-budget definition, dashboards, and alerting that pages on symptoms not causes. Developers add the instrumentation hooks as they write the code; SRE wires the collectors and dashboards. Use whenever new services or endpoints are being implemented, when defining SLOs from NFRs, or when troubleshooting requires the instrumentation that isn't there yet. Pushy trigger because retrofitting observability is dramatically more expensive than adding it upfront."
 ---
 
 # Observability
@@ -45,7 +45,7 @@ Three pillars + the connective tissue between them: **structured logs** that say
 
 The principle: **alert on symptoms (the user experience), not causes (the metric that breached).** A page that says "CPU is at 95%" is operationally useless if the latency SLO is still met. A page that says "p99 checkout latency exceeded 500ms — error budget burning at 5x" tells the on-call exactly what's happening.
 
-This skill produces *instrumentation in code* (developers add it as they write) and *SLO/dashboard specs* (SRE wires the collectors -4). Code sets the hooks; Practice deepens the practice.
+This skill produces *instrumentation in code* (developers add it as they write) and *SLO/dashboard specs* (SRE wires the collectors and dashboards). Code sets the hooks; the platform practice wires and operates them.
 
 ## When this skill fires
 
@@ -168,7 +168,7 @@ When implementing a new endpoint or service, the developer adds:
 4. **Correlation ID propagation** through async chains (stack-specific — MDC, contextvars, AsyncLocalStorage).
 5. **Error tracking** with a backend (Sentry, errorception, etc.) for surfacing unhandled errors with full context.
 
-These hooks are what `platform-sre` wires into the actual collectors and storage. ensures the *code* is observable; Operations ensures the *system* observes it.
+These hooks are what `platform-sre` wires into the actual collectors and storage. This skill ensures the *code* is observable; the platform/SRE practice ensures the *system* observes it.
 
 ## Stack references
 

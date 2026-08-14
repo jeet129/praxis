@@ -48,9 +48,27 @@ The planner consumes:
 | `product-discovery` output | `.project/working/` | Vision, JTBD, opportunity sizing, MVP scope |
 | `nfr-definition` output | `.project/working/` | Scale targets, RTO/RPO, performance targets, regulatory bindings |
 | `architecture-pattern-selection` (if run) | `.project/working/` | Macro architecture (monolith / microservices / event-driven / serverless), distributed-systems decisions |
-| Project characteristics (extracted) | discovery + architecture | Canonical flags (all agents read): `mode` (G/B), `has_data_plane`, `has_ml`, `has_agentic_ai`, `is_multi_tenant`, `compliance_regimes`, `scale_target_qps`, `availability_target`. Planner-extended flags (planner uses; not propagated): `has_ui`, `team_size`, `budget_constrained`. |
+| Project characteristics (extracted) | discovery + architecture | Canonical flags (all agents read): `mode` (G/B), `has_data_plane`, `has_ml`, `has_agentic_ai`, `is_multi_tenant`, `compliance_regimes`, `scale_target_qps`, `availability_target`. Planner-extended flags (planner uses; not propagated): `has_ui`, `team_size`, `budget_constrained`, `design_fidelity` (standard | premium — which tier of the design-tool chain in `frontend-design/references/design-tooling.md` the project has: connected design MCPs, generation-tool accounts, or text-only floor; activates the visual-review branch and the UX design-brief/token artifacts when `has_ui`). |
 
 The planner can be invoked with partial inputs — it produces the *most-instantiated* workflow possible given what's available, and the orchestrator re-plans when more inputs arrive.
+
+## Workflow-selection table
+
+Which template to instantiate, keyed off the scenario signal:
+
+| Scenario signal | Template |
+|---|---|
+| Vague idea, nothing scoped yet | `ideation-refinement-loop` |
+| New API service, requirements clear | `greenfield-api-service` |
+| New product / SaaS | `greenfield-saas` |
+| Feature on an existing system | `brownfield-enhancement` |
+| P0/P1 emergency (or critical security patch) | `expedited-change` |
+| Feasibility / "can we even do X" question | `spike` |
+| Legacy system replacement | `modernization` |
+| Per-slice execution (any template above) | `implementation-slice` (sub-workflow) |
+| Ready to ship | `production-release` |
+
+Selection signals come from `requirements-intake`, incident severity, or characterization flags (e.g. brownfield comprehension's characterization output); when two templates fit, gate topology decides — see `skills/using-praxis/SKILL.md`'s Workflow composition policy.
 
 ## Outputs
 
@@ -64,6 +82,21 @@ The output is a workflow *instance* — same shape as a template but with:
 - **Sub-persona selection** — Architecture Challenger's sub-personas (scale/security/cost/operations/reliability) are selected per project. Internal CRUD might get only `operations` + `security`; multi-tenant SaaS gets all five.
 
 The output file lives in `.project/working/workflow-instance.yaml` and is what the orchestrator actually executes.
+
+## Workflow-step ledger
+
+Instantiating a workflow ALSO emits the machine-legible workflow-step ledger
+at `.project/working/workflow-state.yaml`, per `references/phase-gates.md`
+§3 — this is what `workflow-drive` consumes. One entry per phase/gate/
+decision-node in the instantiated graph, each with: `id`, `phase`, `kind`
+(`phase | gate | decision_node`), `agent`, `tier` (the phase's default per
+`skills/adaptive-model-routing`'s "Phase-level defaults" table), `depends_on`,
+`outputs`, and an `exit` — either a machine check (`command | artifact_exists
+| artifact_contains | verdict_file`, per phase-gates.md §2) or a
+`fallback_gate` when the boundary is a judgment call the runner cannot
+evaluate. Set `autonomy_zone: [C, D]` at the ledger root — A (discovery) and
+B (architecture) stay human-gated per phase-gates.md §1; only C→D steps with
+a machine `exit` may run unattended.
 
 ## Planning logic
 
@@ -130,6 +163,10 @@ added gates by characteristic:
   if project.scale_target_qps > 10000:
     add: capacity-stress-test (before production go-live)
 ```
+
+### Ceremony defaults (slice-level)
+
+The planner may set a default `ceremony` (`full | expedited | spike`, per `skills/autonomous-drive`'s rubric) per slice type in the workflow instance — the same gate-intensity-scaling instinct as the rules above, applied at slice granularity rather than project granularity. Lead Developer still scores and confirms the rubric at each slice's actual open (reversibility/blast-radius/exposure can differ from the planner's guess), and `governance/autonomy.yaml`'s `ceremony.allow_expedited`/`allow_spike` switches can force everything to `full` for compliance engagements regardless of any planner default.
 
 ### Sub-persona selection (Architecture Challenger)
 

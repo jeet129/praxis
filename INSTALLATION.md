@@ -12,26 +12,34 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 
 Before installing, calibrate expectations. The library ships with:
 
-✅ **83 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
-✅ **16 role agents** the AI can adopt, each with a `model:` default (7 Opus / 9 Sonnet).
-✅ **5 workflows** orchestrating multi-step delivery.
-✅ **8 slash commands** that map intent to skill sequences (including `/factory-record` for rich telemetry observations).
-✅ **6 hook subscriptions** (SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop) driving a universal artifact tap.
-✅ **Adaptive model routing** (`adaptive-model-routing` SKILL + per-agent frontmatter) — routes each specialist to Opus or Sonnet (or in Codex, high/medium reasoning-effort) based on task complexity.
-✅ **Telemetry capture pipeline** — every SKILL / agent / workflow / command invocation logs to `.project/operational/factory-metrics/` via `scripts/factory-record.sh`. ~97% capture rate on Claude Code.
-✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry.
-✅ **Frequency reporter** — `scripts/factory-frequency.sh` aggregates usage per SKILL / period.
+✅ **91 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
+✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 5 `deep`, 11 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
+✅ **9 workflows** orchestrating multi-step delivery.
+✅ **12 slash commands** that map intent to skill sequences: `/start /intake /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
+✅ **Hook subscriptions driving a universal artifact tap** — harness-appropriate event sets that share one `hooks/tap.sh`. Claude Code: SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop. Codex has no `SessionEnd` (its turn-scoped `Stop` is the analog), so the generated Codex package swaps `SessionEnd` → `Stop` and the tap emits the JSON acknowledgement `Stop` requires; end-of-session token capture is an upsert (one line per session, never double-counted).
+✅ **Capability-tier routing** — `governance/model-routing.yaml` resolves each agent's tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/flash/flash-lite), applied by `scripts/apply-model-routing.py`. At runtime `delivery-lead` shifts ±1 tier per task via the `adaptive-model-routing` rubric.
+✅ **Telemetry stack, three layers** — (a) checkpoint records: `.project/episodic/checkpoint-*.md`, written by delivery-lead at every gate/phase/slice/loop closure, mined by `scripts/factory-usage-report.py` (the primary, near-100%-capture usage source); (b) structured JSONL streams under `.project/telemetry/` — `agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl` (deterministic, hook/runner-written) and `model-routing.jsonl` (delivery-lead discipline), aggregated by `scripts/factory-routing-report.py`; (c) a thin stub layer (command invocations + human `/factory-record` observations; the old per-Read skill/agent/session stubs are retired). Full explanation in `docs/telemetry.md`.
+✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry (now reading against the checkpoint-record baseline, not the retired stub types).
+✅ **Usage + routing reporters** — `scripts/factory-usage-report.py` mines checkpoint records for per-skill/agent/workflow/command usage; `scripts/factory-routing-report.py` aggregates the JSONL streams for cost/routing analysis; `scripts/factory-frequency.sh` / `scripts/factory-aging.sh` remain for legacy stub-layer aggregation and coverage checks.
+
+**Harness status:** the two paths above (and everything below) are written
+against Claude Code, which along with Codex is tested end-to-end on real
+engagements. The other six file-install adapters (Cursor, Gemini CLI,
+OpenCode, GitHub Copilot, Kiro, Antigravity) are shipped and structurally
+validated — the installer writes their layout and the validator suite covers
+it — but not yet exercised end-to-end on a real engagement. Expect rough
+edges there; issues welcome. See §1.4 below.
 ✅ **Governance gates** with evidence packs.
 ✅ **Project memory taxonomy** (six types).
-✅ **Skill validator script.**
-✅ **Pre-commit hook** that auto-rebuilds the Codex plugin package (`plugins/praxis-codex/`) whenever canonical source changes.
+✅ **Validator suite** — `scripts/validate-skills.sh`, `validate-workflows.py`, `validate-references.py`, `validate-manifests.sh`, `validate-codex-plugin.sh`. See `CONTRIBUTING.md` for what each checks.
+✅ **Git hooks** — `scripts/install-git-hooks.sh` wires `.githooks/pre-commit`, which auto-rebuilds the Codex plugin package (`plugins/praxis-codex/`), validates it, and reminds you to update docs when core artifacts change.
 
 The library does NOT ship with:
 
-❌ **Automatic Steward synthesis.** The Steward agent still reads the metric files manually at quarterly review; the aggregation → proposals step is not automated yet (though `factory-frequency.sh` produces the raw aggregates it consumes).
+❌ **Automatic Steward synthesis.** The Steward agent still reads the report manually at quarterly review; the aggregation → proposals step is not automated yet (though `scripts/factory-usage-report.py` and `scripts/factory-routing-report.py` produce the raw aggregates it consumes).
 ❌ **Automatic change application.** Approved SKILL changes still require you to edit the file.
 ❌ **CI/CD hooks for the library itself.** No pipeline auto-validates new SKILLs against the registry (roadmap item).
-❌ **Guaranteed 100% telemetry capture.** The residual ~3% (SKILL uses that don't involve reading the SKILL.md OR producing an observable output OR spawning a sub-agent) is invisible; `factory-aging.sh` catches it via aging thresholds instead.
+❌ **Guaranteed 100% telemetry capture.** Checkpoint records are near-100% because they're a mandatory workflow deliverable, not a tool-event side effect — but a delivery-lead that short-circuits the AOP can still skip one. `factory-aging.sh` catches SKILLs with stale/missing telemetry via aging thresholds as a backstop.
 
 The "quarterly steward cadence" is real DISCIPLINE you run — but now with real telemetry it reads, not hypothetical observations. The factory-evaluation review is still human-driven; the *data* under it is captured automatically.
 
@@ -77,11 +85,11 @@ For your first install, **use per-project**.
 
 ### 1.4 Decide your tool
 
-| Tool | Choose if |
-|---|---|
-| **Claude Code** | Default. Best UX for the platform (slash commands + hook + plugin manifests). |
-| **Codex** | You prefer Codex's plugin marketplace, skills, and subagent profiles. |
-| **Cursor / Gemini / OpenCode / Copilot / Kiro / Antigravity** | Per-tool docs in `docs/<tool>-setup.md`. |
+| Tool | Choose if | Status |
+|---|---|---|
+| **Claude Code** | Default. Best UX for the platform (slash commands + hook + plugin manifests). | Tested end-to-end on real engagements |
+| **Codex** | You prefer Codex's plugin marketplace, skills, and subagent profiles. | Tested end-to-end on real engagements |
+| **Cursor / Gemini / OpenCode / Copilot / Kiro / Antigravity** | Per-tool docs in `docs/<tool>-setup.md`. | Adapter shipped, structurally validated — not yet exercised end-to-end on a real engagement |
 
 For your first install, **use Claude Code**.
 
@@ -100,8 +108,8 @@ ls agents/
 
 Expected:
 - README.md, PLAYBOOK.md (this file too), install.sh, uninstall.sh are present
-- `skills/` has 84 subdirectories (83 active + 1 tombstone)
-- `agents/` has 16 .md files
+- `skills/` has 91 subdirectories (all active)
+- `agents/` has 17 .md files
 
 If anything is missing, re-download or restore.
 
@@ -128,9 +136,9 @@ Expected output:
 ```
 ==> Installing Claude Code layout → /home/you/dev/test-aidp/.claude
   [dry-run] would create /home/you/dev/test-aidp/.claude
-  [dry-run] would copy agents/ (16 files)
-  [dry-run] would copy skills/ (83 active; skipped 1 tombstones)
-  [dry-run] would copy workflows/ (5 files)
+  [dry-run] would copy agents/ (17 files)
+  [dry-run] would copy skills/ (91 skills; skipped 0 tombstones)
+  [dry-run] would copy workflows/ (9 files)
   ...
 ==> Creating project memory tree → /home/you/dev/test-aidp/.project
   [dry-run] would create /home/you/dev/test-aidp/.project (17 subdirs)
@@ -169,16 +177,16 @@ ls -la .claude/
 #           hooks/ scripts/ commands/ .claude-plugin/ README.md PLAYBOOK.md
 
 find .claude/skills -name SKILL.md | wc -l
-# Expected: 83
+# Expected: 91
 
 find .claude/agents -name '*.md' | wc -l
-# Expected: 16
+# Expected: 17
 
 find .claude/workflows -name '*.yaml' | wc -l
-# Expected: 5
+# Expected: 9
 
 ls .claude/commands/
-# Expected: 8 .md files (start, discover, architect, slice, release, audit, steward, factory-record)
+# Expected: 12 .md files (start, intake, discover, architect, audit, slice, release, review, steward, refine-idea, factory-record, drive)
 
 find .project -type d | wc -l
 # Expected: 18 (the root + 17 subdirs)
@@ -187,7 +195,7 @@ find .project -type d | wc -l
 **Check 2 — Validator passes:**
 ```bash
 bash .claude/scripts/validate-skills.sh ~/dev/test-aidp/.claude
-# Expected: "✓ Library health: 83 active skills in target 70-90 band."
+# Expected: a "Library health" line reporting 91 skills (a ⚠ review-zone note above ~90 is informational, not a failure)
 # Failures = 0
 ```
 
@@ -235,9 +243,9 @@ The bundled `try-as-plugin.sh` script:
 Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `--help`.
 
 **What you get with plugin-dir loading:**
-- All 83 SKILLs available.
-- All 16 agents available.
-- All 8 slash commands available (`/start`, `/discover`, etc.).
+- All 91 SKILLs available.
+- All 17 agents available.
+- All 12 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
 - Governance gates accessible.
 
@@ -262,15 +270,15 @@ Confirm you can see the Praxis. Specifically:
 1. List the slash commands available in .claude/commands/.
 2. Read .claude/skills/using-praxis/SKILL.md and summarize the
    intent → workflow routing.
-3. Read .claude/governance/governance.yaml and list the 7 active gates +
-   4 conditional gates.
+3. Read .claude/governance/governance.yaml and list the 6 core gates +
+   11 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 8 slash commands, 83 SKILLs, 16 agents, governance gates as listed.
+Expected: 12 slash commands, 91 SKILLs, 17 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 8 slash commands, the workflow routing tree, 7+4 gates, 83 SKILLs, 16 agents.
+Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 91 SKILLs, 17 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 
@@ -366,12 +374,12 @@ If you can't get auto-firing to work, you can still paste the hook output manual
 
 ### Problem: Slash commands not recognized
 
-Claude Code reads commands from `.claude/commands/*.toml`.
+Claude Code reads commands from `.claude/commands/*.md` (Markdown with YAML frontmatter; the TOML variants live in `.gemini/commands/` for Gemini CLI).
 
 **Diagnosis:**
 ```bash
 ls .claude/commands/
-# Should show: start.toml architect.toml audit.toml discover.toml release.toml slice.toml steward.toml
+# Should show: architect.md audit.md discover.md drive.md factory-record.md intake.md refine-idea.md release.md review.md slice.md start.md steward.md
 ```
 
 **Fixes:**
@@ -494,6 +502,7 @@ Same library; different addressing:
 
 ```bash
 codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
+# from a specific branch, add: --ref features/improvements
 ./install.sh --tool=cursor ~/dev/test-aidp
 ./install.sh --tool=gemini ~/dev/test-aidp
 ./install.sh --tool=copilot ~/dev/test-aidp
@@ -518,7 +527,7 @@ After move/clone, run install.sh as usual.
 Two paths:
 
 1. **Each developer installs locally.** Works; everyone has their own copy.
-2. **Publish as a Claude Code marketplace plugin.** The `.claude-plugin/marketplace.json` is pre-configured; you'd substitute the github source and push. Then teammates can `/plugin marketplace add <your-org>/praxis`. See `docs/claude-code-setup.md`.
+2. **Publish as a plugin (Claude Code and/or Codex).** Both manifests are pre-configured (`.claude-plugin/marketplace.json` for Claude Code, `.agents/plugins/marketplace.json` for Codex). Teammates install with `/plugin marketplace add jeet129/praxis` (Claude Code) or `codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex` (Codex). To pin a branch, append `@features/improvements` (Claude Code) or `--ref features/improvements` (Codex). Full branch/local-clone instructions are in `docs/claude-code-setup.md` and `docs/codex-setup.md`.
 
 ### Updating to a new library version
 
@@ -536,36 +545,55 @@ cd ~/dev/tooling/praxis
 
 `--force` overwrites `.claude/` with the new version. Your `.project/` memory is preserved (it's not touched).
 
+For a **plugin** install (Claude Code `/plugin marketplace update praxis`, or Codex `/plugins` → update), the plugin files update but two project-local files do **not**: `.project/governance/model-routing.yaml` and `.project/governance/autonomy.yaml`. These are per-engagement overrides — seeded once, then they win over the plugin's copies so your tuning survives updates, which also means new defaults (e.g. the codex per-iteration effort-routing keys) don't reach an existing project on their own.
+
+You don't have to track this manually: the **SessionStart hook detects the drift** (a plugin default has keys your copy lacks) and prints a warning with the exact command. To apply it — adds the new keys, keeps your tuned values, writes a `.bak` first:
+
+```bash
+# Claude: PKG=$(dirname "$(dirname "$(find ~/.claude/plugins -name praxis-drive.sh | head -1)")")
+# Codex:  PKG=$(find ~/.codex -type d -name praxis-codex | head -1)
+bash "$PKG/scripts/refresh-governance-overrides.sh" --apply     # run from the project dir; omit --apply for a dry-run report
+```
+
+Changed defaults you may have tuned (e.g. `model_flag`) are surfaced for review, never silently overwritten. `governance.yaml` is **not** a project override — it's read from the plugin, so gate-topology changes (new/updated gates) propagate on update automatically. Only routing + autonomy are project-owned.
+
 ---
 
 ## 7. What about the "self-evolving" claim
 
-To do real telemetry-driven evolution, you'd need:
+Real telemetry-driven evolution needs three things, and all three now exist
+in the library — this section used to describe them as a build you'd take on
+yourself; that's no longer accurate:
 
-1. **Telemetry collector.** A small daemon or shell script that watches your session and logs:
-   - Each SKILL the agent reads (file-read events).
-   - Each agent persona invoked.
-   - Each gate event.
-   - Each workflow step.
-   - Outcomes (slice closed, release shipped, etc.).
-   - Output: append-only JSONL log somewhere on disk.
+1. **Telemetry capture.** `.project/episodic/checkpoint-*.md` — one
+   structured entry per closure boundary (slice close, gate, phase, release,
+   drive iteration), written by delivery-lead as a mandatory workflow
+   deliverable, not a tool-event side effect. Alongside it, deterministic
+   JSONL streams under `.project/telemetry/` (`agent-spawns.jsonl`,
+   `sessions.jsonl`, `drive.jsonl`, `model-routing.jsonl`) capture spawn,
+   session, drive, and routing events. See `docs/telemetry.md` for the full
+   three-layer breakdown and `references/factory-metrics-schema.md` for the
+   checkpoint schema.
 
-2. **Metric computation script.** Periodically (cron / launchd / GitHub Actions) reads the logs and produces the factory-evaluation report:
-   - Skill invocation counts.
-   - Agent activity.
-   - Workflow completion rates.
-   - Gate evidence-completeness-on-first-submission.
-   - Output: `.project/operational/factory-metrics/<quarter>.md`.
+2. **Metric computation.** `scripts/factory-usage-report.py` mines
+   checkpoint records (plus working packets and command stubs) into a
+   per-skill / per-agent / per-workflow / per-command usage report.
+   `scripts/factory-routing-report.py` aggregates the JSONL streams into
+   tier, cost-proxy, and routing-discipline coverage figures. Run either
+   on demand — see `docs/telemetry.md` "Running the reports". Reports land
+   at `.project/telemetry/reports/`.
 
-3. **Steward-as-real-input.** Then when you invoke `/steward`, the agent has actual data to consume. Currently it relies on your recollection.
+3. **Steward-as-real-input.** When you invoke `/steward`, the agent reads
+   the usage + routing reports plus the accumulated
+   `.project/operational/library-evolution/` observations — it has real
+   per-SKILL data, not just your recollection.
 
-This is a ~1-2 week build that you should do once you're running 2-3 projects with the platform and care about library health. Skip it for the first few projects; treat the Steward as a quarterly review companion that helps you think through "what didn't fire much this quarter? what should I remove?"
-
-If you decide to build the telemetry layer:
-- Output format: one event per line, JSONL, with timestamp + project_id + event_type + payload.
-- Storage: `.project/operational/telemetry/<date>.jsonl` (the project-memory taxonomy already has the right folder).
-- Aggregator: a Python script reading the JSONL + producing the factory-report markdown.
-- Schedule: cron quarterly; faster if you want.
+What's still manual: the reports are numbers, not proposals. `system-steward`
+still has to read them and draft the quarterly synthesis by hand — turning
+"this SKILL fired twice all quarter" into "promote / demote / retire" is
+discipline, not automation. That synthesis step is the one part of the
+"self-evolving" claim that remains a human cadence, run via `/steward` (see
+`PLAYBOOK.md` §7.7).
 
 Or honestly, just do the quarterly review by reading `factory-evaluation` SKILL and answering its questions from your own observations. It's still structured discipline; just not measured.
 
@@ -599,7 +627,7 @@ If your first test session went well:
 
 1. **Note what worked.** Which SKILLs felt sharp? Which were over-engineered?
 2. **Note what didn't.** Where did the agent invoke the wrong SKILL? Where did the rationalization tables fail to land?
-3. **Add findings to your own quarterly review notes** (`.project/operational/factory-metrics/<quarter>.md` — create the file).
+3. **Add findings to your own quarterly review notes** (`.project/operational/library-evolution/YYYY-MM-DD-observations.md` — create the file; `system-steward` reads these alongside the usage/routing reports at the next `/steward` run).
 4. **Plan project #2.** Different domain, different stack — see if the same library serves both.
 
 If something fundamental broke:
@@ -618,10 +646,10 @@ For quick reference when you're looking at the installed `.claude/` tree:
 | Artifact | What it does | When you'd touch it |
 |---|---|---|
 | `.claude/agents/*.md` | Role-agent definitions. | Customize an agent's working style. |
-| `.claude/skills/*/SKILL.md` | The 83 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
+| `.claude/skills/*/SKILL.md` | The 90 disciplines. | Add domain-specific anti-rationalizations from your project's experience. |
 | `.claude/workflows/*.yaml` | Multi-step orchestrations. | Customize phase ordering or add a new workflow for a recurring pattern. |
 | `.claude/governance/governance.yaml` | Gate definitions + approver matrix. | Customize gate evidence requirements or approver routing. |
-| `.claude/commands/*.toml` | Slash commands. | Add a slash command for a recurring activity. |
+| `.claude/commands/*.md` | Slash commands. | Add a slash command for a recurring activity. |
 | `.claude/hooks/session-start.sh` | The SessionStart hook. | Add additional context surfacing. |
 | `.claude/scripts/validate-skills.sh` | Skill validator. | Extend with project-specific frontmatter checks. |
 | `.claude/references/*.md` | Cross-cutting references. | Add a checklist that multiple SKILLs reference. |
@@ -630,7 +658,7 @@ For quick reference when you're looking at the installed `.claude/` tree:
 | `.claude/README.md` | Library overview. | Reading reference. |
 | `.claude/PLAYBOOK.md` | Operating guide. | Reading reference. |
 | `.project/semantic/` | What you know (charter, NFRs, glossary). | Write when discovery / arch decisions land. |
-| `.project/episodic/` | What happened (retros, incidents). | Write after incidents + retros. |
+| `.project/episodic/` | What happened (retros, incidents, checkpoint records). | Write after incidents + retros; checkpoint records are written automatically by delivery-lead at each closure boundary. |
 | `.project/procedural/` | How you do things (policies). | Write when codifying a procedure. |
 | `.project/decision/` | ADRs (immutable). | Write per architectural decision. |
 | `.project/operational/` | What's live (runbooks, releases, debt). | Write when ops state changes. |

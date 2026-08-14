@@ -41,6 +41,7 @@ references:
   - promptfoo.md
   - deepeval.md
   - inspect-ai.md
+  - eval-worked-examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -108,22 +109,7 @@ Fast and cheap; ~10ms per check. Run on every eval pass.
 
 ## LLM-judge eval
 
-Judging quality with another LLM:
-
-```
-You are evaluating an AI assistant's response. Score on 4 dimensions:
-
-1. Groundedness (0-5): Are claims supported by the retrieved context?
-2. Relevance (0-5): Does the answer address the question?
-3. Completeness (0-5): Is the answer complete?
-4. Tone (0-5): Is the tone appropriate?
-
-Question: {question}
-Retrieved context: {context}
-Answer: {answer}
-
-Output: structured JSON with per-dimension scores + brief justification.
-```
+Judging quality with another LLM. See `references/eval-worked-examples.md` for the full judge-prompt template.
 
 LLM-judge is *powerful but biased*. Mitigations:
 
@@ -137,48 +123,11 @@ LLM-judge cost is meaningful at scale. Run nightly or per-PR; not per-request.
 
 ## Regression eval in CI
 
-Per `cicd-pipeline`'s gate discipline applied to AI:
-
-```yaml
-# Eval gate in CI
-- name: Run eval on golden dataset
-  run: |
-    python eval/run_eval.py \
-      --golden-dataset eval/golden-v3.jsonl \
-      --output eval/results.json
-
-- name: Check regression vs baseline
-  run: |
-    python eval/check_regression.py \
-      --current eval/results.json \
-      --baseline eval/baseline.json \
-      --threshold -0.02  # allow 2pt regression
-```
-
-PRs that regress eval scores by more than threshold fail the build. Threshold is project-specific:
-- Tight (-0.5pt) for production-critical use cases.
-- Loose (-2pt) for experimental features.
-
-Baselines are updated when intentional changes improve scores. Baseline updates are reviewed PRs.
+Per `cicd-pipeline`'s gate discipline applied to AI. PRs that regress eval scores by more than a threshold fail the build; threshold is project-specific (tight for production-critical use cases, loose for experimental features); baselines are updated via reviewed PRs when intentional changes improve scores. See `references/eval-worked-examples.md` for the full CI gate example, and `references/promptfoo.md` for a promptfoo-specific version.
 
 ## Slice-based eval
 
-Per `ml-training-evaluation` discipline applied here. Aggregate eval scores hide per-cohort regression:
-
-```markdown
-| Slice | Score | Volume | vs Baseline |
-|---|---|---|---|
-| Overall | 0.84 | 1000 | +0.02 |
-| English | 0.86 | 700 | +0.03 |
-| Spanish | 0.81 | 200 | +0.01 |
-| Other languages | 0.62 | 100 | **-0.08** |  ← regression
-| Easy queries | 0.92 | 600 | +0.02 |
-| Hard queries | 0.71 | 400 | **-0.01** |
-| With RAG hits | 0.88 | 800 | +0.02 |
-| Without RAG hits | 0.65 | 200 | +0.00 |
-```
-
-The overall score improved; the team would ship — but a slice regressed silently. Slice-eval catches this.
+Per `ml-training-evaluation` discipline applied here. Aggregate eval scores hide per-cohort regression — an overall score can improve while a slice regresses silently. See `references/eval-worked-examples.md` for a worked example table.
 
 ## Hallucination / groundedness detection
 

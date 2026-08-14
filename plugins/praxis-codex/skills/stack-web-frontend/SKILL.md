@@ -205,7 +205,7 @@ Only the relevant reference loads (progressive disclosure). Each reference cover
 
 You are done when:
 
-- [ ] Framework + meta-framework choice documented (React + Next.js / Vue + Nuxt / Svelte + SvelteKit / Angular).
+- [ ] Framework + meta-framework choice documented (React + Next.js / Vue + Nuxt / Angular).
 - [ ] Component model + state-management approach documented per `frontend-architecture`.
 - [ ] Design system applied; no orphan styles.
 - [ ] Bundler config produces tree-shaken, code-split output.

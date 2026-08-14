@@ -1,6 +1,6 @@
 ---
 name: distributed-systems-patterns
-description: "Cross-component correctness patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (single-component failure-handling). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed."
+description: "Cross-service data and coordination patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), the outbox and saga patterns, system-level idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (in-process, single-dependency failure-handling — timeouts, retries, circuit breakers, bulkheads) and `reliability-dr` (system-level availability architecture — redundancy, failover, RTO/RPO). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed."
 ---
 
 # Distributed Systems Patterns
@@ -27,6 +27,7 @@ outputs:
   - partitioning and sharding strategy
   - replication topology
   - consensus or coordination requirements (if any)
+  - outbox and saga designs for cross-service consistency
   - ordering and time-handling design (if temporal correctness matters)
   - partial-failure design (what does the system do during partitions)
 consumers:
@@ -35,7 +36,8 @@ consumers:
   - backend-developer (implements coordination per these decisions)
   - data-modeling (consumes consistency choices for schema design)
   - resilience-patterns (consumes for per-component failure design)
-references: []
+references:
+  - references/patterns.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -93,28 +95,7 @@ A client always sees their own writes (even if other clients see stale data).
 
 ### Choice per store
 
-Different data stores in the same system can have different consistency models. The system's correctness depends on each being explicit. ADR template:
-
-```markdown
-# ADR-NNN: Consistency Model — Orders Database
-
-## Decision
-Strong consistency (linearizable) within a single AWS region;
-eventual consistency for cross-region replicas.
-
-## Rationale
-Orders are financial transactions. A read returning a stale order
-state could double-charge, double-ship, or fail to honor a cancellation.
-
-## Trade-offs accepted
-- Latency: writes wait for synchronous replication within region (single-digit ms penalty).
-- Availability: single-region writes pause if the regional primary is unreachable.
-  Multi-region failover requires explicit cutover (RTO 5 min) — accepted per the NFR register.
-
-## Mechanism
-Aurora Postgres with multi-AZ synchronous replication;
-cross-region async replication for DR.
-```
+Different data stores in the same system can have different consistency models. The system's correctness depends on each being explicit. Worked ADR example (Orders Database — strong in-region, eventual cross-region): `references/patterns.md#choice-per-store-example`.
 
 ## CAP and PACELC
 
@@ -182,15 +163,29 @@ Common coordination needs:
 - **Distributed locks** — bounded duration; with fencing tokens to prevent stale-leader writes.
 - **Service discovery** — health-checked registration. K8s Services + DNS handle this for in-cluster; Consul/etcd for cross-cluster.
 
+## Outbox
+
+For cross-service consistency: a service that needs to *both* persist locally and publish an event must not do these in two separate transactions (the second can fail leaving inconsistent state). Transactional outbox: write the event to an outbox table in the same transaction as the business state; a background process publishes from the outbox and marks it published, at-least-once. This eliminates the "wrote to DB but failed to publish" inconsistency that plagues naive dual-writes. Worked example (transaction + publisher loop): `references/patterns.md#outbox`.
+
+## Saga
+
+For long-running, cross-service workflows that need to maintain consistency without distributed transactions, the saga pattern decomposes the workflow into local transactions per service + compensating actions for rollback. Worked example (order-placement saga with compensations): `references/patterns.md#saga`.
+
+Two implementations:
+- **Choreography** — services react to events; no central coordinator. Simpler but harder to reason about.
+- **Orchestration** — a saga orchestrator (often a workflow engine like Temporal, Camunda) coordinates. More visible state; preferred for complex sagas.
+
+Sagas are inherently eventually-consistent. They don't *prevent* failures; they ensure the system reaches a consistent state (success or compensated-rollback) regardless of mid-workflow failures.
+
 ## Idempotency at the system level
 
-`resilience-patterns` addresses single-call idempotency. This skill addresses *system-level* idempotency:
+`resilience-patterns` addresses single-call idempotency (idempotency keys on one mutation). This skill addresses *system-level* idempotency:
 
 - **Exactly-once semantics** — strictly impossible in distributed systems (without infinite memory). Approximations:
   - **At-least-once delivery + idempotent consumer** — practical and common.
   - **Idempotent producer + at-most-once delivery** — Kafka-style.
 - **Deduplication** — by message ID, by natural-key, by idempotency key.
-- **Compensating actions** — undo the side effects of a partial workflow (saga pattern from `resilience-patterns`).
+- **Compensating actions** — undo the side effects of a partial workflow (the saga pattern, above).
 
 The team's vocabulary should distinguish these. "We need exactly-once" is usually answered with "you need at-least-once + idempotent consumer."
 
@@ -222,38 +217,7 @@ These are not edge cases; they're routine. The architecture should *name* the re
 
 ## ADR template for distributed-system decisions
 
-```markdown
-# ADR-NNN: <Decision> — <Component>
-
-## Context
-<NFRs that drive the choice; the operating environment>
-
-## Decision
-<Concise statement>
-
-## Consistency model
-<linearizable | sequential | causal | eventual | read-your-writes>
-<per-store; per-operation if it varies>
-
-## Partitioning / replication
-<topology: single-leader | multi-leader | leaderless>
-<partition strategy: hash | range | geographic | composite>
-<partition key: <specific>>
-
-## Trade-offs accepted
-- CAP position: <CP / AP>
-- PACELC position: <EC / EL>
-- Specific implications: <latency, availability, recovery time>
-
-## Partial-failure behavior
-<For each component-loss scenario, what the system does>
-
-## Why we rejected alternatives
-<Brief on the 1-2 alternative approaches considered>
-
-## Verification
-<How chaos-engineering will verify these properties hold>
-```
+Context / decision / consistency model / partitioning-replication / CAP-PACELC trade-offs / partial-failure behavior / rejected alternatives / verification — full template at `references/patterns.md#adr-template`.
 
 ## Outputs
 
@@ -273,7 +237,8 @@ These are not edge cases; they're routine. The architecture should *name* the re
 
 ## What this skill does not do
 
-- Single-component failure handling — that's `resilience-patterns`.
+- Single-component / single-dependency failure handling (timeouts, retries, circuit breakers, bulkheads, per-call idempotency) — that's `resilience-patterns`.
+- System-level availability architecture (redundancy, failover, RTO/RPO, DR tiers, backup/restore) — that's `reliability-dr`.
 - Verify these properties — that's `chaos-engineering`.
 - Schema-level design — that's `data-modeling`.
 - Pick the storage technology — that's `architecture-pattern-selection` (informed by this skill).

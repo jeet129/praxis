@@ -166,8 +166,8 @@ You are done when:
 - [ ] Naming, error handling, and logging are reviewed against the section checklist.
 - [ ] No dependencies point in the wrong direction (e.g., domain depending on infra).
 - [ ] Reference-loaded stack packs are consulted for stack-specific norms (Java/Spring, Node/TS, Python).
-- [ ] The reference `git-workflow-checklist.md` was applied for commits and PRs.
-- [ ] The reference `code-simplification-heuristics.md` was applied before merge.
+- [ ] The reference `references/git-workflow-checklist.md` was applied for commits and PRs.
+- [ ] The reference `references/code-simplification-heuristics.md` was applied before merge.
 
 Evidence to check:
 - PR description references which standards were followed (or which were deliberately violated, with ADR link).

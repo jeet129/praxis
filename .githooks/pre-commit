@@ -35,6 +35,7 @@ TRIGGERS=(
   "references/"
   "patterns/"
   "scripts/"
+  "hooks/"
   "codex-plugin-assets/"
 )
 
@@ -65,6 +66,15 @@ if [[ ! -x scripts/build-codex-plugin.sh ]]; then
   exit 1
 fi
 
+# Model-routing TOMLs must be regenerated from canonical source before the
+# Codex build step runs — otherwise the build packages stale reasoning-effort
+# assignments.
+if ! python3 scripts/apply-model-routing.py --check; then
+  echo ""
+  echo "ERROR: run scripts/apply-model-routing.py and re-commit" >&2
+  exit 1
+fi
+
 # Run the build
 if ! scripts/build-codex-plugin.sh; then
   echo ""
@@ -89,6 +99,24 @@ if [[ -n "$(git diff --name-only plugins/praxis-codex/ 2>/dev/null)" ]] \
   echo ""
   echo "praxis pre-commit: staging regenerated plugins/praxis-codex/"
   git add plugins/praxis-codex/
+fi
+
+# ----------------------------------------------------------------------
+# Documentation reminder (non-blocking).
+# If behavior-defining artifacts changed but no documentation surface did,
+# remind the committer to double-check the docs before shipping.
+# ----------------------------------------------------------------------
+staged=$(git diff --cached --name-only)
+core_changed=$(echo "$staged" | grep -E '^(agents/|skills/|workflows/|commands/|governance/|scripts/|hooks/)' || true)
+docs_changed=$(echo "$staged" | grep -E '^(README\.md|INSTALLATION\.md|PLAYBOOK\.md|CHANGELOG\.md|ROADMAP\.md|docs/)' || true)
+if [[ -n "$core_changed" && -z "$docs_changed" ]]; then
+  echo ""
+  echo "⚠  praxis pre-commit: you changed agents/skills/workflows/commands/scripts"
+  echo "   but no documentation surface (README, INSTALLATION, PLAYBOOK, CHANGELOG,"
+  echo "   ROADMAP, docs/). Double-check that the documentation still matches the"
+  echo "   behavior you just changed — stale docs are the fastest way to lose users."
+  echo "   (This is a reminder, not a block.)"
+  echo ""
 fi
 
 echo ""

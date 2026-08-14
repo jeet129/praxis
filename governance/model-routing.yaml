@@ -1,0 +1,93 @@
+# Model routing table — the ONLY file in the repo that names concrete models.
+#
+# Agents declare an abstract `capability_tier` in their frontmatter (deep | standard | light).
+# This table resolves that tier to a harness-native model setting. When a vendor ships a
+# new model family, edit this file and run `scripts/apply-model-routing.py` — no agent
+# definition changes.
+#
+# Tier semantics (harness-agnostic):
+#   deep     — adversarial judgment, architecture, security, orchestration routing.
+#              Misses are expensive; buy the strongest reasoning available.
+#   standard — implementation, test authoring, product/UX artifacts. The thinking is
+#              carried by the implementation packet; generation quality at this tier
+#              is sufficient and much cheaper.
+#   light    — mechanical/formulaic work: doc drafts, scaffolding, formatting,
+#              telemetry digests. Cheapest tier; escalate on gate failure.
+#
+# Runtime override: delivery-lead applies the adaptive-model-routing rubric per task
+# and may shift an agent ±1 tier (see skills/adaptive-model-routing/SKILL.md,
+# "Agent spawn configuration"). Static tiers here are defaults, not ceilings.
+#
+# On the `auto` value: a map entry of `auto` means "do not pin a value for this
+# field — omit it and let the harness use its own default." This is distinct
+# from a concrete model/effort string, which pins that exact value. `auto` is
+# valid for any per-harness `map` or the new `effort_map` / `model_map` below.
+#
+# Concrete values (models, and effort levels for non-auto entries) are this
+# repo's current-best-known choice for the harness, not a permanent pin —
+# override-friendly: edit the map and re-run `scripts/apply-model-routing.py`,
+# or set a per-engagement `.project/governance/model-routing.yaml` override.
+#
+# `effort` (claude-code only) is Claude's reasoning-DEPTH knob, orthogonal to
+# `model` (the model FAMILY knob). Raising effort on a fixed model is often the
+# cheaper lever than escalating model family — see skills/adaptive-model-routing
+# and skills/llm-cost-optimization.
+#
+# Per-engagement overrides: `.project/governance/model-routing.yaml`, read by
+# `scripts/apply-model-routing.py`, `scripts/praxis-drive.sh`, and the report
+# scripts before falling back to this plugin-shipped copy. Pin concrete
+# models/effort there for a specific engagement without editing this file.
+
+version: 1
+
+tiers: [deep, standard, light]
+
+harnesses:
+  claude-code:
+    field: model            # written into agents/*.md frontmatter
+    map:
+      deep: opus
+      standard: sonnet
+      light: haiku
+    effort_field: effort            # written into agents/*.md frontmatter, alongside `model:`
+    effort_map:
+      deep: high
+      standard: medium
+      light: low
+  codex:
+    field: model_reasoning_effort   # written into codex-plugin-assets/codex-agents/*.toml
+    map:
+      deep: high
+      standard: medium
+      light: low
+    model_field: model              # written into codex-plugin-assets/codex-agents/*.toml (omitted when auto)
+    model_map:
+      deep: auto
+      standard: auto
+      light: auto
+  gemini-cli:
+    field: model
+    map:
+      deep: gemini-2.5-pro
+      standard: gemini-2.5-flash
+      light: gemini-2.5-flash-lite
+
+# Optional governance pin: set to a tier name to force every agent to that tier
+# (e.g. a compliance-critical engagement that mandates `deep` everywhere).
+overrides:
+  force_tier: null
+
+# Escalation policy consumed by delivery-lead at runtime:
+escalation:
+  on_gate_failure: promote_one_tier_and_retry_once   # then escalate to human
+  demotion_allowed: true                             # trivial tasks may run one tier lower
+  log_routing_decisions_to: .project/telemetry/model-routing.jsonl
+
+# Relative cost weights per tier — used by scripts/factory-routing-report.py to
+# compute a cost PROXY when the harness doesn't expose token counts. These are
+# deliberately coarse (roughly: relative per-token price of the tier's resolved
+# model); tune per organization. They are NOT dollar figures.
+cost_weights:
+  deep: 5.0
+  standard: 1.0
+  light: 0.25

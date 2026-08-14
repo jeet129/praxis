@@ -45,8 +45,11 @@ steps:
       personas: from(discovery.personas)
       opportunity_brief: from(discovery.opportunity_brief)
       mvp_scope_hypothesis: from(discovery.mvp_scope_hypothesis)
-    outputs: [journey_maps_per_persona, critical_moments, unhappy_paths, touchpoints]
+    outputs: [journey_maps_per_persona, critical_moments, unhappy_paths, touchpoints, design_brief]
     notes: |
+      Also produces .project/semantic/design-brief.md (brand adjectives,
+      reference products, density, tone — per frontend-design) at this first
+      UX engagement; every later FE/mobile task reads it.
       Runs early — journeys inform requirements + NFRs (per-flow latency,
       per-flow availability) before architecture decisions lock in.
 
@@ -76,6 +79,9 @@ steps:
   - id: requirements_complete_check
     type: decision_node
     predicate: requirements_complete(requirements_brief, user_stories, nfr_register, journey_maps)
+    # Judgment call — "complete" means good enough to freeze, not just present.
+    # Phase A stays human-gated per references/phase-gates.md §1.
+    fallback_gate: requirements_freeze
     branches:
       true: [requirements_freeze_gate]
       false: [requirements_elicitation, with_open_questions_resolved]
@@ -155,13 +161,24 @@ steps:
   - id: challenger_findings_resolved
     type: decision_node
     predicate: challenge_findings_addressed(challenge_report)
+    # Judgment call — did SA incorporate vs. reject each finding, and is any
+    # rejection's rationale sound? Rejections route through the dedicated
+    # governance gate rather than being self-certified here.
+    fallback_gate: challenger_objection_override
     branches:
       true: [nfr_check]
       false: [architecture_and_ux_parallel, with_challenge_findings_as_input]
 
   - id: nfr_check
     type: decision_node
-    predicate: nfr_satisfied(architecture_decision, fe_architecture, nfr_register)
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
     branches:
       true: [project_phasing]
       false: [architecture_and_ux_parallel, with_nfr_violations_as_input]
@@ -275,13 +292,14 @@ implementation_slice_saas_definition:
             - source-grounded-coding
             - stack-web-frontend
             - design-system
+            - frontend-design
             - accessibility
             - frontend-performance
             - i18n-l10n   # if i18n_target_locales > 1
             - secure-coding   # XSS / CSRF / CSP for FE
             - testing-strategy
             - observability   # FE RUM + error tracking
-          outputs: [fe_pr_opened, fe_tests_passing, a11y_scan_pass, lighthouse_pass, bundle_within_budget]
+          outputs: [fe_pr_opened, fe_tests_passing, a11y_scan_pass, lighthouse_pass, bundle_within_budget, ui_screenshots]
 
     - id: integration_validation
       type: agent_invocation
@@ -307,6 +325,22 @@ implementation_slice_saas_definition:
           inputs: { pr: from(backend_frontend_parallel.frontend.fe_pr_opened) }
           outputs: [fe_review_verdict, fe_findings]
 
+    - id: visual_review
+      type: agent_invocation
+      agent: ux-designer
+      condition: slice_has_ui_tasks
+      inputs:
+        screenshots: from(backend_frontend_parallel.frontend.ui_screenshots)
+        design_plan: from(parent.design_plan, if_exists)
+        design_tokens: from(parent.design_tokens, if_exists)
+      consumes_skills:
+        - frontend-design
+      outputs: [visual_review_verdict, visual_findings]
+      notes: |
+        Fires only on UI-bearing slices. Screenshots at 2-3 viewports incl.
+        empty/loading/error states, scored against the design plan, tokens,
+        and frontend-design's calibration. Blockers feed the same fix loop.
+
     - id: security_review
       type: agent_invocation
       agent: security-reviewer
@@ -331,7 +365,20 @@ implementation_slice_saas_definition:
 
     - id: slice_dod_check
       type: decision_node
-      predicate: slice_dod_met(be_review_verdict, fe_review_verdict, security_verdict, qa_verdict, integration_passed)
+      predicate:
+        name: slice_dod_met
+        check: verdict_file
+        args:
+          files:
+            - path: .project/working/review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/security-review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/qa-acceptance-*.md
+              clear_of: [REJECTED]
+        on_fail: route_back
+        # Phase C — squarely in slice-drive's autonomous span (phase-gates.md
+        # §1); no fallback_gate needed, this is the machine-checkable DoD.
       branches:
         true: [close_slice]
         false: [open_slice, with_findings_as_input]

@@ -41,7 +41,9 @@ consumers:
   - every agent at session start
   - all role agents (receive routed work)
   - delivery-planner (this SKILL runs against the planner's output)
-references: []
+references:
+  - workflow-file-shape.md
+  - orchestration-runtime-detail.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -56,22 +58,9 @@ The Delivery Lead persona is the **WHO**; this SKILL is the **HOW**. Persona and
 
 ## When this SKILL fires
 
-Layer 1 (routing):
+Layer 1 (routing): session just started; a vague user request needs mapping to a workflow; uncertain which SKILL to invoke; handing off work to a sub-agent; a slash command needs interpreting.
 
-- A session just started — what do I do first?
-- The user gave a vague request — which workflow does it map to?
-- I'm uncertain which SKILL to invoke for the current task.
-- I'm handing off work to a sub-agent and need to brief them.
-- A slash command was used and I need to know what it means.
-
-Layer 2 (orchestration runtime):
-
-- A new project begins → load the project's workflow, evaluate entry criteria.
-- A workflow step completes → advance to next step or Decision Node.
-- A Decision Node is reached → evaluate predicate, route to chosen branch.
-- A gate is reached → pause, route approval, resume on approval.
-- A step fails → apply the failure path (rollback / retry / escalate).
-- A slice ends → close `working/` memory, open the next slice.
+Layer 2 (orchestration runtime): a new project begins (load workflow, evaluate entry criteria); a workflow step completes (advance to next step or Decision Node); a Decision Node is reached (evaluate predicate, route to branch); a gate is reached (pause, route approval, resume); a step fails (apply the failure path); a slice ends (close `working/` memory, open the next).
 
 ---
 
@@ -94,201 +83,124 @@ Match the user's intent against this decision tree:
 
 ```
 USER INTENT
-  │
-  ├─ "Start a new project" / "Build me a new ..." 
+  ├─ "Start a new project" / "Build me a new ..."
   │     → /start (bootstraps; runs delivery-planner)
   │     → THEN: greenfield-api-service.yaml OR greenfield-saas.yaml
-  │
   ├─ "Pick up this existing codebase" / "Add ... to our existing system"
   │     → /audit (brownfield first-week: comprehension → arch reconciliation → debt audit → impact analysis)
   │     → THEN: brownfield-enhancement.yaml
-  │
   ├─ "Define what we're building" / "What are the requirements?"
   │     → /discover → Phase A (Product Manager)
   │     → Skills: product-discovery → requirements-elicitation → requirements-interrogation → nfr-definition
   │     → Gate: requirements_freeze
-  │
   ├─ "Design the architecture" / "How will this be built?"
   │     → /architect → Phase B (Solution Architect)
   │     → Skills: architecture-pattern-selection → api-design → data-modeling → resilience-patterns → threat-modeling → project-phasing
   │     → Plus: Architecture Challenger (5 sub-personas)
   │     → Gate: architecture_sign_off
-  │
+  ├─ "New story/epic/ticket arrived" / "here's a new requirement" (STEADY STATE — after initial discovery)
+  │     → /intake → runs requirements-intake triage (size + impact + owner) and ROUTES it for you (user picks nothing):
+  │       small ready story → /slice + /drive · touches existing behavior → impact-analysis → /slice
+  │       · epic/cross-cutting → group → /discover → /architect → project-phasing · unproven → spike · P0/P1 → expedited-change
+  │     → Writes .project/working/inbox.md + inbox-decisions.md; prevents FIFO churn + impulse coding
   ├─ "Build slice N" / "Implement feature X"
   │     → /slice → implementation-slice.yaml workflow (per Lead Dev decomposition)
   │     → Activates the right specialist: backend-developer | frontend-developer | data-engineer | ml-ai-engineer
-  │     → Skills: stack-X → secure-coding → testing-strategy → observability → code-review → security-review → QA
-  │
+  │     → Skills: stack-X → frontend-design (UI tasks) → secure-coding → testing-strategy → observability → code-review → visual review (UI) → security-review → QA
   ├─ "Ship to production" / "Release v..."
   │     → /release → production-release.yaml workflow
   │     → Assembles 10-item evidence pack
   │     → Gate: production_go_live
-  │
   ├─ "Run the quarterly library review"
   │     → /steward → System Steward agent
-  │     → Consumes factory-evaluation report
-  │     → Produces steward report
+  │     → Consumes factory-evaluation report → produces steward report
   │     → Gate: steward_promotion (per-proposal approval)
-  │
+  ├─ "I have a rough idea" / "Help me refine this concept before we build"
+  │     → /refine-idea → ideation-refinement-loop.yaml workflow
+  │     → Bounded creator/reviewer/enhancer/arbiter loop; harnesses are swappable bindings
+  │     → Gate: ideation_refinement_approval
+  ├─ "Review this contract / ADR / roadmap" (outside a normal gate)
+  │     → /review → on-demand closed-loop review
+  │     → Skills: code-review + secure-coding + threat-modeling + api-design as scoped
+  ├─ "Record what we learned using skill X" / "capture an observation"
+  │     → /factory-record → rich factory-metrics observation for steward review
   ├─ "Something broke" / "We have an incident"
-  │     → incident-runbook SKILL
-  │     → Severity routing per the matrix in incident-runbook
-  │
+  │     → incident-runbook SKILL; severity routing per its matrix
+  ├─ "Production is broken and needs a fix NOW" (P0/P1)
+  │     → incident-runbook severity check first — only P0/P1 (or a critical
+  │       security patch) is expedited-path eligible; else reroute to brownfield-enhancement.yaml
+  │     → THEN: expedited-change.yaml — compressed gates now, MANDATORY retro
+  │     → Gates: expedited_change_approval, expedited_change_retro
+  ├─ "Can we even do X?" / "prove feasibility first"
+  │     → spike.yaml — time-boxed build-to-learn loop; spike code NEVER merges
+  │     → Gate: spike_disposition (archive | promote report into discovery)
+  ├─ "Replace/modernize this legacy system"
+  │     → modernization.yaml — strangler-fig; comprehension → target
+  │       architecture/migration strategy → per-seam increment loop → cutover
+  │     → Gates: modernization_strategy_sign_off, parallel_run_verification (per increment), legacy_decommission_approval
   ├─ "Add a new ML feature" / "Build an LLM-powered ..."
   │     → ml-ai-engineer agent activates (has_ml or has_agentic_ai must be true)
   │     → Skills: ml-problem-framing (always start here for ML) OR agentic-architecture (for LLM)
-  │
-  └─ Unclear intent → ASK CLARIFYING QUESTION
-        Don't guess. Per the requirements-interrogation discipline, surface ambiguity early.
+  ├─ "Run it autonomously" / "Keep going without me"
+  │     → /drive → `autonomous-drive` protocol iterates the active task ledger
+  └─ Unclear intent → ASK CLARIFYING QUESTION. Don't guess — per
+        requirements-interrogation, surface ambiguity early.
 ```
+
+## Workflow composition policy
+
+Workflow templates in `workflows/` are patterns, instantiated per-project by
+`delivery-planner` (flags activate/deactivate branches, phases, sub-personas).
+A scenario earns a **new** workflow file only when its **gate topology**
+differs — a different rhythm of human approvals — not merely because its
+content differs; otherwise it's planner parameterization of an existing
+template. This is the anti-sprawl rule: `factory-evaluation` treats
+workflow-count creep as a decay signal, same as skill-count creep.
+
+The per-workflow gate-topology signatures (all 9, one line each) live in
+`references/orchestration-runtime-detail.md` — load when deciding whether a
+scenario needs a new workflow or a planner flag.
 
 ## Slash commands
 
 | Command | What it does | Maps to |
 |---|---|---|
 | `/start` | Bootstrap a new project | `delivery-planner` + architecture-doc skeleton |
+| `/intake` | Steady-state front door — triage & route any new requirement | `requirements-intake` → slice / discover / architect / spike / expedited |
 | `/discover` | Phase A — requirements + NFRs | PM + 4 skills + `requirements_freeze` |
 | `/architect` | Phase B — architecture + threat model + Challenger | SA + 7 skills + `architecture_sign_off` |
 | `/slice` | One implementation slice | `implementation-slice.yaml` workflow |
 | `/release` | Production release | `production-release.yaml` + `production_go_live` |
 | `/audit` | Brownfield first-week kickoff | comprehension → reconciliation → debt → impact analysis |
 | `/steward` | Quarterly library review | System Steward + `steward_promotion` |
+| `/refine-idea` | Bounded ideation refinement loop | `ideation-refinement-loop.yaml` + `ideation_refinement_approval` |
+| `/drive` | Autonomous drive iteration over the active task ledger | `autonomous-drive` SKILL |
+| `/review` | On-demand closed-loop artifact review | reviewer roles + `.project/operational/reviews/` |
+| `/factory-record` | Capture a rich telemetry observation | `scripts/factory-record.sh` |
 
-Each slash command is a TOML file under `.claude/commands/` that activates the right sequence. Read the TOML if you want to see exactly which SKILLs it invokes.
+Each slash command is a Markdown file (YAML frontmatter + prompt) under `.claude/commands/` for Claude Code; Gemini CLI uses the TOML variants under `.gemini/commands/`; Codex ships each command as a `$praxis-<name>` command skill (generated into the Codex plugin's `skills/praxis-*` from `codex-plugin-assets/`). Read the command file if you want to see exactly which SKILLs it invokes.
 
 ## Agent → role mapping
 
-When you decide which agent should do the work:
-
-| User intent | Lead agent |
-|---|---|
-| Vague request, mode unclear | Delivery Lead |
-| "Define what we're building" | Product Manager |
-| "Design the architecture" | Solution Architect |
-| "Review the architecture adversarially" | Architecture Challenger |
-| "Decompose into slices" | Lead Developer |
-| "Implement backend slice" | Backend Developer |
-| "Implement frontend slice" | Frontend Developer |
-| "Design the UX" | UX Designer |
-| "Review this PR" | Code Reviewer |
-| "Audit security" | Security Reviewer |
-| "Write the test plan" | QA Engineer |
-| "Write the docs" | Tech Writer |
-| "Set up infra / CI / deploy" | Platform/SRE |
-| "Build data pipeline / model the warehouse" | Data Engineer (has_data_plane required) |
-| "Build ML feature / LLM agent / RAG / safety" | ML/AI Engineer (has_ml or has_agentic_ai required) |
-| "Evolve the library itself" | System Steward (cross-project; quarterly) |
-
-Two-tier orchestration: **Delivery Lead routes phases → Phase Leads run their phase → Specialists execute slices.** Don't have agents invoke other agents directly outside this pattern.
+Two-tier orchestration: **Delivery Lead routes phases → Phase Leads (PM, Solution Architect, Lead Developer, Platform/SRE) run their phase → Specialists execute slices.** Don't have agents invoke other agents outside this pattern. Each agent's frontmatter description states its trigger; the full intent → lead-agent table lives in `references/orchestration-runtime-detail.md`. Conditional specialists: Data Engineer (`has_data_plane`), ML/AI Engineer (`has_ml` or `has_agentic_ai`), Mobile Developer (mobile in scope).
 
 ## Cadences
 
-| Cadence | What runs |
-|---|---|
-| **Per slice** (2-5 days) | `implementation-slice.yaml` + Code Review + Security Review + QA gates + slice DoD |
-| **Per cycle** (2-4 weeks) | Cycle planning; debt allocation (15-25%); cycle retro |
-| **Per release** | `production-release.yaml` + `production_go_live` gate + release notes |
-| **Monthly** | Architecture documentation reconciliation; runbook freshness; ADR walk |
-| **Quarterly** | `factory-evaluation` → System Steward → `steward_promotion` |
+Load `references/orchestration-runtime-detail.md` for the full per-slice / per-cycle / per-release / monthly / quarterly cadence table.
 
 ## Project memory map
 
-When writing artifacts, place them per the six-type taxonomy (per `memory-management`):
-
-| Type | Where | What |
-|---|---|---|
-| **Semantic** | `.project/semantic/` | What we know (charter, glossaries, product discovery, NFR register, datasheets) |
-| **Episodic** | `.project/episodic/` | What happened (retros, incidents, postmortems, decision-event logs) |
-| **Procedural** | `.project/procedural/` | How we do things (procedures, policies, runbook templates) |
-| **Decision** | `.project/decision/` | ADRs; immutable; INDEX.md catalogs |
-| **Operational** | `.project/operational/` | What's live (runbooks, releases, ml-models, factory-metrics, debt-register) |
-| **Working** | `.project/working/` | In-flight artifacts (architecture overview, in-flight diagrams, workflow-state.yaml) |
-
-Every artifact carries the seven-field memory frontmatter so `memory-management` can index it.
+Artifacts are placed per the six-type taxonomy (semantic, episodic, procedural, decision, operational, working) defined in `memory-management`. Load `references/orchestration-runtime-detail.md` for the full location table. Every artifact carries the seven-field memory frontmatter so `memory-management` can index it.
 
 ---
 
 # LAYER 2 — ORCHESTRATION RUNTIME
 
-A workflow file (in `workflows/`) is the declarative state machine; this SKILL's Layer 2 is the interpreter.
+A workflow file (in `workflows/`) is the declarative state machine; this SKILL's Layer 2 is the interpreter. Drive-mode sessions run this same interpreter one task at a time — see `autonomous-drive` for the per-iteration protocol.
 
 ## Workflow file shape
 
-```yaml
-name: greenfield-api-service
-version: 1
-entry_criteria:
-  - requirements_brief_exists
-  - target_repo_identified
-  - mode_known
-steps:
-  - id: discovery
-    type: agent_invocation
-    agent: product-manager
-    skill: requirements-elicitation
-    inputs:
-      from: initial_brief
-    outputs: [requirements_brief, scope_boundary]
-    on_failure: escalate
-
-  - id: nfr_definition
-    type: agent_invocation
-    agent: product-manager
-    skill: nfr-definition
-    inputs:
-      from: requirements_brief
-    outputs: [nfr_register]
-
-  - id: requirements_gate
-    type: gate
-    name: requirements_freeze
-    approver: governance.requirements_freeze.approver
-
-  - id: architecture
-    type: parallel
-    branches:
-      - agent: solution-architect
-        skill: architecture-pattern-selection
-        outputs: [architecture_decision, c4_diagrams]
-      - agent: ml-ai-engineer
-        skill: ml-problem-framing
-        condition: project.has_ml == true
-
-  - id: challenger_review
-    type: agent_invocation
-    agent: architecture-challenger
-    skill: architecture-pattern-selection
-    sub_personas: [scale, security, cost, operations, reliability]
-    inputs:
-      from: architecture
-    outputs: [challenge_report]
-
-  - id: nfr_check
-    type: decision_node
-    predicate: nfr_satisfied(architecture_decision, nfr_register)
-    branches:
-      true: [architecture_gate]
-      false: [architecture, with_violations_as_input]
-
-  - id: architecture_gate
-    type: gate
-    name: architecture_sign_off
-    approver: governance.architecture_sign_off.approver
-
-  - id: implementation_loop
-    type: per_slice
-    workflow: implementation-slice
-    until: project_phasing.complete == true
-
-exit_criteria:
-  - all_phases_complete
-  - production_go_live_approved
-failure_paths:
-  rollback:
-    - revert_repo_changes
-    - close_slice
-    - notify_human
-```
+Workflow YAMLs follow a canonical shape (metadata, phases, steps with agent/skills/inputs/outputs, decision nodes, gates, failure paths). Load `references/workflow-file-shape.md` for the annotated structure before executing an unfamiliar workflow.
 
 ## Step types
 
@@ -306,93 +218,53 @@ The orchestrator understands a small set of step types:
 
 ## Decision Node evaluation
 
-Decision Nodes are first-class — this SKILL owns the logic, not the agent.
+Decision Nodes are first-class — this SKILL owns the logic, not the agent. The `predicate` is named — dispatch to a small library of evaluators (in `predicates/`). Each predicate is a pure function that reads step outputs and returns a branch key. New predicates are added per workflow as needed; they live in the workflow's namespace. Load `references/orchestration-runtime-detail.md` for a worked `decision_node` YAML example.
 
-```yaml
-- id: nfr_check
-  type: decision_node
-  predicate: nfr_satisfied(architecture_decision, nfr_register)
-  branches:
-    true: [architecture_gate]
-    false: [architecture, with_violations_as_input]
-```
-
-The `predicate` is named — dispatch to a small library of evaluators (in `predicates/`). Each predicate is a pure function that reads step outputs and returns a branch key. New predicates are added per workflow as needed; they live in the workflow's namespace.
+Every `decision_node`'s predicate must resolve to a registered `check` kind or declare a `fallback_gate` — a bare prose predicate with neither is a protocol violation, not a judgment call this SKILL gets to make silently. `references/phase-gates.md` §2 is the pinned spec (the workflow-drive / phase-gate spec, one ring above `loop-contracts.md`'s slice-drive rules); `scripts/validate-workflows.py` enforces it.
 
 ## Model selection before agent spawn
 
-Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct model. Pass the result as the `model:` field in the Agent tool call. Do not default to Opus without scoring — Opus quota is finite and the rubric exists to prevent waste.
-
-Fast reference:
-- Architecture Challenger, threat-modeling, novel cross-cutting ADR → `claude-opus-4-8`
-- Everything else → score the rubric; default is `claude-sonnet-4-6`
-- Classification, intent detection, pre-flight → `claude-haiku-4-5-20251001`
-
-Log every routing decision to `.project/working/model-routing-log.yaml`.
-
-Each agent also ships a default model in its own frontmatter (`model:` field). That default applies when the agent is spawned without an explicit routing decision. `adaptive-model-routing` overrides the default when the task profile warrants.
+Before every `agent_invocation` step, the Delivery Lead MUST run `adaptive-model-routing` to select the correct capability tier (deep | standard | light) and resolve it against the **effective** routing table (project override first, plugin default fallback) via `scripts/resolve-model.py`. Applying the result is harness-specific: on **Claude Code**, pass it as the `model:` field in the Agent tool call (per-spawn override is supported); on **Codex**, there is NO per-spawn model override — the resolved tier reaches the sub-agent via its `.codex/agents/*.toml` profile, which `$praxis-setup-subagents` regenerates from the same table (re-run it after a routing change). The RESOLUTION is identical whether or not the drive loop is running — no-drive routes the same as drive because both resolve from the same table; only the application mechanism differs per harness. Do not default to the deep tier without scoring — deep-tier budget is finite. Fast reference: Architecture Challenger / threat-modeling / novel cross-cutting ADR → `deep`; everything else → score the rubric, default `standard`; classification / intent detection / pre-flight → `light`. Log every decision to `.project/telemetry/model-routing.jsonl`. Each agent's frontmatter `model:` field is the fallback default when spawned without an explicit routing decision; `adaptive-model-routing` overrides it when the task profile warrants.
 
 ## Agent routing model
 
-When a step says `agent: solution-architect`:
+When a step names an agent: load its definition, spawn it with the step's resolved inputs, await its declared outputs, and validate the shape (failure triggers `on_failure`). Load `references/orchestration-runtime-detail.md` for the full five-step sequence. This SKILL never executes agent work itself — it is the routing and gate layer; the agents are the workers.
 
-1. Load the agent definition (`agents/solution-architect.md`).
-2. Spawn a subagent instance in the host (Claude Code subagent tool; Codex session-as-agent pattern).
-3. Hand it the step's `inputs` (resolved from prior step outputs).
-4. Await the agent's outputs (declared in the agent's frontmatter).
-5. Validate outputs against the declared shape; failure triggers `on_failure`.
+## Agent Operating Protocol (AOP)
 
-This SKILL never executes agent work itself. It is the routing and gate layer; the agents are the workers.
+Every role agent (specialist, phase lead, or gate reviewer) executes its work as the same seven-phase loop. Agents don't restate this generically — each agent's "Working pattern (AOP)" section names only what's *specific* to that role at each phase; this is the canonical definition of what each phase means:
+
+1. **Understand.** Read the task's inputs — scoped to what this task needs (the slice packet, the named ADRs, the agent's own portion of `.project/working/`), not a whole-directory read. Ground yourself in the current state before acting.
+2. **Clarify.** Run `requirements-interrogation` to produce a KUACQ block (Known / Unknown / Assumed / Constraints / Questions) for anything ambiguous in the task. Route Questions to the responder who owns the answer.
+3. **Plan.** Decompose the task into an ordered sequence of concrete steps before starting work.
+4. **Execute.** Do the work, following the plan and the role's governing SKILLs/standards.
+5. **Validate.** Self-check the output against the task's acceptance bar (tests, linters, gate criteria, or equivalent) before calling it done.
+6. **Document.** Record what was done and why — implementation notes, ADRs for non-trivial choices, updates to `.project/working/` state.
+7. **Hand-off.** Deliver the output to whoever consumes it next (reviewer, orchestrator, downstream agent) with enough context that they don't have to reconstruct scope.
+
+Agents reference this list as "the seven-phase AOP" and add only their role-specific detail per phase.
+
+**Hand-off reply contract (every agent, every mode):** artifacts belong on disk; the reply to your spawner is ≤15 lines, structured: status, artifact paths, verify result, deviations, blockers/uncertainty. The last two are MANDATORY when they exist — never compress away risk information to hit the budget; if a finding needs depth, write it to an artifact and reference the path. The budget targets restated content, not signal.
+
+**Read discipline (every agent, every mode):** locate before you load — Grep/Glob to find the relevant region, then Read the section you need; reviewers work from the diff plus requested context. Reading MORE is always permitted when judgment requires it — this rule targets mechanical whole-file/whole-tree ingestion, never depth of analysis. When in doubt about correctness or security, read deeper.
+
+**Tool-output hygiene (every agent, every mode):** never pipe full test/build/lint output into context — run commands quiet, capture to a log file, and read back the exit code plus a failure extract only. Tool results are the largest invisible input-token sink.
 
 ## Gate enforcement
 
-When a `gate` step is reached:
+When a `gate` step is reached: read `governance/governance.yaml` for the approver, construct the approval request (what's being approved, evidence package, recommended action), route to the approver (solo dev: the principal; team: per the matrix), pause the workflow, then resume on `approved`/`rejected` — on rejection, loop back to the prior step with the rejection rationale or escalate per the workflow's rejection-path declaration. Load `references/orchestration-runtime-detail.md` for the full six-step sequence. Gates are non-skippable. A `challenger_objection_override` is itself a gated decision that produces an ADR.
 
-1. Read `governance/governance.yaml` for the gate's approver.
-2. Construct the approval request (what's being approved, evidence package, recommended action).
-3. Route to the approver (solo dev: the principal; team: per the matrix).
-4. Pause the workflow.
-5. Resume on `approved` or `rejected` response.
-6. On `rejected`: loop back to the prior step with rejection rationale as input, or escalate per the workflow's rejection-path declaration.
+Every gate resolution (and every phase end) produces a structured checkpoint entry in `.project/episodic/` per `references/factory-metrics-schema.md` — the factory's universal usage/telemetry record across ALL phases, not just slices.
 
-Gates are non-skippable. A `challenger_objection_override` is itself a gated decision that produces an ADR.
+## Parallelism, failure paths, and lifecycle
 
-## Parallelism
-
-`parallel` and `parallel_until` steps run concurrently. Coordinate via the agent host (Claude Code spawns subagents; Codex spawns serial sessions with shared `.project/`). Writes to `.project/` are serialized regardless of parallel agent execution.
-
-## Failure paths
-
-Every step that can fail declares an `on_failure` action:
-
-- `escalate` — route to human (default).
-- `rollback` — apply the workflow's rollback steps.
-- `retry_n` — retry with backoff up to N times.
-- `route_to: <step_id>` — jump to a remediation step.
-
-## Workflow lifecycle
-
-```
-loaded → entry_criteria_met → running → (each step: pending → in_progress → complete) → exit_criteria_met → complete
-                                  ↓
-                              failed (if exit_criteria_not_met + no recovery)
-```
-
-Workflow state persists in `.project/working/workflow-state.yaml` so execution can resume across sessions. On project completion, the state archives to `.project/episodic/`.
+`parallel`/`parallel_until` steps run concurrently, coordinated via the agent host; writes to `.project/` are serialized regardless. Every step that can fail declares an `on_failure` action (`escalate` default, `rollback`, `retry_n`, or `route_to:`). Workflow state persists in `.project/working/workflow-state.yaml` and archives to `.project/episodic/` on completion. Load `references/orchestration-runtime-detail.md` for the full failure-path detail and the workflow lifecycle state diagram.
 
 ---
 
 ## Common rationalizations
 
-| The agent's thought | Counter |
-|---|---|
-| "I'll skip the charter; I can infer the flags." | The charter exists for a reason — multiple agents read it. Inferring fragments the team's view. Read it. |
-| "I know which SKILL to use; I don't need the front door." | The front door is 60 seconds. Choosing the wrong starting SKILL is 60 minutes of rework. |
-| "I'll spawn another agent from inside this one." | Two-tier rule: only the Delivery Lead routes. Specialists do work; they don't spawn peers. |
-| "The user said 'just build it'; I'll skip discovery." | Vague-request-into-implementation is the #1 failure mode. Always at least run requirements-interrogation's KUACQ block. |
-| "Gates are bureaucracy; I'll bypass." | Gates are how approvals leave evidence trails. Bypass = no trail = no audit answer. |
-| "Decision Nodes are just if-statements; I'll inline." | Named predicates exist to be versioned, evaluated identically every time, and overridden by ADR when needed. Inlining defeats all three. |
-| "The workflow file is verbose; I'll just remember the steps." | Workflows are how the system survives sessions. Steps in your head die at session end. |
+Load `references/orchestration-runtime-detail.md` for the full rationalization-vs-counter table (charter-skipping, front-door-skipping, peer-spawning, discovery-skipping, gate-bypassing, Decision Node inlining, unpersisted steps).
 
 ## Mode handling (G/B)
 
@@ -423,39 +295,21 @@ If any item is missing, the step is not complete; do not advance.
 
 ## Outputs
 
-| Output | Location |
-|---|---|
-| Routing decision | inline reasoning; logged to `.project/episodic/routing-decisions.md` if non-obvious |
-| Active workflow marker | `.project/working/active-workflow.md` |
-| Workflow state | `.project/working/workflow-state.yaml` |
-| Gate evaluation records | `.project/operational/governance-events/` |
-| Decision Node decisions | inline in workflow state |
+Routing decisions (inline; logged to `.project/episodic/routing-decisions.md` if non-obvious), the active workflow marker (`.project/working/active-workflow.md`), workflow state (`.project/working/workflow-state.yaml`), gate evaluation records (`.project/operational/governance-events/`), and Decision Node decisions (inline in workflow state). Load `references/orchestration-runtime-detail.md` for the full output-location table.
 
 ## What this SKILL does NOT do
 
-- Execute the work — it routes to the SKILL / workflow / agent that does.
-- Bootstrap the charter — that's `delivery-planner` via `/start`.
-- Catalog the SKILLs — that's `skill-registry` (machine-readable index).
-- Plan the project — that's `delivery-planner` + `project-phasing`.
-- Make agent-level judgment — agents do that within their phase.
-- Modify the library — System Steward does that; this SKILL consumes the library as-published.
+Execute the work (it routes only), bootstrap the charter (`delivery-planner` via `/start`), catalog the SKILLs (`skill-registry`), plan the project (`delivery-planner` + `project-phasing`), make agent-level judgment (agents do that within their phase), or modify the library (System Steward's job). Load `references/orchestration-runtime-detail.md` for the full list.
 
 ## Anti-patterns
 
-- Charter never read; agents operate on guesses.
-- Routing decision skipped; agent jumps straight to implementation.
-- Wrong agent invoked because the intent wasn't parsed.
-- Slash commands bypassed; the user types out 200-word prompts each time.
-- Specialist agent spawns peers (two-tier rule violated).
+- Charter never read (agents guess) / routing skipped (jumps straight to implementation) / wrong agent invoked (intent unparsed).
+- Slash commands bypassed (200-word prompts each time) / specialist spawns peers (two-tier rule violated).
 - Cadences ignored — quarterly steward review never happens; library decays.
-- Workflow steps "remembered" instead of persisted to state — execution can't resume.
-- Gates skipped programmatically — no evidence trail.
-- Decision Node logic inlined as if-statements — can't be versioned or overridden.
-- Predicates re-implemented per workflow — duplication; drift between evaluators.
+- Workflow steps "remembered" instead of persisted — execution can't resume; gates skipped programmatically — no evidence trail.
+- Decision Node logic inlined as if-statements (can't be versioned) / predicates re-implemented per workflow (drift between evaluators).
 - `on_failure` not declared — failures silently swallowed; no rollback.
 
 ## Implementation notes
 
-- This SKILL runs in the Delivery Lead's context; subagents run in their own contexts. Cross-context state passes through `.project/working/`.
-- Predicate evaluators are versioned alongside workflows. Changing a predicate used in production workflows requires an ADR.
-- This SKILL never *writes* to skills, agents, workflows, or governance — those are read-only at runtime. Modifications go through System Steward + `steward_promotion`.
+This SKILL runs in the Delivery Lead's context; subagents run in their own, with cross-context state passing through `.project/working/`. Predicate evaluators are versioned alongside workflows — changing one used in production requires an ADR. This SKILL never *writes* to skills, agents, workflows, or governance (read-only at runtime); modifications go through System Steward + `steward_promotion`.

@@ -32,10 +32,10 @@ consumers:
  - backend-developer (consumes findings, responds with fixes)
  - frontend-developer (consumes findings, responds with fixes)
 references:
- - java-spring.md
- - node-ts.md
- - python.md
- - web-frontend.md
+ - ../engineering-standards/references/java-spring.md
+ - ../engineering-standards/references/node-ts.md
+ - ../engineering-standards/references/python.md
+ - ../engineering-standards/references/web-frontend.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -211,7 +211,7 @@ You are done when:
 - [ ] If approved: reviewer name + date in PR.
 - [ ] Re-review on update applied to the changed portions, not the whole PR.
 - [ ] PR description references which `engineering-standards` and stack pack apply.
-- [ ] `code-simplification-heuristics.md` reference applied if simplification surfaced.
+- [ ] `references/code-simplification-heuristics.md` reference applied if simplification surfaced.
 
 Evidence to check:
 - Findings include line numbers where applicable.

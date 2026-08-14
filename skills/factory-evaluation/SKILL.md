@@ -35,7 +35,8 @@ consumers:
   - principal (consumes for ROI conversations)
   - skill-registry (catalogs eval results per skill)
   - memory-management (memory health metrics)
-references: []
+references:
+  - worked-examples.md
 ```
 <!-- praxis:metadata:end -->
 
@@ -121,34 +122,51 @@ Five metric families.
 
 ## The factory eval harness
 
-### Capture (Layer 0–4 model)
+### Capture: mined artifacts (primary) + stub layer (supplementary)
 
-The harness implements **defense in depth** — multiple overlapping capture mechanisms because no single one is reliable.
+Early versions of this harness tried to catch usage at the tool-event layer
+(hook-fired stubs for every SKILL read, preload, and session boundary).
+Real-world capture ratio proved to be ~5% — plugin-injected skills never
+fire a `Read` event, and main-session orchestration (no sub-agent `Task`
+spawn) produces no spawn event either. That approach has been retired for
+skill/agent usage; the read/preload/session stub types are no longer
+written.
+
+**Primary sources — mined from mandatory workflow artifacts** (near-100%
+capture because these are required outputs, not tool-event side effects):
+
+| Source | What it gives | Read by |
+|---|---|---|
+| `.project/episodic/checkpoint-*.md` | The universal aggregation record, written at every closure boundary (gate/phase/slice/loop/disposition/workflow-end): agents dispatched, skills consumed, cost proxy, human touchpoints, deviations. See `references/factory-metrics-schema.md`, "Checkpoint records." | `scripts/factory-usage-report.py` |
+| `.project/working/slice-*-packet.md` + `slice-*-tasks.yaml` | Skills named in the packet, agents assigned per task | `scripts/factory-usage-report.py` |
+| `.project/working/routing-*.md` | Dispatch records + routing-decision frontmatter | `scripts/factory-usage-report.py`, `scripts/factory-routing-report.py` |
+| `.project/telemetry/{agent-spawns,model-routing,drive,sessions}.jsonl` | Structured spawn/completion, routing-decision, drive-run, and session events | `scripts/factory-routing-report.py`, `scripts/factory-usage-report.py` |
+
+**Supplementary — the stub layer** (still written, but no longer primary
+evidence for skill/agent usage):
 
 | Layer | What it catches | How | Reliability |
 |---|---|---|---|
-| **0 — Direct invocation** | SKILL.md read into context by an agent | `PostToolUse(Read)` hook → `hooks/tap.sh` → `scripts/factory-record.sh` (invocation: `read`) | ~95% |
-| **1 — Sub-agent spawn** | An agent is invoked via the Task tool or natively starts | `PostToolUse(Task)` + `SubagentStart` hooks (invocation: `spawn`) | ~99% |
-| **2 — Output-artifact detection** | Cached SKILL applied without re-Read; detected by the output it produces | `PostToolUse(Write\|Edit)` matched against `hooks/output-skill-map.txt` (invocation: `apply`) | ~80% of cached uses |
-| **3 — Agent-preload mapping** | SKILLs the agent canonically uses, recorded at agent spawn | `SubagentStart` → look up `hooks/agent-skill-map.txt` (invocation: `preload`) | ~100% for declared preloads |
-| **4 — Slash command** | User invoked a praxis command directly | `UserPromptSubmit` parsed for `/praxis:<cmd>` or `/cmd` (invocation: `invoke`) | ~100% in Claude Code |
+| **Command invocations** | User invoked a praxis command directly | `UserPromptSubmit` parsed for `/praxis:<cmd>` or `/cmd` → `.project/operational/factory-metrics/commands/` (invocation: `invoke`) | ~100% in Claude Code |
+| **Human observations** | Rich, human-authored notes on a specific use | `/praxis:factory-record` slash command (manual) | Discipline-dependent |
 
-Layer 4 + 1 are direct signals. Layers 0 + 2 + 3 catch the cached-use cases (the SKILL was applied without an explicit Read).
+Skill-read, output-apply, and agent-preload stub types (formerly Layers 0/2/3
+above) are retired: they don't fire for plugin-injected skills or
+main-session orchestration, and the mined sources above cover the same
+ground with much higher capture.
 
 ### Invocation enum
 
 The frontmatter `invocation:` field on every telemetry file distinguishes how the artifact was used:
 
-- `read` — the artifact's source file was explicitly read into context
-- `spawn` — a sub-agent was started (Task tool or SubagentStart)
-- `apply` — a SKILL was applied (inferred from output artifact written; cached-use detection)
-- `preload` — a SKILL is canonically used by the agent that just spawned (preloaded context)
+- `invoke` — a slash command was invoked (still stubbed by the tap; the live command-usage source)
 - `fire` — a hook script executed
 - `evaluate` — a governance gate was evaluated
 - `complete` — a sub-agent finished
-- `invoke` — a slash command was invoked
-
-The Steward synthesis treats these with different weights — `read` and `spawn` are strong signals (direct use); `apply` and `preload` are medium signals (inferred use); `fire`, `evaluate`, `invoke`, `complete` are state-change signals.
+- `read` / `apply` / `preload` / `spawn` — legacy invocation types written by the retired
+  read/preload/session stub layer. Files bearing these still exist from before the slimdown
+  and are counted by the report tools as the "legacy stub layer," but nothing writes new
+  ones — skill/agent usage now comes from the mined sources above.
 
 ### Storage
 
@@ -161,9 +179,11 @@ The Steward synthesis treats these with different weights — `read` and `spawn`
 
 | Script | Purpose | When run |
 |---|---|---|
-| `scripts/factory-record.sh` | Universal recorder — writes one telemetry file | Called by hooks, workflows, slash commands |
-| `hooks/tap.sh` | Universal artifact tap — routes hook events to recorder | Wired in `hooks/hooks.json` |
-| `scripts/factory-aging.sh` | Coverage audit — flags experimental SKILLs with stale/missing telemetry | Steward review + CI gate |
+| `scripts/factory-usage-report.py` | **Primary usage analytics** — mines `.project/episodic/checkpoint-*.md`, working packets/task ledgers, routing logs, command stubs, and session telemetry into a per-skill / per-agent / per-workflow / per-command usage report | Steward review + CI smoke test |
+| `scripts/factory-routing-report.py` | Routing/cost aggregation — reads `.project/telemetry/` (`agent-spawns.jsonl`, `model-routing.jsonl`, `drive.jsonl`) + `.project/working/routing-*.md` prose logs to report tier & cost-proxy totals per agent | Steward review + CI smoke test |
+| `scripts/factory-record.sh` | Universal recorder — writes one telemetry file (commands + manual observations) | Called by hooks, slash commands |
+| `hooks/tap.sh` | Command-invocation + spawn/session tap | Wired in `hooks/hooks.json` |
+| `scripts/factory-frequency.sh` / `scripts/factory-aging.sh` | Legacy stub-layer aggregation/aging — see deprecation notes in each script; superseded by `factory-usage-report.py` for skill/agent usage, still useful for command-stub aging | Steward review + CI gate |
 | `/praxis:factory-record` slash command | Human-authored rich observation | User-invoked |
 
 ### Implementation details
@@ -174,81 +194,11 @@ The Steward synthesis treats these with different weights — `read` and `spawn`
 
 ## The quarterly factory report
 
-Template:
-
-```markdown
-# Factory Report — 2026 Q4
-
-## Library counts
-- SKILLs: 71 (target 70-90) — healthy.
-- Agents: 15.
-- Workflows: 5.
-- References: 14.
-
-## Top-5 skills by invocation
-1. requirements-interrogation — 142 invocations.
-2. code-review — 98.
-3. observability — 87.
-4. resilience-patterns — 64.
-5. testing-strategy — 59.
-
-## Bottom-5 skills by invocation (candidates for review)
-- ml-monitoring-drift — 3 invocations (expected; gated on has_ml).
-- chaos-engineering — 4 (low for projects with availability >= 99.95; investigate).
-- ...
-
-## Agent performance
-- delivery-lead: 24 workflows orchestrated; avg phase-cycle 4.2 days (Q3: 4.7); ↗ improved.
-- ...
-
-## Workflow completion
-- greenfield-api-service: 8 runs; 6 reached production_go_live; 2 paused at requirements_freeze.
-
-## Gate clearance
-- production_go_live: avg time-to-clear 1.8 days; evidence-complete first-submission 78%.
-- responsible_ai_review: 3 invocations; all cleared first-submission (small sample).
-
-## Findings
-- chaos-engineering under-invoked → investigate delivery-planner activation rule.
-- Two skills haven't been invoked this quarter: experimental → deprecation candidates.
-- Memory volume grew 18% — pattern of episodic accumulation; trigger memory-management reconciliation.
-
-## Recommendations (handed to System Steward)
-- Promote pattern X to skill (used in 4 projects; warrants own SKILL.md).
-- Deprecate skill Y (zero invocations across 3 quarters).
-- Update trigger phrases on skill Z (recall problem identified).
-```
+Reports library counts, top/bottom-5 skills by invocation, agent performance, workflow completion, gate clearance, findings, and recommendations handed to System Steward. Load `references/worked-examples.md` for the full worked template.
 
 ## The skill efficacy report
 
-Per skill, periodic deep-dive:
-
-```markdown
-# Skill Efficacy — `code-review`
-
-## Period: 2026 Q4
-
-## Invocation
-- 98 invocations; 87 in active workflows + 11 ad-hoc.
-
-## Trigger precision
-- Sampled 20; 19 correct invocations. Precision 0.95.
-
-## Trigger recall
-- Cross-referenced 20 PRs without code-review skill — 2 should have invoked but didn't. Recall ~0.91.
-
-## Output acceptance
-- 92% of code-review outputs accepted without major rework. Healthy.
-
-## Downstream rework
-- 4 PRs where code-review missed an issue caught by security-review. Boundary leak — investigate.
-
-## Recommendations
-- Add explicit trigger phrase for PR labels matching `security:` prefix.
-- Strengthen the boundary table in code-review's SKILL.md (what does and doesn't fire security-review).
-```
-
-System Steward consumes these to propose changes.
+Per skill, periodic deep-dive covering invocation counts, trigger precision/recall, output acceptance, downstream rework, and recommendations. Load `references/worked-examples.md` for the full worked template (`code-review` example). System Steward consumes these to propose changes.
 
 ## Knowledge growth health
 
