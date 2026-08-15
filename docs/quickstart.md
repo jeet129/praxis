@@ -1,63 +1,73 @@
 # Quickstart — 5 Minutes to First `/discover`
 
-The fastest path from "I have the `praxis/` directory" to a running session
-with a real artifact on disk. Claude Code is the primary path below; short
+The fastest path from nothing to a running Praxis session with a real
+artifact on disk. Claude Code is the primary path below; short
 Codex and Gemini CLI sections follow. For the full install playbook
 (troubleshooting, first-30-minutes walkthrough, multi-tool details), see
 [`INSTALLATION.md`](../INSTALLATION.md).
 
 ## Claude Code (primary path)
 
-### 1. Clone
+### 1. Install the plugin
+
+**Plugin marketplace (recommended — no clone needed):**
+
+```text
+/plugin marketplace add jeet129/praxis
+/plugin install praxis@praxis
+```
+
+`praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That
+is the whole install — all 12 slash commands, 17 agents, 91 SKILLs, 9 workflows,
+and the SessionStart hook are now live, and nothing is copied into your project.
+Updates arrive by re-running `/plugin`. Append `@<branch>` to the marketplace-add
+line to pin a branch.
+
+Prefer to work from a local checkout? Two clone-based options:
+
+**Plugin-dir (fastest for an in-progress tree, no copying):**
 
 ```bash
 git clone https://github.com/jeet129/praxis.git ~/dev/praxis
-```
-
-### 2. Load the library
-
-Two ways — pick one:
-
-**Plugin-dir (fastest, no copying):**
-
-```bash
 cd ~/dev/your-test-project
 ~/dev/praxis/try-as-plugin.sh --init .
 ```
 
 `--init` creates the `.project/` memory tree (17 subdirectories) in your
-project; the script then launches `claude --plugin-dir ~/dev/praxis`.
-Library edits propagate immediately — no re-install.
+project; the script then launches `claude --plugin-dir ~/dev/praxis`. Library
+edits propagate immediately — no re-install.
 
 **File install (copies the library into your project):**
 
 ```bash
+git clone https://github.com/jeet129/praxis.git ~/dev/praxis
 cd ~/dev/praxis
 ./install.sh --tool=claude-code /path/to/your-project
 cd /path/to/your-project
 claude
 ```
 
-### 3. Verify
+### 2. Verify
 
 Paste into the session:
 
 ```
-Confirm you can see the Praxis. List the slash commands in .claude/commands/,
-tell me how many SKILLs and agents you can see, and read
-.claude/governance/governance.yaml to list the 6 core gates + 12 conditional.
+Confirm you can see Praxis. List the Praxis slash commands available,
+tell me how many SKILLs and agents you can see, and read the governance
+config (governance.yaml) to list the 6 core gates + 12 conditional.
 ```
 
 Expected: 12 slash commands (`/start /discover /architect /slice /release
 /audit /steward /review /refine-idea /factory-record /drive`), 91 SKILLs, 17 agents,
-18 gates (6 core + 12 conditional). If any count is off, re-run the install
-with `--dry-run` first and compare against what it says it would create.
+18 gates (6 core + 12 conditional). If any count is off: for a plugin install
+run `/plugin` and confirm `praxis` shows installed and enabled; for the copy
+install re-run it with `--dry-run` and compare against what it would create.
 
 Alternatively, run `/start` directly — if the delivery-planner interview
 begins (mode, data plane, ML, compliance, scale, stack questions), the
 library is wired correctly.
 
-### 4. Run `/discover` on a toy idea
+### 3. Run `/discover` on a toy idea
 
 ```
 /start
@@ -80,7 +90,7 @@ When it hits `requirements-interrogation`, expect the agent to STOP and
 produce a KUACQ block (Knowns / Unknowns / Assumptions / Conflicts /
 Questions) — answer it, don't let the agent guess past it.
 
-### 5. What lands in `.project/`
+### 4. What lands in `.project/`
 
 After the run:
 
@@ -98,7 +108,7 @@ closes, delivery-lead writes a checkpoint record to
 (`hooks/tap.sh`), writing deterministic JSONL streams under
 `.project/telemetry/`. See [`telemetry.md`](telemetry.md) for what those mean.
 
-### 6. Next steps
+### 5. Next steps
 
 - Approve or push back on the `requirements_freeze` gate evidence, then
   `/architect` → `/slice` (repeat per slice) → `/release`.
