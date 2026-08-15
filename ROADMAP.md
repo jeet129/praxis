@@ -1,6 +1,6 @@
 # Roadmap
 
-Honest, non-binding view of what's next. Praxis is alpha; this list reflects
+Honest, non-binding view of what's next. Praxis is early-stage; this list reflects
 priority and intent, not committed dates. Items move between buckets as
 real-project use (or the lack of it) reprioritizes them. See
 [`CHANGELOG.md`](CHANGELOG.md) for what's already shipped and
@@ -185,7 +185,7 @@ Depends on real signal that doesn't exist yet, or is explicitly opportunistic.
   narrow-applicability items) from `references/MISSING-INVENTORY.md`.
 - **Claude Code marketplace publication** and continued Codex/Gemini/other
   harness parity, once the library has enough real-project mileage to call
-  itself stable rather than alpha.
+  itself stable rather than early-stage.
 
 ---
 

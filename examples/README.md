@@ -8,9 +8,21 @@ Extension point for **worked examples** demonstrating how SKILLs and workflows p
 - End-to-end walkthroughs showing what each phase's outputs look like.
 - "Good vs bad" pairs — a well-formed artifact next to a common-mistake version.
 
-## Currently empty
+## Where the worked examples live today
 
-This directory is intentionally a starting point. The first compelling examples emerge from real project use of the library. The System Steward (per quarterly cadence) is the right place to propose adding examples that recur across projects.
+This directory will eventually hold **sanitized real-project artifacts**, but those
+only emerge from real project use — so for now it is an intentional starting point.
+Until it fills in, the worked *usage* examples already exist in the docs:
+
+- [`docs/scenarios.md`](../docs/scenarios.md) — 15 common situations, each with its entry point, what runs, where you approve, and what lands where.
+- [`docs/drive-first-playbook.md`](../docs/drive-first-playbook.md) — one product's life through every workflow end to end, including the ongoing-sprint steady state.
+- [`PLAYBOOK.md`](../PLAYBOOK.md) — greenfield + brownfield walkthroughs, the prompt library, and cadences.
+- [`docs/lifecycle.md`](../docs/lifecycle.md) — the six-phase lifecycle, gate by gate.
+
+What still belongs **here** — and does not exist yet — is concrete *artifact* samples
+(a real charter, NFR register, ADR, threat model, slice walkthrough) captured from an
+actual engagement. The System Steward (per quarterly cadence) is the right place to
+propose adding examples that recur across projects.
 
 ## Suggested layout
 

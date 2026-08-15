@@ -4,7 +4,7 @@ Thank you for your interest in contributing. This document covers what kinds of 
 
 ## Status
 
-This library is **maturing in private**. The goal is to open it up for external contributions once it has been validated against multiple real projects. For now, the contribution paths are:
+This library is **early and actively maturing**. External contributions are welcome now — with larger changes discussed first — as it validates against more real projects. The contribution paths are:
 
 1. **Issues**: bug reports, design discussions, feature proposals → file as GitHub issues.
 2. **Internal PRs**: from the project owner.
@@ -23,7 +23,7 @@ A SKILL is the unit of agent guidance. Each lives at `skills/<name>/SKILL.md` an
 - **What this skill does NOT do** — boundary statement.
 - **Anti-patterns** — observational failure shapes.
 
-New SKILLs must pass the **four-condition Skill Creation Policy** (per `skills/system-steward.md`):
+New SKILLs must pass the **four-condition Skill Creation Policy** (per `agents/system-steward.md`):
 
 1. Distinct trigger context (won't fold into an existing skill).
 2. Cross-project applicability (not a one-off).

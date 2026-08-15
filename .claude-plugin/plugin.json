@@ -1,6 +1,6 @@
 {
   "name": "praxis",
-  "version": "0.2.0-alpha",
+  "version": "0.1.0",
   "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 SKILLs, 17 role agents, 9 workflows, governance gates, project memory taxonomy.",
   "author": {
     "name": "Jitesh",

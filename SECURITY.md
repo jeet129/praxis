@@ -2,7 +2,7 @@
 
 ## Supported status
 
-Praxis is **alpha software** — a prompt/skill/agent library, not a running service.
+Praxis is **early-stage software** (`0.1.0`) — a prompt/skill/agent library, not a running service.
 There is a single actively-maintained line (the `main` branch); there are no
 released version branches receiving backports. Security-relevant fixes land on
 `main` and are noted in [`CHANGELOG.md`](CHANGELOG.md).
@@ -19,7 +19,7 @@ Please **do not open a public GitHub issue** for a security concern.
 
 We'll acknowledge reports as promptly as we can for a project at this stage.
 There is no formal SLA yet — this is disclosed here rather than left implicit,
-consistent with the project's alpha status.
+consistent with the project's early-stage status.
 
 ## Scope
 

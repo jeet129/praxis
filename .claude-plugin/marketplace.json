@@ -8,7 +8,7 @@
   "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
   "metadata": {
     "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery.",
-    "version": "1.0.0"
+    "version": "0.1.0"
   },
   "plugins": [
     {
