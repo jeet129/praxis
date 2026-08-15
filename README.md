@@ -1,6 +1,6 @@
 # Praxis
 
-**A governed AI delivery team, encoded as a Claude Code plugin.**
+**A governed AI delivery team, portable across your AI coding tools.**
 
 Praxis turns a single AI coding tool into a full delivery org: 17 role agents
 (PM, architect, security, QA, SRE, and more) draw on 91 disciplined skills
