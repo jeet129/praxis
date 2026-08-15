@@ -118,7 +118,7 @@ if hooks_json.exists():
 manifest = out / ".codex-plugin" / "plugin.json"
 manifest.write_text(json.dumps({
     "name": "praxis-codex",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "description": "Praxis for Codex: agentic development platform for end-to-end software and product delivery.",
     "skills": "./skills/",
     "hooks": "./hooks/hooks.json",

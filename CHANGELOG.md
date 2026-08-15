@@ -4,7 +4,7 @@ All notable changes to Praxis are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres, loosely, to [Semantic Versioning](https://semver.org/) —
-loosely because the library is pre-1.0 and alpha; expect breaking reshuffles between
+loosely because the library is pre-1.0; some interfaces may still shift between
 minor versions until it stabilizes.
 
 ---
@@ -13,6 +13,7 @@ minor versions until it stabilizes.
 
 ### Fixed
 
+- Governance gate count corrected across current-state docs. README (counts table + "What's inside" + architecture diagram + project tree), `INSTALLATION.md`, `PLAYBOOK.md`, and `docs/{operating-model,quickstart,getting-started,claude-code-setup}.md` said "17 gates (6 core + 11 conditional)", but `governance/governance.yaml` defines **18** — the `ideation_refinement_approval` conditional gate (end of `ideation-refinement-loop.yaml`) was never counted, while `plugin.json` / `.claude-plugin/marketplace.json` already said 18. All current-state docs now read 18 (6 core + 12 conditional). Root cause: `build-registry.py` syncs skill/agent/workflow/command counts but not gate counts, so this drift was invisible to CI; the durable fix (teaching the registry to own the gate count) is noted for a follow-up.
 - Full-platform prod-readiness audit (3 parallel reviews: docs currency, ADLC coverage, harness parity). P0s fixed: `commands/slice.md` contradicted the two-tier delegation canon (told delivery-lead to spawn specialists directly; agents/delivery-lead.md and the Codex praxis-slice both say Lead Developer dispatches, delivery-lead only as fallback) AND never had lead-developer produce the task ledger — breaking the `/slice`→`/drive` handoff on Claude; the Codex `adaptive-model-routing` overlay was stale (delivery-lead still listed deep/high vs the canonical standard/medium rebalance; false "identical to every harness" claim; unclosed code fence swallowing two sections; missing routing-examples reference). Parity: added `praxis-factory-record` (the one missing Codex command; validator now requires it); Codex delivery-lead + lead-developer TOML developer_instructions now carry the core constraints (two-tier delegation, single-writer, drive-mode runner/in-session split, ledger-at-slice-open); the mirror's hooks.json plugin-root var gets a `${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}` fallback chain; `using-praxis` now states the per-spawn `model:` mechanic is Claude-only (Codex applies routing via regenerated profiles) and names the Codex command surface. Docs: counts corrected everywhere (91 skills / 12 commands / 5-11-1 tiers) across README/INSTALLATION/PLAYBOOK/quickstart/getting-started + 4 harness docs; PLAYBOOK §2.3 no longer calls the plugin "future" (plugin-first install, both harnesses); getting-started leads with plugin install; CONTRIBUTING documents resolve-model/test-routing-parity/governance-overrides/setup-claude-agents; autonomous-drive doc states in-session drive loops continuously; telemetry doc covers the Codex Stop upsert; plugin-builds documents the fail-on-orphan build. Coverage verdict recorded: strong across methodology/brownfield/incidents/UX/routing/data-ML; named gaps (product experimentation + outcome analytics, dynamic security validation/DAST-pentest, evaluative usability testing) deferred as candidate new skills.
 - Drive no longer stops after one task in-session on EITHER harness (root cause, shared agent). `agents/delivery-lead.md`'s Drive mode said "when invoked via `/drive` **or** `scripts/praxis-drive.sh`, execute exactly ONE iteration and exit — the harness re-invokes you." That contract only holds for the unattended runner; under in-session `/drive` nothing re-invokes it, so the run died after a single task (observed on both Codex and Claude Code). Drive mode now splits the two invocation paths explicitly — runner: one iteration then exit; in-session: complete an iteration then immediately begin the next (or return so the orchestrator can), continuing through the slice drain and into the next ledger — and adds a hard rule: ending a drive run after one completed task with no non-negotiable stop and no `stop_after` boundary reached is a **protocol violation**, not "correct one-iteration behavior." `commands/drive.md` now tells the in-session orchestrator it *is* the loop and must not report-and-wait.
 - Codex in-session `$praxis-drive` now loops like Claude's `/drive` instead of stopping after one task. The Codex skill's header said "You do NOT loop internally" over the whole skill and its in-session step said "one iteration at a time … reporting the outcome each time", so the orchestrator did a single delivery-lead iteration and paused — even under `stop_after: gate`, where it should continue through the slice drain (code/security/QA review + closure) to the next real stop. "One iteration then exit, no internal loop" is correct ONLY for a delivery-lead invoked by the unattended runner (which re-invokes per iteration); it must not apply to the in-session orchestrator. The skill now scopes that discipline to the runner path and instructs the in-session path to iterate **continuously** within the session until a non-negotiable stop or the `stop_after` boundary, explicitly noting per-slice reviews are drain, not governance gates. Matches `commands/drive.md` (Claude) and `skills/autonomous-drive` §"stop_after semantics". The unattended runner (`praxis-drive.sh --harness codex`) already looped deterministically and is the reliable path for whole-slice/workflow drive.
@@ -214,9 +215,9 @@ minor versions until it stabilizes.
 
 ---
 
-## [0.1.0-alpha] — initial library
+## [0.1.0] — initial library
 
-The first alpha release of Praxis: a tool-portable AI-delivery platform — skills,
+The first public release of Praxis: a tool-portable AI-delivery platform — skills,
 role agents, workflows, and governance gates for end-to-end software delivery with
 AI coding agents.
 
@@ -244,5 +245,5 @@ AI coding agents.
 - Cross-cutting reference library plus `references/MISSING-INVENTORY.md` tracking
   the remaining backlog.
 
-[Unreleased]: https://github.com/jeet129/praxis/compare/v0.1.0-alpha...HEAD
-[0.1.0-alpha]: https://github.com/jeet129/praxis/releases/tag/v0.1.0-alpha
+[Unreleased]: https://github.com/jeet129/praxis/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jeet129/praxis/releases/tag/v0.1.0

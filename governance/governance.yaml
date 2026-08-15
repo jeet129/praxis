@@ -14,7 +14,7 @@ mode: solo   # 'solo' or 'team'; switch to 'team' to enable role-based routing
 # Approver identities (substitute for your team configuration)
 # ------------------------------------------------------------------
 identities:
-  principal: jitesh@example   # the principal architect / solo dev
+  principal: you@example.com   # the principal architect / solo dev — replace with your identity
   # In team mode, add:
   # product_owner: alice@example
   # tech_lead: bob@example

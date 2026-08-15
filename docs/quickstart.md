@@ -45,12 +45,12 @@ Paste into the session:
 ```
 Confirm you can see the Praxis. List the slash commands in .claude/commands/,
 tell me how many SKILLs and agents you can see, and read
-.claude/governance/governance.yaml to list the 6 core gates + 11 conditional.
+.claude/governance/governance.yaml to list the 6 core gates + 12 conditional.
 ```
 
 Expected: 12 slash commands (`/start /discover /architect /slice /release
 /audit /steward /review /refine-idea /factory-record /drive`), 91 SKILLs, 17 agents,
-17 gates (6 core + 11 conditional). If any count is off, re-run the install
+18 gates (6 core + 12 conditional). If any count is off, re-run the install
 with `--dry-run` first and compare against what it says it would create.
 
 Alternatively, run `/start` directly — if the delivery-planner interview
