@@ -1,10 +1,13 @@
 # Praxis
 
-**A governed AI delivery team, portable across your AI coding tools.**
+**AI coding, engineered for delivery.**
+
+Praxis brings architecture, planning, implementation, verification, security
+review, and human sign-off into a portable workflow across your AI coding tools.
 
 Praxis turns a single AI coding tool into a full delivery org: 17 role agents
 (PM, architect, security, QA, SRE, and more) draw on 91 disciplined skills
-through 9 workflows, gated by 17 governance checkpoints with evidence packs —
+through 9 workflows, gated by 18 governance checkpoints with evidence packs —
 so requirements, architecture, and releases get principal sign-off, not
 silent auto-approval. Agents route to models by capability tier (not
 hardcoded names), so cost scales with task difficulty across 8 supported
