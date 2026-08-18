@@ -19,8 +19,11 @@ Codex and Gemini CLI sections follow. For the full install playbook
 
 `praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That
 is the whole install — all 12 slash commands, 17 agents, 91 SKILLs, 9 workflows,
-and the SessionStart hook are now live, and nothing is copied into your project.
-Updates arrive by re-running `/plugin`. Append `@<branch>` to the marketplace-add
+and the SessionStart hook are now installed. **Restart Claude Code — start a new
+session — so they load.** `/reload-skills` and `/reload-plugins` hot-reload
+skills/agents mid-session, but a fresh session is the reliable way to fully activate
+a newly installed plugin (a reload doesn't rebuild the slash-command index). Nothing
+is copied into your project. Updates arrive by re-running `/plugin`. Append `@<branch>` to the marketplace-add
 line to pin a branch.
 
 Prefer to work from a local checkout? Two clone-based options:
@@ -125,7 +128,8 @@ closes, delivery-lead writes a checkpoint record to
 codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
 ```
 
-Open Codex, run `/plugins`, install `praxis-codex`. Then in a session:
+Open Codex, run `/plugins`, install `praxis-codex`, then **restart Codex (start a
+new session)** so its command skills and subagents load. Then in a session:
 
 ```text
 $praxis-setup-subagents

@@ -1,10 +1,13 @@
 # Praxis
 
-**A governed AI delivery team, portable across your AI coding tools.**
+**AI coding, engineered for delivery.**
+
+Praxis brings architecture, planning, implementation, verification, security
+review, and human sign-off into a portable workflow across your AI coding tools.
 
 Praxis turns a single AI coding tool into a full delivery org: 17 role agents
 (PM, architect, security, QA, SRE, and more) draw on 91 disciplined skills
-through 9 workflows, gated by 17 governance checkpoints with evidence packs —
+through 9 workflows, gated by 18 governance checkpoints with evidence packs —
 so requirements, architecture, and releases get principal sign-off, not
 silent auto-approval. Agents route to models by capability tier (not
 hardcoded names), so cost scales with task difficulty across 8 supported
@@ -118,7 +121,7 @@ Then open Codex:
 /plugins
 ```
 
-Install `praxis-codex`, then start with `$praxis-setup-subagents` and `$praxis-start`.
+Install `praxis-codex`, restart Codex (start a new session) so its command skills and subagents load, then start with `$praxis-setup-subagents` and `$praxis-start`.
 
 The Codex package is generated at `plugins/praxis-codex/` from the canonical root library plus Codex-specific command skills and subagent profiles.
 
@@ -160,6 +163,8 @@ Once this repo is public on GitHub, Claude Code users can install via the market
 /plugin marketplace add jeet129/praxis
 /plugin install praxis@praxis
 ```
+
+Then restart Claude Code (start a new session) so the commands, agents, skills, and SessionStart hook load. `/reload-skills` and `/reload-plugins` hot-reload skills/agents mid-session, but a fresh session is the reliable way to fully activate a newly installed plugin (a reload doesn't rebuild the slash-command index).
 
 The marketplace manifest at `.claude-plugin/marketplace.json` is wired to this repo.
 
