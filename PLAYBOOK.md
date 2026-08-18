@@ -118,6 +118,8 @@ codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse pl
 /plugins   → install praxis-codex               # add --ref <branch> to pin a branch
 ```
 
+After either install, **restart the tool (start a new session)** so its commands, agents, skills, and hooks load. On Claude Code, `/reload-plugins` can pick up changes mid-session, but a fresh session is the reliable way to activate a newly installed plugin.
+
 Nothing is copied into your repo; updates arrive by updating the plugin. Full detail: `docs/claude-code-setup.md` and `docs/codex-setup.md`. The `install.sh` copy paths above remain for the other six harnesses, frozen snapshots, and offline/CI use.
 
 ### 2.4 Sanity check

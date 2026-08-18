@@ -121,7 +121,7 @@ Then open Codex:
 /plugins
 ```
 
-Install `praxis-codex`, then start with `$praxis-setup-subagents` and `$praxis-start`.
+Install `praxis-codex`, restart Codex (start a new session) so its command skills and subagents load, then start with `$praxis-setup-subagents` and `$praxis-start`.
 
 The Codex package is generated at `plugins/praxis-codex/` from the canonical root library plus Codex-specific command skills and subagent profiles.
 
@@ -163,6 +163,8 @@ Once this repo is public on GitHub, Claude Code users can install via the market
 /plugin marketplace add jeet129/praxis
 /plugin install praxis@praxis
 ```
+
+Then restart Claude Code (start a new session) so the commands, agents, skills, and SessionStart hook load. `/reload-plugins` can pick up changes mid-session, but a fresh session is the reliable way to activate a newly installed plugin.
 
 The marketplace manifest at `.claude-plugin/marketplace.json` is wired to this repo.
 
