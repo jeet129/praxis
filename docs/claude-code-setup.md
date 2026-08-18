@@ -15,7 +15,7 @@ Published (default branch):
 /plugin install praxis@praxis
 ```
 
-`praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That's the whole install — you now have all slash commands, agents, skills, workflows, and the SessionStart hook. **Restart Claude Code (start a new session) so everything loads.** `/reload-plugins` can pick up changes mid-session, but a fresh session is the reliable way to activate a newly installed plugin.
+`praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That's the whole install — you now have all slash commands, agents, skills, workflows, and the SessionStart hook. **Restart Claude Code (start a new session) so everything loads.** `/reload-skills` and `/reload-plugins` hot-reload skills/agents mid-session, but a fresh session is the reliable way to fully activate a newly installed plugin (a reload doesn't rebuild the slash-command index).
 
 ### From a specific branch (e.g. `features/improvements`)
 

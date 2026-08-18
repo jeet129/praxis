@@ -164,7 +164,7 @@ Once this repo is public on GitHub, Claude Code users can install via the market
 /plugin install praxis@praxis
 ```
 
-Then restart Claude Code (start a new session) so the commands, agents, skills, and SessionStart hook load. `/reload-plugins` can pick up changes mid-session, but a fresh session is the reliable way to activate a newly installed plugin.
+Then restart Claude Code (start a new session) so the commands, agents, skills, and SessionStart hook load. `/reload-skills` and `/reload-plugins` hot-reload skills/agents mid-session, but a fresh session is the reliable way to fully activate a newly installed plugin (a reload doesn't rebuild the slash-command index).
 
 The marketplace manifest at `.claude-plugin/marketplace.json` is wired to this repo.
 

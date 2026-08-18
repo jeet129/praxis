@@ -20,9 +20,10 @@ Codex and Gemini CLI sections follow. For the full install playbook
 `praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That
 is the whole install — all 12 slash commands, 17 agents, 91 SKILLs, 9 workflows,
 and the SessionStart hook are now installed. **Restart Claude Code — start a new
-session — so they load.** `/reload-plugins` can pick up changes mid-session, but a
-fresh session is the reliable way to activate a newly installed plugin. Nothing is
-copied into your project. Updates arrive by re-running `/plugin`. Append `@<branch>` to the marketplace-add
+session — so they load.** `/reload-skills` and `/reload-plugins` hot-reload
+skills/agents mid-session, but a fresh session is the reliable way to fully activate
+a newly installed plugin (a reload doesn't rebuild the slash-command index). Nothing
+is copied into your project. Updates arrive by re-running `/plugin`. Append `@<branch>` to the marketplace-add
 line to pin a branch.
 
 Prefer to work from a local checkout? Two clone-based options:
