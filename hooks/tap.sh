@@ -345,16 +345,28 @@ try:
     offset = int(open(cursor_path).read().strip())
 except Exception:
     offset = 0
-FIELDS = ("input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens")
+FIELDS = ("input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens","reasoning_output_tokens")
 tot = {k:0 for k in FIELDS}
 by_model = {}
 
 def _extract_usage(d):
     if not isinstance(d, dict):
         return {}
+    # Claude Code: message.usage
     u = (d.get("message") or {}).get("usage")
     if isinstance(u, dict) and u:
         return u
+    # Codex CLI: event_msg -> payload.info.last_token_usage (per-turn delta;
+    # total_token_usage is the cumulative session running total -- do NOT sum that).
+    info = (d.get("payload") or {}).get("info")
+    if isinstance(info, dict):
+        lu = info.get("last_token_usage")
+        if isinstance(lu, dict) and lu:
+            mapped = dict(lu)
+            if "cached_input_tokens" in mapped:
+                mapped["cache_read_input_tokens"] = mapped.pop("cached_input_tokens")
+            return mapped
+    # Other shapes: top-level usage / turn.completed / payload.usage
     u = d.get("usage")
     if isinstance(u, dict) and u:
         if d.get("type") == "turn.completed":
@@ -379,6 +391,27 @@ def _extract_model(d):
         return m
     return (d.get("payload") or {}).get("model") or None
 
+
+def _session_model(path):
+    # Codex stamps the model in an early turn_context event, not on usage rows.
+    # Scan the transcript head so those rows can still bucket under the real model.
+    try:
+        with open(path) as fh:
+            for _ in range(120):
+                ln = fh.readline()
+                if not ln:
+                    break
+                try:
+                    m = _extract_model(json.loads(ln))
+                except Exception:
+                    continue
+                if m:
+                    return m
+    except Exception:
+        pass
+    return None
+
+current_model = _session_model(path)
 new_offset = offset
 try:
     size = os.path.getsize(path)
@@ -393,10 +426,13 @@ try:
                 d = json.loads(line)
             except Exception:
                 continue
+            m = _extract_model(d)
+            if m:
+                current_model = m
             u = _extract_usage(d)
             if not u:
                 continue
-            model = _extract_model(d) or "unknown"
+            model = m or current_model or "unknown"
             bucket = by_model.setdefault(model, {k: 0 for k in FIELDS})
             for k in FIELDS:
                 v = u.get(k)
