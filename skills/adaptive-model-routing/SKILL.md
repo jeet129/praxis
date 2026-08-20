@@ -167,6 +167,17 @@ same tier — a project override wins in both. Do NOT resolve against the plugin
 file directly, and do NOT rely on the baked frontmatter alone (that is only the
 fallback default).
 
+**Cache-aware down-routing.** A tier switch that changes the underlying model
+forfeits prompt-cache prefix reuse — the lower tier can't read the orchestrator's
+or a prior spawn's cached prefix. When the tier's price gap is smaller than the
+cache-read discount (~10×) — as it currently is for most Claude Code tier steps,
+and always for Codex effort-only steps on one base model — that miss can exceed
+the tier saving. So for a context-heavy sub-task reusing a large cached prefix,
+prefer dropping *effort* within the same model over switching model; reserve
+model-down moves for output-heavy or large-gap tasks. Ratios are per-harness
+(`governance/model-routing.yaml`); see `llm-cost-optimization` →
+"Cache economics vs model routing."
+
 Resolve with the shared resolver (single source of truth), then pass the result
 on the spawn:
 

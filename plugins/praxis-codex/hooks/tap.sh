@@ -309,7 +309,7 @@ case "$EVENT" in
   SubagentStart)
     # Native event — fires when any sub-agent starts.
     # Payload contains the subagent's name/type.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     if [[ -n "$subagent" ]]; then
       record agent "$subagent" spawn
     fi
@@ -318,7 +318,7 @@ case "$EVENT" in
   SubagentStop)
     # Optional: record completion outcome.
     # The payload should include the subagent's name and result status.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
 
     # LIVE per-invocation token delta: sum the usage lines the session
@@ -345,19 +345,28 @@ try:
     offset = int(open(cursor_path).read().strip())
 except Exception:
     offset = 0
-tot = {"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}
+FIELDS = ("input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens","reasoning_output_tokens")
+tot = {k:0 for k in FIELDS}
+by_model = {}
 
 def _extract_usage(d):
-    """Tolerant of multiple transcript shapes: Claude Code's
-    message.usage, a top-level usage, payload.usage, or Codex
-    type:turn.completed events (input_tokens/cached_input_tokens/
-    output_tokens, with cached_input_tokens mapped to
-    cache_read_input_tokens)."""
     if not isinstance(d, dict):
         return {}
+    # Claude Code: message.usage
     u = (d.get("message") or {}).get("usage")
     if isinstance(u, dict) and u:
         return u
+    # Codex CLI: event_msg -> payload.info.last_token_usage (per-turn delta;
+    # total_token_usage is the cumulative session running total -- do NOT sum that).
+    info = (d.get("payload") or {}).get("info")
+    if isinstance(info, dict):
+        lu = info.get("last_token_usage")
+        if isinstance(lu, dict) and lu:
+            mapped = dict(lu)
+            if "cached_input_tokens" in mapped:
+                mapped["cache_read_input_tokens"] = mapped.pop("cached_input_tokens")
+            return mapped
+    # Other shapes: top-level usage / turn.completed / payload.usage
     u = d.get("usage")
     if isinstance(u, dict) and u:
         if d.get("type") == "turn.completed":
@@ -371,25 +380,65 @@ def _extract_usage(d):
         return u
     return {}
 
+def _extract_model(d):
+    if not isinstance(d, dict):
+        return None
+    m = (d.get("message") or {}).get("model")
+    if m:
+        return m
+    m = d.get("model")
+    if m:
+        return m
+    return (d.get("payload") or {}).get("model") or None
+
+
+def _session_model(path):
+    # Codex stamps the model in an early turn_context event, not on usage rows.
+    # Scan the transcript head so those rows can still bucket under the real model.
+    try:
+        with open(path) as fh:
+            for _ in range(120):
+                ln = fh.readline()
+                if not ln:
+                    break
+                try:
+                    m = _extract_model(json.loads(ln))
+                except Exception:
+                    continue
+                if m:
+                    return m
+    except Exception:
+        pass
+    return None
+
+current_model = _session_model(path)
 new_offset = offset
 try:
     size = os.path.getsize(path)
     if size < offset:
-        offset = 0  # transcript rotated/replaced
+        offset = 0
     with open(path) as f:
         f.seek(offset)
         chunk = f.read()
-        new_offset = offset + len(chunk.encode("utf-8", "ignore")) if False else f.tell()
+        new_offset = f.tell()
         for line in chunk.splitlines():
             try:
                 d = json.loads(line)
             except Exception:
                 continue
+            m = _extract_model(d)
+            if m:
+                current_model = m
             u = _extract_usage(d)
-            for k in tot:
+            if not u:
+                continue
+            model = m or current_model or "unknown"
+            bucket = by_model.setdefault(model, {k: 0 for k in FIELDS})
+            for k in FIELDS:
                 v = u.get(k)
                 if isinstance(v, (int, float)):
                     tot[k] += int(v)
+                    bucket[k] += int(v)
 except Exception:
     sys.exit(0)
 try:
@@ -399,10 +448,12 @@ except Exception:
     pass
 if sum(tot.values()) == 0:
     sys.exit(0)
+by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
        "event": "invocation_usage", "session": sid,
        "agent": agent or "unknown", **tot,
-       "note": "delta since previous cursor; spans concurrent subagents if any"}
+       "by_model": by_model,
+       "note": "delta since previous cursor; spans concurrent subagents if any. by_model splits the delta by transcript model (exact; cache-cost attributable per tier)"}
 print(json.dumps(rec))
 PYEOF
       fi
