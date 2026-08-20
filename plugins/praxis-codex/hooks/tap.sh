@@ -309,7 +309,7 @@ case "$EVENT" in
   SubagentStart)
     # Native event — fires when any sub-agent starts.
     # Payload contains the subagent's name/type.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     if [[ -n "$subagent" ]]; then
       record agent "$subagent" spawn
     fi
@@ -318,7 +318,7 @@ case "$EVENT" in
   SubagentStop)
     # Optional: record completion outcome.
     # The payload should include the subagent's name and result status.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
 
     # LIVE per-invocation token delta: sum the usage lines the session
@@ -345,14 +345,11 @@ try:
     offset = int(open(cursor_path).read().strip())
 except Exception:
     offset = 0
-tot = {"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}
+FIELDS = ("input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens")
+tot = {k:0 for k in FIELDS}
+by_model = {}
 
 def _extract_usage(d):
-    """Tolerant of multiple transcript shapes: Claude Code's
-    message.usage, a top-level usage, payload.usage, or Codex
-    type:turn.completed events (input_tokens/cached_input_tokens/
-    output_tokens, with cached_input_tokens mapped to
-    cache_read_input_tokens)."""
     if not isinstance(d, dict):
         return {}
     u = (d.get("message") or {}).get("usage")
@@ -371,25 +368,41 @@ def _extract_usage(d):
         return u
     return {}
 
+def _extract_model(d):
+    if not isinstance(d, dict):
+        return None
+    m = (d.get("message") or {}).get("model")
+    if m:
+        return m
+    m = d.get("model")
+    if m:
+        return m
+    return (d.get("payload") or {}).get("model") or None
+
 new_offset = offset
 try:
     size = os.path.getsize(path)
     if size < offset:
-        offset = 0  # transcript rotated/replaced
+        offset = 0
     with open(path) as f:
         f.seek(offset)
         chunk = f.read()
-        new_offset = offset + len(chunk.encode("utf-8", "ignore")) if False else f.tell()
+        new_offset = f.tell()
         for line in chunk.splitlines():
             try:
                 d = json.loads(line)
             except Exception:
                 continue
             u = _extract_usage(d)
-            for k in tot:
+            if not u:
+                continue
+            model = _extract_model(d) or "unknown"
+            bucket = by_model.setdefault(model, {k: 0 for k in FIELDS})
+            for k in FIELDS:
                 v = u.get(k)
                 if isinstance(v, (int, float)):
                     tot[k] += int(v)
+                    bucket[k] += int(v)
 except Exception:
     sys.exit(0)
 try:
@@ -399,10 +412,12 @@ except Exception:
     pass
 if sum(tot.values()) == 0:
     sys.exit(0)
+by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
        "event": "invocation_usage", "session": sid,
        "agent": agent or "unknown", **tot,
-       "note": "delta since previous cursor; spans concurrent subagents if any"}
+       "by_model": by_model,
+       "note": "delta since previous cursor; spans concurrent subagents if any. by_model splits the delta by transcript model (exact; cache-cost attributable per tier)"}
 print(json.dumps(rec))
 PYEOF
       fi
