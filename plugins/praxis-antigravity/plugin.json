@@ -1,0 +1,6 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "praxis",
+  "version": "0.1.0",
+  "description": "Praxis \u2014 production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 skills, 17 agents, 9 workflows, 18 governance gates."
+}

@@ -27,6 +27,8 @@ generated package.
 .agents/plugins/         Codex repo marketplace manifest
 codex-plugin-assets/     Codex-only command skills and subagent profiles
 plugins/praxis-codex/    Generated Codex installable plugin package
+plugins/praxis-antigravity/  Generated Antigravity installable plugin package
+antigravity-plugin-assets/   Antigravity-only hand-authored command-skills
 ```
 
 ## Claude Code Plugin
@@ -175,6 +177,66 @@ Committing only `codex-plugin-assets/` is not enough for GitHub marketplace
 installation. The pre-commit hook (above) enforces this — commits touching
 canonical source or `codex-plugin-assets/` auto-stage the regenerated
 `plugins/praxis-codex/`, so drift becomes impossible when the hook is active.
+
+## Antigravity Plugin
+
+Antigravity (`agy`) installs a self-contained package from:
+
+```text
+plugins/praxis-antigravity/
+```
+
+Antigravity's plugin format is its OWN — do not reuse the Claude or Codex
+package shapes:
+
+- `plugin.json` at the package **root**, MINIMAL: `$schema` + `name` (required)
+  + optional `description`/`version`. No Claude `skills[]`/`agents[]`/`commands`
+  arrays; no Codex `skills:`/`hooks:` keys.
+- Slash commands come from `skills/*.md` with a `name:` frontmatter key — there
+  is no `commands/` dir. The 12 workflow command-skills are HAND-AUTHORED in
+  `antigravity-plugin-assets/skills/` (the Antigravity analog of
+  `codex-plugin-assets/`) — harness-correct: prose delegation instead of Claude's
+  `Task()` API, and no Claude-specific paths. The build copies them in as
+  `skills/cmd-*.md`.
+- Agents stay **markdown** (no TOML transform — unlike Codex).
+
+The build combines:
+
+```text
+root shared content (skills/agents/workflows/governance/references/patterns)
++ antigravity-plugin-assets/skills/   (hand-authored command-skills)
+= plugins/praxis-antigravity/
+```
+
+Do not point users at `antigravity-plugin-assets/` — that is only the source
+overlay. Build and validate:
+
+```bash
+bash scripts/build-antigravity-plugin.sh
+bash scripts/validate-antigravity-plugin.sh
+```
+
+The validator enforces overlay↔canonical command parity: add a command to
+`.claude/commands/` and you must add a matching `cmd-<name>.md` to the overlay,
+or validation fails. The pre-commit hook rebuilds/validates/re-stages `plugins/praxis-antigravity/`
+alongside the Codex package whenever canonical source or `.claude/commands/`
+changes. The build is deterministic and reconciles the mirror (exit 4 rather
+than ship a dirty package), same hygiene as the Codex build.
+
+Install into a global `agy`:
+
+```bash
+agy plugin install ./plugins/praxis-antigravity
+```
+
+Separation rule: the Antigravity package is a distinct artifact and is
+**intentionally not** listed in `.agents/plugins/marketplace.json` (that file is
+Codex's — an entry there would surface an Antigravity package to Codex users).
+The validator fails if `praxis-antigravity` appears there. All three packages
+(`.claude-plugin/`, `plugins/praxis-codex/`, `plugins/praxis-antigravity/`) are
+disjoint directories; in a project the harness install homes (`.claude/`,
+`.team/`, `.agents/plugins/praxis/`) are disjoint too, sharing only the
+`AGENTS.md` standard.
 
 ## Future Plugin Targets
 

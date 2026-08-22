@@ -1,0 +1,456 @@
+# governance.yaml
+# Human-approval matrix for the Praxis.
+# Read by using-praxis at workflow start; routes approval
+# requests per the matrix below.
+#
+# For solo development, all approvers default to "principal".
+# For team setups, configure approvers per role; the platform supports
+# per-organization customization.
+
+version: 1
+mode: solo   # 'solo' or 'team'; switch to 'team' to enable role-based routing
+
+# ------------------------------------------------------------------
+# Approver identities (substitute for your team configuration)
+# ------------------------------------------------------------------
+identities:
+  principal: you@example.com   # the principal architect / solo dev — replace with your identity
+  # In team mode, add:
+  # product_owner: alice@example
+  # tech_lead: bob@example
+  # engineering_manager: carol@example
+  # security_lead: dan@example
+  # ciso: eve@example
+  # cto: frank@example
+  # library_owner: grace@example
+
+# ------------------------------------------------------------------
+# Gate matrix — who approves what
+# ------------------------------------------------------------------
+gates:
+
+  requirements_freeze:
+    description: |
+      Gate before architecture begins. Approves the requirements brief,
+      user stories, NFR register, scope boundary, assumptions register,
+      open-questions log.
+    primary_approver: principal   # team mode: product_owner
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr        # written via adr-decision-records
+    artifact_path: .project/decision/
+    evidence_required:
+      - requirements_brief
+      - user_stories
+      - scope_boundary
+      - nfr_register
+      - assumptions_register
+      - open_questions
+
+  architecture_sign_off:
+    description: |
+      Gate before implementation begins. Approves the chosen architecture,
+      the C4 diagrams, the Challenger report, and the phased roadmap.
+      Challenger report is REQUIRED evidence — gate doesn't clear without it.
+    primary_approver: principal   # team mode: tech_lead
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr_plus_architecture_doc
+    artifact_path: .project/decision/ + .project/working/architecture/
+    evidence_required:
+      - architecture_decision
+      - architecture_adr
+      - c4_diagrams
+      - challenge_report          # MANDATORY
+      - phased_roadmap
+
+  challenger_objection_override:
+    description: |
+      Gate triggered when the Solution Architect rejects a Challenger finding
+      rather than incorporating it. The rejection becomes an ADR with explicit
+      rationale; the ADR itself is what gets approved.
+    primary_approver: principal   # team mode: tech_lead + engineering_manager (both must approve)
+    escalation: principal          # team mode: cto OR principal_engineer
+    decision_artifact: adr
+    artifact_path: .project/decision/
+    evidence_required:
+      - challenger_finding
+      - sa_rationale_for_rejection
+      - residual_risk_statement
+    rationale_required: true
+
+  security_finding_waiver:
+    description: |
+      Gate when the Security Reviewer surfaces a finding that's accepted as a
+      risk rather than fixed. Risk acceptance is recorded explicitly with the
+      rationale and the conditions under which the acceptance applies.
+    primary_approver: principal   # team mode: security_lead
+    escalation: principal          # team mode: ciso OR vp_engineering
+    decision_artifact: risk_acceptance_entry
+    artifact_path: .project/operational/risk-acceptances/
+    evidence_required:
+      - security_finding
+      - severity
+      - acceptance_rationale
+      - conditions_under_which_acceptance_applies
+      - review_date         # when the acceptance is re-evaluated
+
+  production_go_live:
+    description: |
+      Gate before a release reaches production. ACTIVE in Wave 3+.
+      Approves the release with evidence that all pre-prod gates have cleared,
+      DR readiness is attested, capacity is sized, observability is wired,
+      and rollback is armed. Fires from workflows/production-release.yaml
+      after assemble_evidence completes; the named approver reviews the
+      evidence pack and approves before production_deploy executes.
+    primary_approver: principal   # team mode: engineering_manager + security_lead (both)
+    escalation: principal          # team mode: cto
+    decision_artifact: release_record_plus_dr_attestation
+    artifact_path: .project/operational/releases/
+    evidence_required:
+      # Wave 3 baseline — always required
+      - all_pre_prod_gates_cleared            # Code Review + Security Review + QA + staging verification
+      - dr_drill_recent_pass                  # within configured cadence (default 90 days; per reliability-dr)
+      - capacity_sizing_verified              # per capacity-resource-estimation
+      - slo_observability_live                # per observability skill — SLOs, dashboards, alerts
+      - rollback_plan_documented              # per deploy-release skill — explicit triggers and procedure
+      # Wave 4 additions — required conditionally per change characteristics
+      - chaos_engineering_pass_recent         # required if resilience-critical change; per chaos-engineering cadence
+      - performance_test_soak_pass            # required if NFR-bearing change; per performance-testing cadence
+      - compliance_evidence_complete          # required per compliance-privacy if regulated regime applies
+      - threat_model_updated                  # required if architecture/trust boundaries changed; per threat-modeling
+      - supply_chain_attestation_verified     # required always; per supply-chain-security (SBOM + provenance verified)
+    activation_status: active_in_wave_4_complete
+    conditional_evidence_rules:
+      chaos_engineering_pass_recent:
+        required_when: "change touches resilience-critical paths OR multi-AZ-region topology"
+        cadence_window: "90 days (quarterly GameDay)"
+      performance_test_soak_pass:
+        required_when: "change touches NFR-bearing surface (latency, throughput, availability targets)"
+        cadence_window: "90 days (quarterly soak)"
+      compliance_evidence_complete:
+        required_when: "project subject to any regime in compliance-privacy"
+        evidence_items: "per-regime control coverage matrix + recent audit attestation"
+      threat_model_updated:
+        required_when: "architecture change OR new trust boundary OR new public-facing surface"
+        evidence_items: "STRIDE walk in threat-model document + mitigations mapped"
+      supply_chain_attestation_verified:
+        required_when: "always"
+        evidence_items: "SBOM attached to image attestation + SLSA provenance verified at deploy time"
+    note: |
+      Wave 4 completes the production_go_live gate. The Wave-3 baseline (first 5
+      items) is always required. The Wave-4 additions are conditional — they fire
+      based on the change's characteristics evaluated by delivery-planner. A small
+      bug-fix release may need only baseline + supply-chain; a major release with
+      architecture changes needs all 10 items.
+
+      In solo mode, the principal reviews the evidence pack and approves.
+      In team mode, the matrix routes to engineering_manager + security_lead
+      with cto escalation; both must approve, with audit-trail entries.
+
+  steward_promotion:
+    description: |
+      Gate for the System Steward's library-improvement proposals. ACTIVE in Wave 7.
+      The Steward recommends per quarterly steward report (per `system-steward`
+      agent); this gate is where the principal approves promotion of candidate
+      changes — skill revision, lifecycle transition (experimental → active or
+      active → deprecated), trigger-phrase tuning, reference consolidation,
+      pattern promotion, agent change, workflow change, governance change.
+
+      The Steward never changes the library unilaterally — every change routes
+      here. Per-proposal granularity: principal can approve some proposals and
+      reject others within the same quarterly report.
+    primary_approver: principal   # team mode: library_owner OR tech_lead
+    escalation: principal          # team mode: engineering_director
+    decision_artifact: steward_report_plus_evidence_pack
+    artifact_path: .project/operational/library-evolution/
+    evidence_required:
+      # Always required
+      - steward_report                # the quarterly report itself
+      - factory_evaluation_reference  # the quarter's factory-evaluation that informs proposals
+      - per_proposal_evidence         # each proposal cites measurable evidence
+      - rollback_plan_per_proposal    # if regression, how to revert
+      # Conditional per proposal class
+      - before_after_metrics          # required if proposal claims measurable improvement
+      - eval_harness_results          # required if rigorous-mode A/B was run
+      - candidate_change_diff         # required for skill/agent/workflow content changes
+      - capability_balance_check      # required if proposal changes skill count
+    activation_status: active_in_wave_7_complete
+    conditional_evidence_rules:
+      before_after_metrics:
+        required_when: "proposal claims measurable improvement"
+        evidence_items: "factory-eval metric before + projected after + measurement plan"
+      eval_harness_results:
+        required_when: "rigorous-mode experimental branch was run"
+        evidence_items: "per `factory-evaluation` rigorous-mode results"
+      candidate_change_diff:
+        required_when: "proposal changes content of an existing skill / agent / workflow"
+        evidence_items: "git diff of the proposed change"
+      capability_balance_check:
+        required_when: "proposal adds or removes a skill"
+        evidence_items: "library health impact summary (skill count delta + capability area distribution after)"
+    note: |
+      Wave 7 completes the steward_promotion gate. System Steward agent operates
+      on quarterly cadence; produces steward report; routes through this gate.
+      Principal reviews per-proposal; approves or rejects with rationale.
+
+      Rejected proposals become ADRs (per `adr-decision-records`) — future
+      Stewards can reference "tried in 2026 Q4; rejected because X" to avoid
+      repeated cycles.
+
+  # Optional / project-specific gates (activated by delivery-planner per
+  # project characteristics; not all projects use all gates).
+
+  expedited_change_approval:
+    description: |
+      Activated when workflows/expedited-change.yaml is running a P0/P1
+      incident fix or critical security patch. Single-approver, compressed
+      gate — approves the targeted fix for deploy with rollback armed.
+    primary_approver: principal   # team mode: tech_lead OR on-call incident commander
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr
+    evidence_required:
+      - fix_diffs
+      - blast_radius_note
+      - tests_passing
+      - rollback_plan
+
+  expedited_change_retro:
+    description: |
+      Activated after an expedited-change deploy, within the declared retro
+      window. Approves that the mandatory retroactive rigor actually
+      happened: full-bar review, postmortem, and a tech-debt entry for every
+      shortcut taken during the emergency. Missing this gate is a governance
+      violation, not a shortcut.
+    primary_approver: principal   # team mode: engineering_manager
+    escalation: principal          # team mode: principal_engineer
+    decision_artifact: adr
+    evidence_required:
+      - retro_review_complete
+      - postmortem_doc
+      - action_items
+      - tech_debt_entries
+
+  spike_disposition:
+    description: |
+      Activated at the end of workflows/spike.yaml. Approves the spike
+      report and records the explicit archive/promote call. Spike code
+      itself is never in scope for this gate — it never merges regardless
+      of the call.
+    primary_approver: principal   # team mode: product_owner OR tech_lead
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: adr
+    evidence_required:
+      - spike_report
+      - disposition_call
+
+  ideation_refinement_approval:
+    description: |
+      Activated at the end of workflows/ideation-refinement-loop.yaml. The
+      principal approves the refined ideation artifact (or requests another
+      pass / redirects). The refinement loop's convergence is machine-checked:
+      the arbiter persists a verdict (recommended_disposition, computed from
+      "no findings >= major AND next-pass value cosmetic/low") to
+      .project/working/ideation-convergence.yaml, and the loop_decision reads it
+      via check: status_field. This gate is the separate HUMAN sign-off on the
+      converged artifact before it enters discovery.
+    primary_approver: principal   # team mode: product_owner
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: refinement_disposition
+    evidence_required:
+      - refined_artifact
+      - convergence_summary
+      - unresolved_findings
+
+  modernization_strategy_sign_off:
+    description: |
+      Activated before the increment loop begins in workflows/modernization.yaml.
+      Approves the target architecture, migration plan, data migration
+      strategy, coexistence contract, and the Challenger's migration-specific
+      findings.
+    primary_approver: principal   # team mode: tech_lead + engineering_manager
+    escalation: principal          # team mode: cto
+    decision_artifact: adr_plus_architecture_doc
+    evidence_required:
+      - target_architecture_decision
+      - migration_plan
+      - data_migration_strategy
+      - coexistence_contract
+      - challenge_report
+
+  parallel_run_verification:
+    description: |
+      Activated per increment in workflows/modernization.yaml, before traffic
+      shifts from the legacy implementation to the replacement for that seam.
+      Approves the comparison telemetry and delta report as within tolerance.
+    primary_approver: principal   # team mode: tech_lead + sre_lead
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: delta_report
+    evidence_required:
+      - comparison_telemetry
+      - delta_report
+      - characterization_test_suite
+
+  legacy_decommission_approval:
+    description: |
+      Activated after final cutover is clean in workflows/modernization.yaml.
+      Approves legacy data archival, infra teardown, and tech-debt closure
+      for the decommissioned system.
+    primary_approver: principal   # team mode: tech_lead + security_lead
+    escalation: principal          # team mode: cto
+    decision_artifact: adr
+    evidence_required:
+      - data_archival_record
+      - teardown_record
+      - tech_debt_entries_closed
+
+  tenant_isolation_review:
+    description: |
+      Activated when is_multi_tenant == true. Approves the tenancy model
+      and isolation design.
+    primary_approver: principal   # team mode: tech_lead + security_lead
+    escalation: principal          # team mode: cto
+    decision_artifact: adr
+    evidence_required:
+      - tenancy_model_decision
+      - isolation_design
+      - noisy_neighbor_controls
+      - tenant_observability_design
+
+  hipaa_control_review:
+    description: |
+      Activated when 'HIPAA' in compliance_regimes. Approves HIPAA control
+      coverage for the slice or release.
+    primary_approver: principal   # team mode: security_lead + compliance_officer
+    escalation: principal          # team mode: ciso
+    decision_artifact: hipaa_control_evidence_pack
+    evidence_required:
+      - control_coverage_matrix
+      - phi_handling_evidence
+      - baa_status_for_external_services
+
+  pci_scope_review:
+    description: |
+      Activated when 'PCI-DSS' in compliance_regimes. Approves PCI scope
+      boundary and tokenization strategy.
+    primary_approver: principal   # team mode: security_lead + qsa (qualified security assessor)
+    escalation: principal          # team mode: ciso
+    decision_artifact: pci_scope_diagram_plus_adr
+    evidence_required:
+      - cardholder_data_scope
+      - tokenization_strategy
+      - segmentation_evidence
+
+  responsible_ai_review:
+    description: |
+      Activated when has_ml == true OR has_agentic_ai == true. Fully realized in
+      Wave 6. Approves the fairness, robustness, transparency, and safety
+      controls before model / agent deploy. ML/AI Engineer assembles the
+      evidence pack per `responsible-ai` skill; Security Reviewer audits the
+      evidence; the named approver signs off.
+
+      Evidence content varies by feature class:
+      - Traditional ML feature: model card + datasheet + fairness audit +
+        robustness check + explainability + HITL policy + harm-signal runbook.
+      - Agentic AI / LLM feature: agent design + safety design + eval suite +
+        LLM-content-policy + safety eval pass + HITL policy + harm-signal runbook.
+
+      Gate doesn't clear without all 7 evidence items (plus the 2 conditional
+      items per feature class).
+    primary_approver: principal   # team mode: ml_lead + ethics_review
+    escalation: principal          # team mode: cto
+    decision_artifact: model_card_plus_responsible_ai_audit
+    artifact_path: .project/operational/ml-models/ OR .project/decision/ (agentic)
+    evidence_required:
+      # Wave 6 — always required when this gate fires
+      - fairness_audit                  # per-slice metric vs threshold (per `responsible-ai`)
+      - robustness_check                # adversarial + distribution + sub-population
+      - explainability_evidence         # SHAP/LIME/feature attribution OR agent decision trace
+      - human_in_the_loop_policy        # documented; configured in implementation
+      - harm_signal_escalation_runbook  # rehearsed; routed
+      # Conditional per feature class
+      - model_card                      # required for traditional ML (per `ml-training-evaluation`)
+      - datasheet_for_training_data     # required for traditional ML (per `responsible-ai`)
+      - agent_architecture_doc          # required for agentic AI (per `agentic-architecture`)
+      - llm_safety_design               # required for agentic AI (per `llm-safety`)
+      - eval_suite_pass                 # required for agentic AI (per `evaluation-engineering`)
+    activation_status: active_in_wave_6_complete
+    conditional_evidence_rules:
+      model_card:
+        required_when: "has_ml == true"
+        evidence_items: "per `ml-training-evaluation` model card template"
+      datasheet_for_training_data:
+        required_when: "has_ml == true"
+        evidence_items: "per `responsible-ai` datasheet template"
+      agent_architecture_doc:
+        required_when: "has_agentic_ai == true"
+        evidence_items: "ADR for topology + tool catalog + memory + failure modes"
+      llm_safety_design:
+        required_when: "has_agentic_ai == true"
+        evidence_items: "guardrails design + content policy + safety eval pass"
+      eval_suite_pass:
+        required_when: "has_agentic_ai == true"
+        evidence_items: "per `evaluation-engineering` — regression eval green; LLM-judge calibrated"
+
+  capacity_stress_test:
+    description: |
+      Activated when scale_target_qps > 10000 OR availability_pct >= 99.99.
+      Approves the capacity-and-stress-test evidence before production.
+    primary_approver: principal   # team mode: tech_lead + sre_lead
+    escalation: principal          # team mode: cto
+    decision_artifact: load_test_report
+    evidence_required:
+      - load_test_results_vs_nfr_targets
+      - identified_bottlenecks
+      - capacity_buffer_at_target_load
+
+# ------------------------------------------------------------------
+# Routing behavior
+# ------------------------------------------------------------------
+routing:
+  on_gate_reached:
+    - construct_approval_request:
+        what: the gate's purpose statement
+        evidence: gate.evidence_required (validated complete)
+        recommended_action: the orchestrator's recommendation
+    - route_to: gate.primary_approver
+    - timeout: 24h_then_escalate     # configurable; not enforced in solo mode
+    - on_approve: resume_workflow
+    - on_reject: workflow_rejection_path (loop back with rationale OR escalate)
+
+  on_approval_timeout:
+    - notify: gate.escalation
+
+  on_rejection:
+    - log_to: .project/decision/    # rejections are also ADRs
+    - resume_workflow_at: the_rejection_path_step
+
+# ------------------------------------------------------------------
+# Solo-mode defaults
+# ------------------------------------------------------------------
+solo_mode_notes: |
+  In solo mode (mode: solo above), every gate routes to the principal. The
+  matrix above still defines:
+
+  - WHAT is being approved (the description),
+  - WHAT EVIDENCE the approval requires (the evidence_required list),
+  - WHAT ARTIFACT records the decision (the decision_artifact),
+  - WHERE the artifact lives (the artifact_path).
+
+  The principal sees a structured approval request with the full evidence
+  package, not just "approve?". This matters: solo development with structured
+  governance is much harder to drift from than solo development with implicit
+  approvals.
+
+# ------------------------------------------------------------------
+# Team-mode migration
+# ------------------------------------------------------------------
+team_mode_migration: |
+  When ready to migrate to team mode:
+
+  1. Set mode: team
+  2. Fill in the identities: map above with real team emails.
+  3. Replace 'principal' with the named role in each gate's
+     primary_approver and escalation fields.
+  4. Decide on co-approval (X + Y, both required) where appropriate.
+  5. Enable the timeout_then_escalate behavior.
+
+  The governance file becomes the team's auditable record of who approves what.

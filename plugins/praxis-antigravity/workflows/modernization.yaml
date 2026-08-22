@@ -1,0 +1,301 @@
+# Workflow: modernization
+# Strangler-fig replacement of a legacy system. Differs from brownfield-enhancement
+# in that the "enhancement" IS the replacement: seams are carved one at a time,
+# each seam runs old and new in parallel with comparison telemetry before the
+# traffic shift, and the legacy system is decommissioned only after cutover.
+
+name: modernization
+version: 1
+description: |
+  Replace a legacy system incrementally via the strangler-fig pattern rather
+  than a big-bang rewrite. Deep comprehension and seam identification come
+  first; the target architecture and migration strategy are sign-off gated
+  before any seam is touched; each increment carves one seam, builds its
+  replacement as an implementation-slice sub-workflow, runs old and new in
+  parallel with comparison telemetry, and only then shifts traffic. Legacy
+  decommission is its own gated phase after cutover is clean.
+
+entry_criteria:
+  - legacy_system_identified == true
+  - modernization_driver_documented == true   # EOL, cost, or risk driver named
+  - brownfield_comprehension_complete_or_scheduled == true
+
+steps:
+  # ------------------------------------------------------------------
+  # PHASE 1 — Deep comprehension + seam identification
+  # ------------------------------------------------------------------
+  - id: deep_comprehension
+    type: agent_invocation
+    agent: tech-writer
+    skill: codebase-comprehension
+    inputs:
+      target_repo: from(principal_intent.target_repo)
+      modernization_driver: from(principal_intent.modernization_driver)
+    outputs:
+      - .repo-intel/architecture-map.md
+      - .repo-intel/dependency-graph.md
+      - .repo-intel/hotspot-analysis.md
+      - .repo-intel/conventions.md
+    notes: Deeper pass than standard brownfield comprehension — read once, consumed for the entire migration, so completeness matters more than speed.
+
+  - id: seam_identification
+    type: agent_invocation
+    agent: solution-architect
+    skill: impact-analysis
+    inputs:
+      repo_intel: from(deep_comprehension.outputs)
+    outputs: [candidate_seams, seam_dependency_graph, seam_risk_scores]
+    notes: A seam is a boundary where the legacy system can be cut and a facade inserted without touching the other side. Ranked by risk (data ownership, traffic volume, coupling) to inform the increment sequence below.
+
+  # ------------------------------------------------------------------
+  # PHASE 2 — Target architecture + migration strategy
+  # ------------------------------------------------------------------
+  - id: target_architecture
+    type: agent_invocation
+    agent: solution-architect
+    skill: architecture-pattern-selection
+    inputs:
+      candidate_seams: from(seam_identification.candidate_seams)
+      repo_intel: from(deep_comprehension.outputs)
+    outputs: [target_architecture_decision, strangler_facade_design, architecture_adr]
+
+  - id: migration_strategy
+    type: agent_invocation
+    agent: solution-architect
+    skill: legacy-modernization
+    inputs:
+      target_architecture_decision: from(target_architecture.target_architecture_decision)
+      candidate_seams: from(seam_identification.candidate_seams)
+      seam_risk_scores: from(seam_identification.seam_risk_scores)
+    outputs:
+      - migration_plan
+      - increment_sequence
+      - data_migration_strategy   # per schema-migration; expand-contract, dual-write, or bulk-cutover per seam
+      - coexistence_contract      # how old and new agree on ownership during parallel-run
+    notes: Data migration strategy is decided per seam — some tolerate dual-write, others need a bulk cutover with a freeze window. The coexistence contract is what the facade enforces while both systems are live for a seam.
+
+  - id: architecture_challenger_review
+    type: agent_invocation
+    agent: architecture-challenger
+    capability_tier: deep
+    inputs:
+      target_architecture_decision: from(target_architecture.target_architecture_decision)
+      migration_plan: from(migration_strategy.migration_plan)
+      coexistence_contract: from(migration_strategy.coexistence_contract)
+    outputs: [challenge_report]
+    notes: Deep-tier challenge on migration-specific failure modes — dual-write consistency, cutover rollback (can we actually go back once traffic has shifted), and data loss windows in any seam's migration strategy.
+
+  - id: modernization_strategy_sign_off_gate
+    type: gate
+    name: modernization_strategy_sign_off
+    approver: governance.modernization_strategy_sign_off.approver
+    evidence:
+      - target_architecture_decision
+      - strangler_facade_design
+      - migration_plan
+      - data_migration_strategy
+      - coexistence_contract
+      - challenge_report
+
+  # ------------------------------------------------------------------
+  # PHASE 3 — Increment loop (one seam at a time)
+  # ------------------------------------------------------------------
+  - id: increment_loop
+    type: bounded_loop
+    max_iterations: from(migration_strategy.migration_plan.planned_seam_count)
+    iteration_label: seam_number
+    loop_contract:
+      exit_criteria:
+        - all_seams_migrated: "every seam in increment_sequence has cutover_status == cutover_complete"
+        - parallel_run_deltas_below_threshold: "each completed seam's comparison delta report is within the NFR-defined tolerance"
+      max_iterations: from(migration_strategy.migration_plan.planned_seam_count)
+      on_no_progress: stop_and_flag
+      on_exhaustion: escalate_to_human
+    loop_state:
+      current_seam:
+        initial: from(migration_strategy.increment_sequence.first)
+        updated_by: advance_to_next_seam
+    steps:
+      - id: carve_seam
+        type: agent_invocation
+        agent: solution-architect
+        skill: legacy-modernization
+        inputs:
+          current_seam: from(loop_state.current_seam)
+          strangler_facade_design: from(target_architecture.strangler_facade_design)
+        outputs: [seam_facade_contract, seam_implementation_packet]
+
+      - id: characterization_tests
+        type: skill_invocation
+        skill: testing-strategy
+        owner: qa-engineer
+        inputs:
+          current_seam: from(loop_state.current_seam)
+          legacy_behavior_scope: from(carve_seam.seam_facade_contract)
+        outputs: [characterization_test_suite, legacy_behavior_baseline]
+        notes: Written against LEGACY behavior before the replacement slice exists — proves the new implementation is behavior-compatible, not just independently correct.
+
+      - id: build_replacement_slice
+        type: per_slice
+        source: from(carve_seam.seam_implementation_packet)
+        sub_workflow: implementation-slice
+        until: seam_implementation_packet.slice_complete == true
+        sub_workflow_overrides:
+          mode: brownfield
+          characterization_baseline: from(characterization_tests.legacy_behavior_baseline)
+
+      - id: parallel_run
+        type: skill_invocation
+        skill: observability
+        owner: platform-sre
+        inputs:
+          current_seam: from(loop_state.current_seam)
+          legacy_behavior_baseline: from(characterization_tests.legacy_behavior_baseline)
+          replacement_deployment: from(build_replacement_slice.slice_status)
+        outputs: [comparison_telemetry, delta_report, parallel_run_status]
+        notes: Old and new run side by side against the same traffic (shadow or dual-read, per the coexistence contract), diffing outputs — the evidence for the per-increment gate below, not a smoke test.
+
+      - id: parallel_run_verification_gate
+        type: gate
+        name: parallel_run_verification
+        approver: governance.parallel_run_verification.approver
+        evidence:
+          - comparison_telemetry
+          - delta_report
+          - characterization_test_suite
+
+      - id: traffic_shift_check
+        type: decision_node
+        predicate:
+          expr: parallel_run_status == clean AND parallel_run_verification_gate.cleared == true
+          fallback_gate: parallel_run_clean_boundary   # runtime predicate (parallel_run) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+          on_fail: route_back
+          # parallel_run_verification_gate (human gate) already precedes this
+          # node in the loop; no additional fallback_gate needed.
+        branches:
+          true: [incremental_traffic_shift]
+          false: [freeze_and_fix]
+
+      - id: incremental_traffic_shift
+        type: skill_invocation
+        skill: deploy-release
+        owner: platform-sre
+        inputs:
+          current_seam: from(loop_state.current_seam)
+          delta_report: from(parallel_run.delta_report)
+        outputs: [traffic_shift_status, cutover_status]
+
+      - id: freeze_and_fix
+        type: agent_invocation
+        agent: delivery-lead
+        action: freeze_traffic_shift_and_route_to_fix
+        inputs:
+          delta_report: from(parallel_run.delta_report)
+          current_seam: from(loop_state.current_seam)
+        outputs: [freeze_recorded]
+        notes: Routes back to build_replacement_slice with the delta report as input; traffic stays on legacy for this seam.
+
+      - id: advance_to_next_seam
+        type: state_update
+        updates:
+          loop_state.current_seam: from(migration_strategy.increment_sequence.next)
+
+  # ------------------------------------------------------------------
+  # PHASE 4 — Final cutover decision
+  # ------------------------------------------------------------------
+  - id: final_cutover_check
+    type: decision_node
+    predicate:
+      expr: increment_loop.all_seams_migrated == true AND increment_loop.parallel_run_deltas_below_threshold == true
+      fallback_gate: increment_completion_boundary   # runtime predicate (increment_loop) — not machine-readable by the runner yet; delivery-lead evaluates the expr interactively
+      on_fail: route_back
+      # Mirrors increment_loop's own loop_contract.exit_criteria (above);
+      # legacy_decommission_approval_gate is the human stop after this.
+    branches:
+      true: [legacy_decommission]
+      false: [stay_dual_and_escalate]
+
+  - id: stay_dual_and_escalate
+    type: agent_invocation
+    agent: delivery-lead
+    action: hold_dual_running_state
+    inputs:
+      increment_loop_status: from(increment_loop.outputs)
+    outputs: [dual_run_hold_recorded]
+    notes: The system remains dual (old + new both live) until the outstanding seam(s) clear parallel-run verification.
+
+  # ------------------------------------------------------------------
+  # PHASE 5 — Legacy decommission
+  # ------------------------------------------------------------------
+  - id: legacy_decommission
+    type: agent_invocation
+    agent: platform-sre
+    skill: data-governance
+    inputs:
+      migration_plan: from(migration_strategy.migration_plan)
+      final_cutover_check: from(final_cutover_check.branches)
+    outputs: [data_archival_record]
+    notes: Archives legacy data per retention policy before infra teardown.
+
+  - id: infra_teardown
+    type: agent_invocation
+    agent: platform-sre
+    skill: iac
+    inputs:
+      migration_plan: from(migration_strategy.migration_plan)
+      data_archival_record: from(legacy_decommission.data_archival_record)
+    outputs: [teardown_record]
+
+  - id: tech_debt_closure
+    type: agent_invocation
+    agent: delivery-lead
+    skill: tech-debt-management
+    inputs:
+      migration_plan: from(migration_strategy.migration_plan)
+      teardown_record: from(infra_teardown.teardown_record)
+    outputs: [tech_debt_entries_closed]
+    notes: Closes out tech-debt entries that existed only because the legacy system existed.
+
+  - id: legacy_decommission_approval_gate
+    type: gate
+    name: legacy_decommission_approval
+    approver: governance.legacy_decommission_approval.approver
+    evidence:
+      - data_archival_record
+      - teardown_record
+      - tech_debt_entries_closed
+
+exit_criteria:
+  - increment_loop.all_seams_migrated == true
+  - legacy_decommission_approval_gate.cleared == true
+
+failure_paths:
+  parallel_run_divergence:
+    - freeze_traffic_shift_for_affected_seam
+    - route_to: build_replacement_slice
+    - notify_principal_via_governance
+
+  data_migration_corruption:
+    - rollback_to_legacy_authoritative
+    - suspend_increment_loop
+    - escalate_to: principal
+
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+notes: |
+  Differs from brownfield-enhancement in that the change being delivered IS
+  the replacement of the system, not a feature within it:
+
+  1. Comprehension is deeper and seam-identification-focused, feeding the
+     migration plan rather than a single feature's scope.
+  2. The architecture-challenger pass is scoped to migration-specific
+     failure modes, not general architecture review.
+  3. Each increment is gated twice: implicitly via implementation-slice
+     (code review, security review, QA), and explicitly via
+     parallel_run_verification — comparison telemetry against the legacy
+     system's own behavior, evidence a normal slice never has to produce.
+  4. Legacy decommission is a distinct final phase, gated on its own, so
+     data archival and infra teardown never race ahead of a clean cutover.

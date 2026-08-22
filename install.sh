@@ -100,8 +100,8 @@ hdr() { echo; echo "==> $*"; }
 
 N_AGENTS=$(find "$LIBRARY_ROOT/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')
 # Count ACTIVE skills (skip tombstones — SKILL.md files with state: removed)
-N_SKILLS=$(grep -L '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-N_REMOVED=$(grep -l '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+N_SKILLS=$( { grep -L '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+N_REMOVED=$( { grep -l '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null || true; } | wc -l | tr -d ' ')
 N_WORKFLOWS=$(find "$LIBRARY_ROOT/workflows" -name '*.yaml' | wc -l | tr -d ' ')
 
 # Copy a list of subdirectories from library to dest. Args: dest, then list.
@@ -332,26 +332,89 @@ install_kiro() {
 }
 
 install_antigravity() {
-  hdr "Installing Antigravity layout → $TARGET"
-  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would copy library + plugin.json at root"; return; fi
-  # Antigravity uses plugin.json at repo root
-  if [[ -f "$LIBRARY_ROOT/plugin.json" ]]; then
-    cp "$LIBRARY_ROOT/plugin.json" "$TARGET/"
-    say "✓ wrote plugin.json (repo root)"
+  # Antigravity CLI (agy) native plugin. Antigravity's plugin format is its OWN —
+  # verified against https://antigravity.google/docs/cli/plugins:
+  #   • plugin.json is MINIMAL: $schema + name (required) + optional description/version.
+  #     It is NOT Claude's skills[]/agents[]/commands arrays and NOT Codex's schema.
+  #   • There is no commands/ dir — slash commands come from skills/*.md that carry a
+  #     `name:` frontmatter key. (Our 12 workflow commands only have `description:`, so
+  #     we inject a name and emit them as skills below.)
+  #   • Workspace plugins are auto-discovered at .agents/plugins/<name>/ (global copies
+  #     live at ~/.gemini/antigravity-cli/plugins/). `agy plugin install <local-path>`
+  #     registers a plugin from a local path.
+  local dest="$TARGET/.agents/plugins/praxis"
+  hdr "Installing Antigravity plugin → $dest"
+  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would create $dest (agy plugin) + AGENTS.md at repo root"; return; fi
+  check_exists_or_force "$dest"
+  rm -rf "$dest"
+  mkdir -p "$dest/skills"
+
+  # Library: skills (91) + agents/workflows/governance/patterns/references for the
+  # assistant to read and for AGENTS.md routing.
+  copy_subs "$dest" agents skills workflows governance patterns references
+  copy_files "$dest" README.md PLAYBOOK.md INSTALLATION.md
+
+  # Curated workflow commands → Antigravity slash commands, from the hand-authored
+  # overlay (antigravity-plugin-assets/skills/) — harness-correct: prose delegation
+  # instead of Claude's Task() API, and no Claude-specific paths.
+  if [[ -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills" ]]; then
+    cp "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/cmd-*.md "$dest/skills/" 2>/dev/null || true
+    say "✓ wrote $(ls "$dest/skills"/cmd-*.md 2>/dev/null | wc -l | tr -d ' ') workflow command-skills (/start /discover … → slash commands)"
   fi
-  # Library lands at root subdirs (skills/, agents/, etc.) — same as Antigravity expects
-  for sub in agents skills workflows governance patterns references; do
-    if [[ -d "$LIBRARY_ROOT/$sub" && ! -d "$TARGET/$sub" ]]; then
-      cp -R "$LIBRARY_ROOT/$sub" "$TARGET/"
-      say "✓ copied $sub/"
-    fi
-  done
-  # Antigravity uses commands/ at repo root
-  if [[ -d "$LIBRARY_ROOT/.claude/commands" && ! -d "$TARGET/commands" ]]; then
-    cp -R "$LIBRARY_ROOT/.claude/commands" "$TARGET/"
-    say "✓ copied commands/"
+
+  # Manifest — minimal Antigravity schema.
+  cat > "$dest/plugin.json" <<'EOF'
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "praxis",
+  "version": "0.1.0",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 skills, 17 agents, 9 workflows, 18 governance gates."
+}
+EOF
+  say "✓ wrote plugin.json (Antigravity schema)"
+
+  # AGENTS.md front door at repo root — agy reads this even without the plugin subsystem.
+  if [[ ! -f "$TARGET/AGENTS.md" ]]; then
+    cat > "$TARGET/AGENTS.md" <<'EOF'
+# Agents and Skills Index — Praxis
+
+This repo ships the Praxis Antigravity plugin at `.agents/plugins/praxis/`. The
+Antigravity CLI (`agy`) auto-discovers it there and should consult these files.
+
+## Where things live
+- Role agents:    `.agents/plugins/praxis/agents/` (17 agents)
+- Skills:         `.agents/plugins/praxis/skills/<skill-name>/SKILL.md` (91 skills)
+- Slash commands: `.agents/plugins/praxis/skills/cmd-*.md` (12: /start /discover …)
+- Workflows:      `.agents/plugins/praxis/workflows/` (9 workflows)
+- Governance:     `.agents/plugins/praxis/governance/governance.yaml`
+- References:     `.agents/plugins/praxis/references/`
+
+## Routing by task type
+| Task type | Start here |
+|---|---|
+| Bootstrap new project | `.agents/plugins/praxis/skills/delivery-planner/SKILL.md` |
+| New API service | `.agents/plugins/praxis/workflows/greenfield-api-service.yaml` |
+| New SaaS product | `.agents/plugins/praxis/workflows/greenfield-saas.yaml` |
+| Enhance existing system | `.agents/plugins/praxis/workflows/brownfield-enhancement.yaml` |
+| Per-slice implementation | `.agents/plugins/praxis/workflows/implementation-slice.yaml` |
+| Release to production | `.agents/plugins/praxis/workflows/production-release.yaml` |
+| Quarterly library review | `.agents/plugins/praxis/agents/system-steward.md` |
+| ANY non-trivial task | `.agents/plugins/praxis/skills/using-praxis/SKILL.md` (front-door) |
+
+## Project memory
+All artifacts under `.project/` per the six-type taxonomy.
+
+## Governance
+All gates per `.agents/plugins/praxis/governance/governance.yaml`. Solo mode routes to principal.
+
+## Documentation
+- `.agents/plugins/praxis/README.md` — library overview
+- `.agents/plugins/praxis/PLAYBOOK.md` — operating playbook
+EOF
+    say "✓ wrote AGENTS.md (repo root)"
+  else
+    say "• AGENTS.md already present — left as-is (shared front door)"
   fi
-  copy_files "$TARGET" README.md PLAYBOOK.md
 }
 
 # ----------------------------------------------------------------------
