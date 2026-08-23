@@ -49,9 +49,9 @@ Praxis routes by **abstract capability tier**, not by model name. Concrete model
 
 | Tier | Use for | Resolves to (examples, per routing table) |
 |---|---|---|
-| **deep** | Novel architecture decisions, complex multi-step reasoning, high-stakes gates, adversarial review, tasks where a prior standard-tier attempt failed | Claude: Opus · Codex: `model_reasoning_effort=high` · Gemini: Pro |
-| **standard** | Default for almost everything — implementation, test authoring against a designed plan, standard SKILLs, summarization, extraction, routine orchestration | Claude: Sonnet · Codex: `medium` · Gemini: Flash |
-| **light** | Classification, intent detection, simple extraction, doc formatting, scaffolding, routing decisions with structured inputs, pre-flight checks | Claude: Haiku · Codex: `low` · Gemini: Flash-Lite |
+| **deep** | Novel architecture decisions, complex multi-step reasoning, high-stakes gates, adversarial review, tasks where a prior standard-tier attempt failed | Claude: Opus · Codex: `model_reasoning_effort=high` |
+| **standard** | Default for almost everything — implementation, test authoring against a designed plan, standard SKILLs, summarization, extraction, routine orchestration | Claude: Sonnet · Codex: `medium` |
+| **light** | Classification, intent detection, simple extraction, doc formatting, scaffolding, routing decisions with structured inputs, pre-flight checks | Claude: Haiku · Codex: `low` |
 
 **Default: standard.** Upgrade to deep only when the routing rubric says so.
 

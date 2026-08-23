@@ -14,7 +14,7 @@
 #   --name     artifact name (e.g., requirements-intake, delivery-lead)
 #
 # Optional:
-#   --tool         claude-code (default) | codex | cursor | gemini | opencode
+#   --tool         claude-code (default) | codex | cursor | opencode | antigravity
 #                  | copilot | kiro | antigravity
 #   --trigger      auto-hook (default) | workflow-step | manual | slash-command
 #                  | session-end | validator

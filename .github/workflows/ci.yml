@@ -194,7 +194,7 @@ jobs:
           fi
           bash scripts/validate-codex-plugin.sh
 
-      - name: Command copies in sync (root commands/ vs .claude/ and .gemini/)
+      - name: Command copies in sync (root commands/ vs .claude/)
         run: |
           set -e
           fail=0
@@ -202,12 +202,6 @@ jobs:
             b=$(basename "$f")
             if [ -f ".claude/commands/$b" ] && ! diff -q "$f" ".claude/commands/$b" > /dev/null; then
               echo "DRIFT: .claude/commands/$b differs from commands/$b"; fail=1
-            fi
-          done
-          for f in commands/*.toml; do
-            b=$(basename "$f")
-            if [ -f ".gemini/commands/$b" ] && ! diff -q "$f" ".gemini/commands/$b" > /dev/null; then
-              echo "DRIFT: .gemini/commands/$b differs from commands/$b"; fail=1
             fi
           done
           exit $fail

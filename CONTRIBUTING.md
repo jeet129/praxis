@@ -148,7 +148,7 @@ sync and fail CI). Know which is which:
 | Generated surface | Source of truth | Regenerate with |
 |---|---|---|
 | `plugins/praxis-codex/` (the whole tree) | `skills/`, `agents/`, `workflows/`, `governance/`, `references/`, `patterns/`, `scripts/` + Codex overlays in `codex-plugin-assets/` | `scripts/build-codex-plugin.sh`, checked by `scripts/validate-codex-plugin.sh` |
-| Skill / agent / workflow / gate **counts** quoted in `README.md`, `.claude-plugin/*.json`, `GEMINI.md`, `.cursor/rules/`, and a few SKILL bodies | the actual directory contents | `scripts/build-registry.py` (`--check` for CI drift-detection, no-write) |
+| Skill / agent / workflow / gate **counts** quoted in `README.md`, `.claude-plugin/*.json`, `.cursor/rules/`, and a few SKILL bodies | the actual directory contents | `scripts/build-registry.py` (`--check` for CI drift-detection, no-write) |
 | `model:` / `model_reasoning_effort:` fields in `agents/*.md` frontmatter and `codex-plugin-assets/codex-agents/*.toml` | `governance/model-routing.yaml` (tier → model map) | `scripts/apply-model-routing.py` (`--check` for CI) |
 
 Rules that follow from this:
@@ -215,7 +215,7 @@ push.
 | `python3 scripts/validate-references.py` | Every `references:` path cited from a SKILL's frontmatter resolves to a real file. | `skills/*/references/`, SKILL frontmatter `references:` lists |
 | `bash scripts/validate-codex-plugin.sh` | The generated `plugins/praxis-codex/` package is structurally valid and in sync with canonical source. | `codex-plugin-assets/`, or anything that changes canonical source (run after rebuilding) |
 | `python3 scripts/apply-model-routing.py --check` | Every agent's `model:` (or Codex `model_reasoning_effort:`) field matches what `governance/model-routing.yaml` resolves for its `capability_tier`. Exits 1 on drift, writes nothing. | `agents/*.md` frontmatter, `governance/model-routing.yaml` |
-| `python3 scripts/build-registry.py --check` | Skill/agent/workflow/gate counts quoted across `README.md`, plugin manifests, `GEMINI.md`, `.cursor/rules/`, and a few SKILL bodies match the actual directory contents. Exits 1 on drift, writes nothing. | Anything that adds/removes a SKILL, agent, workflow, or gate |
+| `python3 scripts/build-registry.py --check` | Skill/agent/workflow/gate counts quoted across `README.md`, plugin manifests, `.cursor/rules/`, and a few SKILL bodies match the actual directory contents. Exits 1 on drift, writes nothing. | Anything that adds/removes a SKILL, agent, workflow, or gate |
 
 One additional test guards routing behavior: `bash scripts/test-routing-parity.sh`
 asserts the no-drive resolver (`scripts/resolve-model.py`) and the drive runner

@@ -65,12 +65,6 @@ harnesses:
       deep: auto
       standard: auto
       light: auto
-  gemini-cli:
-    field: model
-    map:
-      deep: gemini-2.5-pro
-      standard: gemini-2.5-flash
-      light: gemini-2.5-flash-lite
 
 # Optional governance pin: set to a tier name to force every agent to that tier
 # (e.g. a compliance-critical engagement that mandates `deep` everywhere).

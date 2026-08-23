@@ -1,6 +1,6 @@
 ---
 name: agentic-harness-orchestration
-description: "Design and run swappable agentic-harness workflows where roles such as creator, reviewer, enhancer, and arbiter are bound at runtime to Claude, Codex, Gemini, Cursor, OpenCode, or custom harnesses. Use for iterative artifact refinement, cross-harness critique loops, convergence checks, and harness adapter contracts."
+description: "Design and run swappable agentic-harness workflows where roles such as creator, reviewer, enhancer, and arbiter are bound at runtime to Claude, Codex, Cursor, OpenCode, or custom harnesses. Use for iterative artifact refinement, cross-harness critique loops, convergence checks, and harness adapter contracts."
 ---
 
 # Agentic Harness Orchestration
@@ -16,7 +16,7 @@ dependencies:
   - llm-safety
 triggers:
   - "configuring creator and reviewer harnesses"
-  - "swapping Claude, Codex, Gemini, Cursor, OpenCode, or custom harnesses"
+  - "swapping Claude, Codex, Cursor, OpenCode, or custom harnesses"
   - "running iterative ideation refinement"
   - "checking convergence across agent feedback loops"
 outputs:
@@ -35,7 +35,7 @@ references: []
 <!-- praxis:metadata:end -->
 
 This skill keeps an agentic workflow portable across harnesses. Treat harnesses
-as adapters and roles as the stable contract. Claude, Codex, Gemini, Cursor,
+as adapters and roles as the stable contract. Claude, Codex, Cursor,
 OpenCode, and future tools can be bound to roles without rewriting the workflow.
 
 ## Core Principle

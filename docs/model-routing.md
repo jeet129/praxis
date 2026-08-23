@@ -36,9 +36,6 @@ harnesses:
   codex:
     field: model_reasoning_effort   # written into codex-plugin-assets/codex-agents/*.toml
     map: { deep: high, standard: medium, light: low }
-  gemini-cli:
-    field: model
-    map: { deep: gemini-2.5-pro, standard: gemini-2.5-flash, light: gemini-2.5-flash-lite }
 
 overrides:
   force_tier: null                  # set to a tier name to pin every agent to it
@@ -147,7 +144,7 @@ To wire up a harness Praxis doesn't yet support:
    tiers to that harness's concrete model identifiers.
 2. **Extend `scripts/apply-model-routing.py`** to know how to write that
    field into the new harness's agent-definition format (it currently
-   handles Markdown frontmatter for Claude Code / Gemini CLI and TOML for
+   handles Markdown frontmatter for Claude Code and TOML for
    Codex — add a writer function following the existing `process_agents` /
    `process_codex` pattern).
 3. **Add an `install.sh --tool=<name>` layout** if the harness needs its own

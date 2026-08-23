@@ -6,7 +6,7 @@
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
-#   ./install.sh --tool=<name> [TARGET]         # tool: claude-code | codex | cursor | gemini | opencode | copilot | kiro | antigravity | all
+#   ./install.sh --tool=<name> [TARGET]         # tool: claude-code | codex | cursor | opencode | copilot | kiro | antigravity | all
 #   ./install.sh --user                         # user-global Claude Code install (~/.claude/)
 #   ./install.sh --dry-run [TARGET]             # preview without doing anything
 #   ./install.sh --force [TARGET]               # overwrite existing install
@@ -15,7 +15,6 @@
 # Examples:
 #   ./install.sh ~/dev/my-project                       # Claude Code (default)
 #   ./install.sh --tool=cursor ~/dev/my-project         # Cursor
-#   ./install.sh --tool=gemini ~/dev/my-project         # Gemini CLI
 #   ./install.sh --tool=all ~/dev/my-project            # Every supported tool
 #   ./install.sh --dry-run --tool=copilot ~/dev/proj    # Preview Copilot install
 
@@ -35,7 +34,7 @@ SKIP_MEMORY=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIBRARY_ROOT="$SCRIPT_DIR"
 
-VALID_TOOLS=(claude-code codex cursor gemini opencode copilot kiro antigravity all)
+VALID_TOOLS=(claude-code codex cursor opencode copilot kiro antigravity all)
 
 usage() {
   sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
@@ -248,33 +247,6 @@ install_cursor() {
   copy_files "$lib_dest" README.md PLAYBOOK.md
 }
 
-install_gemini() {
-  local dest="$TARGET/.gemini"
-  hdr "Installing Gemini CLI layout → $dest"
-  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would create $dest + GEMINI.md at repo root"; return; fi
-  check_exists_or_force "$dest"
-  rm -rf "$dest"
-  mkdir -p "$dest/skills" "$dest/commands"
-  # Skills
-  if [[ -d "$LIBRARY_ROOT/skills" ]]; then
-    cp -R "$LIBRARY_ROOT/skills/." "$dest/skills/"
-    say "✓ copied skills/"
-  fi
-  # Mirror commands
-  if [[ -d "$LIBRARY_ROOT/.gemini/commands" ]]; then
-    cp -R "$LIBRARY_ROOT/.gemini/commands/." "$dest/commands/"
-    say "✓ copied slash commands"
-  fi
-  # Other content under .gemini for reference
-  copy_subs "$dest" agents workflows governance references patterns
-  copy_files "$dest" README.md PLAYBOOK.md INSTALLATION.md
-  # GEMINI.md at repo root
-  if [[ -f "$LIBRARY_ROOT/GEMINI.md" ]]; then
-    cp "$LIBRARY_ROOT/GEMINI.md" "$TARGET/"
-    say "✓ wrote GEMINI.md (repo root)"
-  fi
-}
-
 install_opencode() {
   local dest="$TARGET/.opencode"
   hdr "Installing OpenCode layout → $dest"
@@ -468,7 +440,6 @@ case "$TOOL" in
   claude-code)  install_claude_code ;;
   codex)        install_codex ;;
   cursor)       install_cursor ;;
-  gemini)       install_gemini ;;
   opencode)     install_opencode ;;
   copilot)      install_copilot ;;
   kiro)         install_kiro ;;
@@ -477,7 +448,6 @@ case "$TOOL" in
     install_claude_code
     install_codex
     install_cursor
-    install_gemini
     install_opencode
     install_copilot
     install_kiro
@@ -515,9 +485,6 @@ case "$TOOL" in
   cursor|all)       echo "   • Cursor:       cd $TARGET && cursor ." ;;
 esac
 case "$TOOL" in
-  gemini|all)       echo "   • Gemini CLI:   cd $TARGET && gemini" ;;
-esac
-case "$TOOL" in
   opencode|all)     echo "   • OpenCode:     cd $TARGET && opencode" ;;
 esac
 case "$TOOL" in
@@ -540,7 +507,7 @@ cat <<EOF
 
 3. Bootstrap the project (run once):
 
-   /start  (Claude Code, Gemini, Antigravity slash command)
+   /start  (Claude Code, Antigravity slash command)
 
    OR paste:
    "Run delivery-planner. Capture the charter at

@@ -7,7 +7,7 @@ version: 1
 description: |
   Refine an ideation artifact through a bounded creator/reviewer/enhancer loop.
   The workflow treats agentic harnesses as runtime bindings rather than hardcoded
-  products, so Claude, Codex, Gemini, Cursor, OpenCode, or a custom harness can
+  products, so Claude, Codex, Cursor, OpenCode, or a custom harness can
   be swapped into creator, reviewer, enhancer, or arbiter roles.
 
 entry_criteria:

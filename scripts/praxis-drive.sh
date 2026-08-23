@@ -7,7 +7,7 @@
 # defined in governance/autonomy.yaml + references/loop-contracts.md.
 #
 # Usage:
-#   scripts/praxis-drive.sh [--project-dir DIR] [--harness claude-code|codex|gemini-cli]
+#   scripts/praxis-drive.sh [--project-dir DIR] [--harness claude-code|codex]
 #                            [--slice ID] [--dry-run] [--max-iterations N] [--workflow]
 #
 # Defaults: --project-dir = cwd, --harness = claude-code.
@@ -55,7 +55,7 @@ WORKFLOW_MODE=0
 
 usage() {
   cat <<'EOF'
-Usage: praxis-drive.sh [--project-dir DIR] [--harness claude-code|codex|gemini-cli]
+Usage: praxis-drive.sh [--project-dir DIR] [--harness claude-code|codex]
                         [--slice ID] [--dry-run] [--max-iterations N] [--workflow]
 EOF
 }
@@ -74,8 +74,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$HARNESS" in
-  claude-code|codex|gemini-cli) ;;
-  *) echo "praxis-drive.sh: unsupported --harness '$HARNESS' (want claude-code|codex|gemini-cli)" >&2; exit 1 ;;
+  claude-code|codex) ;;
+  *) echo "praxis-drive.sh: unsupported --harness '$HARNESS' (want claude-code|codex)" >&2; exit 1 ;;
 esac
 
 # Apply project-level overrides now that PROJECT_DIR is resolved.
@@ -252,7 +252,7 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     sh("HARNESS_JSON_OUTPUT_FLAG", h.get("json_output_flag", "null") or "null")
     sh("HARNESS_USAGE_PARSE", h.get("usage_parse", "null") or "null")
     # Per-iteration model selection: the flag the harness accepts (--model
-    # for claude, -m for gemini; codex has no per-call flag -> null) and the
+    # for claude; codex has no per-call flag -> null) and the
     # tier->model map from governance/model-routing.yaml for this harness.
     sh("HARNESS_MODEL_FLAG", h.get("model_flag", "null") or "null")
     sh("FORCE_TIER", gov.get("force_tier", "null"))
@@ -264,7 +264,7 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     # harnesses.<harness>.effort_flag) and the tier->effort map from
     # governance/model-routing.yaml's claude-code.effort_map. Additive,
     # mirrors the model machinery above; both are "null" on harnesses that
-    # don't declare them (codex/gemini-cli), same fail-soft convention.
+    # don't declare them (codex), same fail-soft convention.
     sh("HARNESS_EFFORT_FLAG", h.get("effort_flag", "null") or "null")
     # Some harnesses pass reasoning effort as a config token, not a bare value
     # (codex: `-c model_reasoning_effort=high`, so effort_flag=`-c` and this

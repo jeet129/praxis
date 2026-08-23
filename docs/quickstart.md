@@ -2,7 +2,7 @@
 
 The fastest path from nothing to a running Praxis session with a real
 artifact on disk. Claude Code is the primary path below; short
-Codex and Gemini CLI sections follow. For the full install playbook
+The Codex section follows. For the full install playbook
 (troubleshooting, first-30-minutes walkthrough, multi-tool details), see
 [`INSTALLATION.md`](../INSTALLATION.md).
 
@@ -139,26 +139,6 @@ $praxis-start
 `$praxis-start` runs the same delivery-planner bootstrap interview as
 Claude Code's `/start`. Follow with `$praxis-discover`. Full detail:
 [`docs/codex-setup.md`](codex-setup.md).
-
-## Gemini CLI
-
-```bash
-./install.sh --tool=gemini /path/to/your-project
-cd /path/to/your-project
-gemini
-```
-
-Gemini CLI reads the routing file at `GEMINI.md` (repo root) and the library
-at `.gemini/`. Slash commands mirror Claude Code's set:
-`/start /discover /architect /audit /slice /release /review /steward
-/refine-idea /factory-record /drive`. Verify with:
-
-```
-Read GEMINI.md and confirm you can navigate to .gemini/skills/ and
-.gemini/agents/. List the 17 agents and 91 SKILLs.
-```
-
-Full detail: [`docs/gemini-cli-setup.md`](gemini-cli-setup.md).
 
 ## Let it run
 

@@ -77,7 +77,3 @@ harnesses:
     effort_arg_prefix: "model_reasoning_effort="   # rendered as: -c model_reasoning_effort=high  (level from model-routing.yaml codex.map)
     json_output_flag: --json
     usage_parse: codex-json
-  gemini-cli:
-    command: gemini -p "{prompt}"
-    budget_flag: null
-    model_flag: -m                 # per-iteration model = the task tier's resolved model

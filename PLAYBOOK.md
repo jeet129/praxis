@@ -623,8 +623,7 @@ Agents carry an abstract `capability_tier` (`deep | standard | light`) in
 frontmatter, not a hardcoded model name. `governance/model-routing.yaml` is
 the one file that resolves a tier to a concrete model per harness — `opus /
 sonnet / haiku` on Claude Code, `model_reasoning_effort: high / medium / low`
-on Codex, `gemini-2.5-pro / -flash / -flash-lite` on Gemini CLI —
-and `scripts/apply-model-routing.py` applies that mapping into agent
+on Codex — and `scripts/apply-model-routing.py` applies that mapping into agent
 frontmatter / Codex TOML. Nothing below should be read as Claude-specific;
 substitute your harness's tier mapping.
 
