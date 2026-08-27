@@ -250,6 +250,9 @@ case "$EVENT" in
         subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null)
         if [[ -n "$subagent" && "$subagent" != "null" ]]; then
           record agent "$subagent" spawn
+          # Correlation for the next SubagentStop, whose payload omits the name.
+          _atdir="$cwd/.project/telemetry"; mkdir -p "$_atdir" 2>/dev/null || true
+          printf '%s\n' "$subagent" > "$_atdir/.token-agent-${session_id}" 2>/dev/null || true
           # Structured spawn event with the resolved model (if the spawner
           # passed one; empty means the agent frontmatter default applied).
           spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
@@ -319,6 +322,12 @@ case "$EVENT" in
     # Optional: record completion outcome.
     # The payload should include the subagent's name and result status.
     subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
+    # Claude Code's SubagentStop payload omits the agent name; fall back to the
+    # last subagent recorded at Task-spawn. Transcript extraction in the miner
+    # below takes precedence when a Task tool_use is present in the delta.
+    if [[ -z "$subagent" ]]; then
+      subagent=$(head -1 "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null); subagent="${subagent#praxis:}"
+    fi
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
 
     # LIVE per-invocation token delta: sum the usage lines the session
@@ -340,7 +349,7 @@ case "$EVENT" in
         mkdir -p "$tdir" 2>/dev/null || true
         python3 - "$transcript" "$tdir/.token-cursor-${session_id}" "$subagent" "$session_id" >> "$tdir/agent-spawns.jsonl" 2>/dev/null <<'PYEOF' || true
 import json, os, sys, datetime
-path, cursor_path, agent, sid = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+path, cursor_path, passed_agent, sid = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 try:
     offset = int(open(cursor_path).read().strip())
 except Exception:
@@ -392,6 +401,23 @@ def _extract_model(d):
     return (d.get("payload") or {}).get("model") or None
 
 
+def _extract_agent(d):
+    # Claude Code: an assistant turn spawns a subagent via a Task tool_use whose
+    # input.subagent_type names it. That block appears in this delta before the
+    # spawned agent's turns, so the last one seen labels the delta.
+    if not isinstance(d, dict):
+        return None
+    msg = d.get("message")
+    content = msg.get("content") if isinstance(msg, dict) else d.get("content")
+    if isinstance(content, list):
+        for blk in content:
+            if isinstance(blk, dict) and blk.get("type") == "tool_use" and blk.get("name") == "Task":
+                st = (blk.get("input") or {}).get("subagent_type")
+                if isinstance(st, str) and st:
+                    return st.split(":")[-1]
+    return None
+
+
 def _session_model(path):
     # Codex stamps the model in an early turn_context event, not on usage rows.
     # Scan the transcript head so those rows can still bucket under the real model.
@@ -412,6 +438,7 @@ def _session_model(path):
     return None
 
 current_model = _session_model(path)
+current_agent = None
 new_offset = offset
 try:
     size = os.path.getsize(path)
@@ -429,6 +456,9 @@ try:
             m = _extract_model(d)
             if m:
                 current_model = m
+            a = _extract_agent(d)
+            if a:
+                current_agent = a
             u = _extract_usage(d)
             if not u:
                 continue
@@ -449,11 +479,12 @@ except Exception:
 if sum(tot.values()) == 0:
     sys.exit(0)
 by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
+agent = current_agent or passed_agent or "unknown"
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
        "event": "invocation_usage", "session": sid,
-       "agent": agent or "unknown", **tot,
+       "agent": agent, **tot,
        "by_model": by_model,
-       "note": "delta since previous cursor; spans concurrent subagents if any. by_model splits the delta by transcript model (exact; cache-cost attributable per tier)"}
+       "note": "delta since previous cursor; spans concurrent subagents if any. agent = the subagent whose Stop triggered this capture (from the Task spawn in the delta, else last-spawned fallback), not necessarily the sole consumer. by_model splits the delta by transcript model (exact; cache-cost attributable per tier)"}
 print(json.dumps(rec))
 PYEOF
       fi
