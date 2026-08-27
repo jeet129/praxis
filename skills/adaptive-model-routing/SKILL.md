@@ -178,6 +178,27 @@ model-down moves for output-heavy or large-gap tasks. Ratios are per-harness
 (`governance/model-routing.yaml`); see `llm-cost-optimization` →
 "Cache economics vs model routing."
 
+**Enforce it with the pre-flight guardrail (do not rely on judgment alone).**
+Before you dispatch any tier DOWN-route, run the deterministic check — it applies
+the cache-aware decision for you and logs the rationale:
+
+```bash
+scripts/routing-preflight.py --from-tier <current> --to-tier <proposed> \
+  --project-dir . --session "$SESSION" --agent <agent> [--slice <s>] [--task <t>]
+```
+
+It reads the recent cache-read share from telemetry and returns an `action`:
+`apply` (take the route as requested — effort-only, up-route, cold start, or a
+genuinely output-heavy task) or `enforce_effort_down` (a context-heavy model-down
+that would forfeit a warm cache — **keep the current model, take only the lower
+effort**). Spawn with the `model`/`effort` from the check's `applied` field, not
+the raw proposed tier. The check appends a `routing_preflight` record (with
+`cache_read_share`, `action`, `requested` vs `applied`, `est_saving_tokens`,
+`reason`) to `.project/telemetry/model-routing.jsonl` — the same stream as the
+routing decision, for later review. Config + threshold live under `preflight:` in
+`governance/model-routing.yaml`. In drive mode `scripts/praxis-drive.sh` runs this
+automatically per iteration; there is no human step.
+
 Resolve with the shared resolver (single source of truth), then pass the result
 on the spawn:
 

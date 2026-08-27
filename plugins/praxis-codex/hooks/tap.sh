@@ -326,7 +326,10 @@ case "$EVENT" in
     # last subagent recorded at Task-spawn. Transcript extraction in the miner
     # below takes precedence when a Task tool_use is present in the delta.
     if [[ -z "$subagent" ]]; then
-      subagent=$(head -1 "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null); subagent="${subagent#praxis:}"
+      # NB: a missing .token-agent file makes head exit 1, which trips the
+      # `trap 'exit 0' ERR` above and silently skips the whole miner — guard
+      # with || true so a missing stash just yields an empty fallback.
+      subagent=$(head -1 "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true); subagent="${subagent#praxis:}"
     fi
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
 

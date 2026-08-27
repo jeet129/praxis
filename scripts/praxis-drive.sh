@@ -1712,6 +1712,28 @@ while true; do
     light)    ITER_MODEL="$TIER_MODEL_LIGHT" ;;
     *)        ITER_MODEL="$TIER_MODEL_STANDARD" ;;
   esac
+  # --- Cache-aware pre-flight (deterministic, no human) ---
+  # If this task's tier is a model-family DOWN-switch from the previous (warm)
+  # iteration and the session is context-heavy, keep the warm model and take
+  # only the lower effort (resolved below) instead of switching model family —
+  # substituting the cache-preserving lever. Fail-safe: absent script or any
+  # non-enforce verdict leaves ITER_MODEL exactly as the tier resolved it.
+  PREFLIGHT_SCRIPT="${PREFLIGHT_SCRIPT:-$SCRIPT_DIR/routing-preflight.py}"
+  _PF_SUB=0
+  if [[ "${PREFLIGHT_ENABLED:-1}" == "1" && -f "$PREFLIGHT_SCRIPT" \
+        && -n "${PREV_ITER_TIER:-}" && "${PREV_ITER_TIER}" != "$ITER_TIER" ]]; then
+    _PF_NOLOG=""; [[ "${DRY_RUN:-0}" -eq 1 ]] && _PF_NOLOG="--no-log"
+    if python3 "$PREFLIGHT_SCRIPT" --from-tier "$PREV_ITER_TIER" --to-tier "$ITER_TIER" \
+         --project-dir "$PROJECT_DIR" --agent "${PROCESSED_TASK_AGENT:-}" \
+         --slice "${SLICE_ID:-}" --task "${PROCESSED_TASK_ID:-}" \
+         --mode "${PREFLIGHT_MODE:-enforce}" $_PF_NOLOG 2>/dev/null | grep -q enforce_effort_down; then
+      if [[ "${PREFLIGHT_MODE:-enforce}" == "enforce" ]]; then
+        ITER_MODEL="$PREV_ITER_MODEL"; _PF_SUB=1   # keep the warm model; effort stays the lower tier's
+      fi
+    fi
+  fi
+  # Track the warm model for the next iteration (unchanged when we substituted).
+  if [[ "$_PF_SUB" == "0" ]]; then PREV_ITER_TIER="$ITER_TIER"; PREV_ITER_MODEL="$ITER_MODEL"; fi
   if [[ -n "$ITER_MODEL" && "$ITER_MODEL" != "null" && -n "$HARNESS_MODEL_FLAG" && "$HARNESS_MODEL_FLAG" != "null" ]]; then
     CMD="$CMD $HARNESS_MODEL_FLAG $ITER_MODEL"
   fi
