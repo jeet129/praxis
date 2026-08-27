@@ -232,6 +232,53 @@ classify_path() {
 # --------------------------------------------------------------------
 case "$EVENT" in
 
+  PreToolUse)
+    # Cache-aware routing guard (INTERACTIVE path). Before a sub-agent spawns,
+    # run the pre-flight and DENY a cache-forfeiting model-DOWN with a corrective
+    # instruction, so the model re-issues the spawn with the effort-down
+    # model/effort. Deterministic enforcement — no human, and no explicit call
+    # from the agent. claude-code only (codex effort-only tiers cannot forfeit a
+    # separate model cache). Fail-open: any missing field / error just allows.
+    tool_name=$(echo "$payload" | jq -r '.tool_name // empty' 2>/dev/null)
+    if [[ "$tool_name" == "Task" && "$TAP_TOOL" == "claude-code" ]]; then
+      pf_script="$PLUGIN_ROOT/scripts/routing-preflight.py"
+      sub=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null); sub="${sub#praxis:}"
+      spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
+      # to_tier from the pinned model, else the agent's frontmatter capability_tier
+      to_tier=""
+      case "$spawn_model" in
+        *opus*)   to_tier=deep ;;
+        *sonnet*) to_tier=standard ;;
+        *haiku*)  to_tier=light ;;
+      esac
+      if [[ -z "$to_tier" && -n "$sub" && -f "$PLUGIN_ROOT/agents/${sub}.md" ]]; then
+        to_tier=$(grep -m1 -E '^capability_tier:' "$PLUGIN_ROOT/agents/${sub}.md" 2>/dev/null | sed -E 's/^[^:]*: *//; s/ *$//' || true)
+      fi
+      warm_file="$cwd/.project/telemetry/.warm-tier-${session_id}"
+      from_tier=$(head -1 "$warm_file" 2>/dev/null || true)
+      if [[ -n "$to_tier" && -n "$from_tier" && "$to_tier" != "$from_tier" && -f "$pf_script" ]]; then
+        # this call also APPENDS the routing_preflight audit record to model-routing.jsonl
+        # device routing-preflight.py emits a JSON record on stdout (and also
+        # appends it to model-routing.jsonl); read the verdict from that JSON.
+        pf_json=$(python3 "$pf_script" --from-tier "$from_tier" --to-tier "$to_tier" \
+               --project-dir "$cwd" \
+               --session "$session_id" --agent "${sub:-unknown}" 2>/dev/null | tail -1 || true)
+        action=$(printf '%s' "$pf_json" | jq -r '.action // empty' 2>/dev/null || true)
+        if [[ "$action" == "enforce_effort_down" ]]; then
+          pmodel=$(printf '%s' "$pf_json" | jq -r '.applied.model // empty' 2>/dev/null || true)
+          peffort=$(printf '%s' "$pf_json" | jq -r '.applied.effort // empty' 2>/dev/null || true)
+          reason="Cache-aware routing (praxis, enforce mode): spawning ${sub:-this agent} on '${spawn_model:-$to_tier}' (${to_tier} tier) would forfeit the warm ${from_tier}-tier prompt cache. Switching model family cold-writes the whole prefix on the new model and loses the ~10x-cheaper cache reads on the bulk of the tokens; a one-off down-route never reuses the prefix enough to pay that back. Re-spawn KEEPING the warm model and lowering effort instead: set model='${pmodel}' and effort='${peffort}'. Do not switch the model family down mid-session."
+          jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+          exit 0
+        fi
+      fi
+      # allow: record this spawn's tier as the new warm tier (best-effort)
+      if [[ -n "$to_tier" ]]; then
+        mkdir -p "$cwd/.project/telemetry" 2>/dev/null && printf '%s\n' "$to_tier" > "$warm_file" 2>/dev/null || true
+      fi
+    fi
+    ;;
+
   PostToolUse)
     tool_name=$(echo "$payload" | jq -r '.tool_name // empty' 2>/dev/null)
 
@@ -250,6 +297,9 @@ case "$EVENT" in
         subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null)
         if [[ -n "$subagent" && "$subagent" != "null" ]]; then
           record agent "$subagent" spawn
+          # Correlation for the next SubagentStop, whose payload omits the name.
+          _atdir="$cwd/.project/telemetry"; mkdir -p "$_atdir" 2>/dev/null || true
+          printf '%s\n' "$subagent" > "$_atdir/.token-agent-${session_id}" 2>/dev/null || true
           # Structured spawn event with the resolved model (if the spawner
           # passed one; empty means the agent frontmatter default applied).
           spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
@@ -309,7 +359,7 @@ case "$EVENT" in
   SubagentStart)
     # Native event — fires when any sub-agent starts.
     # Payload contains the subagent's name/type.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     if [[ -n "$subagent" ]]; then
       record agent "$subagent" spawn
     fi
@@ -318,7 +368,16 @@ case "$EVENT" in
   SubagentStop)
     # Optional: record completion outcome.
     # The payload should include the subagent's name and result status.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null)
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
+    # Claude Code's SubagentStop payload omits the agent name; fall back to the
+    # last subagent recorded at Task-spawn. Transcript extraction in the miner
+    # below takes precedence when a Task tool_use is present in the delta.
+    if [[ -z "$subagent" ]]; then
+      # NB: a missing .token-agent file makes head exit 1, which trips the
+      # `trap 'exit 0' ERR` above and silently skips the whole miner — guard
+      # with || true so a missing stash just yields an empty fallback.
+      subagent=$(head -1 "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true); subagent="${subagent#praxis:}"
+    fi
     status=$(echo "$payload" | jq -r '.status // .outcome // "unknown"' 2>/dev/null)
 
     # LIVE per-invocation token delta: sum the usage lines the session
@@ -340,24 +399,33 @@ case "$EVENT" in
         mkdir -p "$tdir" 2>/dev/null || true
         python3 - "$transcript" "$tdir/.token-cursor-${session_id}" "$subagent" "$session_id" >> "$tdir/agent-spawns.jsonl" 2>/dev/null <<'PYEOF' || true
 import json, os, sys, datetime
-path, cursor_path, agent, sid = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+path, cursor_path, passed_agent, sid = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 try:
     offset = int(open(cursor_path).read().strip())
 except Exception:
     offset = 0
-tot = {"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}
+FIELDS = ("input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens","reasoning_output_tokens")
+tot = {k:0 for k in FIELDS}
+by_model = {}
 
 def _extract_usage(d):
-    """Tolerant of multiple transcript shapes: Claude Code's
-    message.usage, a top-level usage, payload.usage, or Codex
-    type:turn.completed events (input_tokens/cached_input_tokens/
-    output_tokens, with cached_input_tokens mapped to
-    cache_read_input_tokens)."""
     if not isinstance(d, dict):
         return {}
+    # Claude Code: message.usage
     u = (d.get("message") or {}).get("usage")
     if isinstance(u, dict) and u:
         return u
+    # Codex CLI: event_msg -> payload.info.last_token_usage (per-turn delta;
+    # total_token_usage is the cumulative session running total -- do NOT sum that).
+    info = (d.get("payload") or {}).get("info")
+    if isinstance(info, dict):
+        lu = info.get("last_token_usage")
+        if isinstance(lu, dict) and lu:
+            mapped = dict(lu)
+            if "cached_input_tokens" in mapped:
+                mapped["cache_read_input_tokens"] = mapped.pop("cached_input_tokens")
+            return mapped
+    # Other shapes: top-level usage / turn.completed / payload.usage
     u = d.get("usage")
     if isinstance(u, dict) and u:
         if d.get("type") == "turn.completed":
@@ -371,25 +439,86 @@ def _extract_usage(d):
         return u
     return {}
 
+def _extract_model(d):
+    if not isinstance(d, dict):
+        return None
+    m = (d.get("message") or {}).get("model")
+    if m:
+        return m
+    m = d.get("model")
+    if m:
+        return m
+    return (d.get("payload") or {}).get("model") or None
+
+
+def _extract_agent(d):
+    # Claude Code: an assistant turn spawns a subagent via a Task tool_use whose
+    # input.subagent_type names it. That block appears in this delta before the
+    # spawned agent's turns, so the last one seen labels the delta.
+    if not isinstance(d, dict):
+        return None
+    msg = d.get("message")
+    content = msg.get("content") if isinstance(msg, dict) else d.get("content")
+    if isinstance(content, list):
+        for blk in content:
+            if isinstance(blk, dict) and blk.get("type") == "tool_use" and blk.get("name") == "Task":
+                st = (blk.get("input") or {}).get("subagent_type")
+                if isinstance(st, str) and st:
+                    return st.split(":")[-1]
+    return None
+
+
+def _session_model(path):
+    # Codex stamps the model in an early turn_context event, not on usage rows.
+    # Scan the transcript head so those rows can still bucket under the real model.
+    try:
+        with open(path) as fh:
+            for _ in range(120):
+                ln = fh.readline()
+                if not ln:
+                    break
+                try:
+                    m = _extract_model(json.loads(ln))
+                except Exception:
+                    continue
+                if m:
+                    return m
+    except Exception:
+        pass
+    return None
+
+current_model = _session_model(path)
+current_agent = None
 new_offset = offset
 try:
     size = os.path.getsize(path)
     if size < offset:
-        offset = 0  # transcript rotated/replaced
+        offset = 0
     with open(path) as f:
         f.seek(offset)
         chunk = f.read()
-        new_offset = offset + len(chunk.encode("utf-8", "ignore")) if False else f.tell()
+        new_offset = f.tell()
         for line in chunk.splitlines():
             try:
                 d = json.loads(line)
             except Exception:
                 continue
+            m = _extract_model(d)
+            if m:
+                current_model = m
+            a = _extract_agent(d)
+            if a:
+                current_agent = a
             u = _extract_usage(d)
-            for k in tot:
+            if not u:
+                continue
+            model = m or current_model or "unknown"
+            bucket = by_model.setdefault(model, {k: 0 for k in FIELDS})
+            for k in FIELDS:
                 v = u.get(k)
                 if isinstance(v, (int, float)):
                     tot[k] += int(v)
+                    bucket[k] += int(v)
 except Exception:
     sys.exit(0)
 try:
@@ -399,10 +528,13 @@ except Exception:
     pass
 if sum(tot.values()) == 0:
     sys.exit(0)
+by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
+agent = current_agent or passed_agent or "unknown"
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
        "event": "invocation_usage", "session": sid,
-       "agent": agent or "unknown", **tot,
-       "note": "delta since previous cursor; spans concurrent subagents if any"}
+       "agent": agent, **tot,
+       "by_model": by_model,
+       "note": "delta since previous cursor; spans concurrent subagents if any. agent = the subagent whose Stop triggered this capture (from the Task spawn in the delta, else last-spawned fallback), not necessarily the sole consumer. by_model splits the delta by transcript model (exact; cache-cost attributable per tier)"}
 print(json.dumps(rec))
 PYEOF
       fi
@@ -463,6 +595,8 @@ PYEOF
       echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     fi
     rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
+    rm -f "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true
+    rm -f "$cwd/.project/telemetry/.warm-tier-${session_id}" 2>/dev/null || true
     # Universal token capture: sum this session's usage from its own session
     # transcript (found by session id — layout-agnostic, checked under both
     # Claude Code's ~/.claude/projects and Codex's ~/.codex/sessions stores)

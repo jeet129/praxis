@@ -213,6 +213,12 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 # Model Escalation Log
 ```
 
+## Cache-aware pre-flight guardrail
+
+`scripts/routing-preflight.py` enforces the cache-aware routing policy deterministically and appends an `event:"routing_preflight"` record with its rationale to `.project/telemetry/model-routing.jsonl`. For the default Codex mapping — every tier is `model: auto` on one base model, so a tier change is an **effort-only** move — the check is a transparent no-op: there is no separate model cache to forfeit, so every move applies as requested (one base model, one prompt cache). It becomes load-bearing only if you pin **distinct models** per tier in `governance/model-routing.yaml`; then a context-heavy model-down is auto-substituted with an effort-down exactly as on Claude Code. Either way the audit record is written, so `model-routing.jsonl` shows what the guardrail decided. Config lives under `preflight:` in `governance/model-routing.yaml`.
+
+---
+
 ## Worked example, anti-rationalization table, and red flags
 
 Load `references/routing-examples.md` for the dated worked case study, the full anti-rationalization table, and the red-flags checklist.
