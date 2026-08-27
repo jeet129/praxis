@@ -20,6 +20,11 @@ June 18 2026). It runs Gemini 3.x plus Claude Sonnet/Opus and GPT-OSS behind one
 interface, reads `AGENTS.md` natively, and auto-discovers plugins under
 `.agents/plugins/`.
 
+> Praxis previously shipped a standalone Gemini CLI adapter. With Gemini CLI
+> discontinued (June 18 2026), that adapter has been removed — Antigravity is
+> the Google harness going forward. (Gemini *models* remain available: Antigravity
+> runs Gemini 3.x.)
+
 ## How Antigravity's plugin format differs
 
 It is **not** Claude's format and **not** Codex's:
