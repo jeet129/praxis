@@ -10,6 +10,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PreToolUse || true"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Read|Task|Write|Edit|NotebookEdit",

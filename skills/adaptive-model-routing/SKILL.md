@@ -196,8 +196,12 @@ the raw proposed tier. The check appends a `routing_preflight` record (with
 `cache_read_share`, `action`, `requested` vs `applied`, `est_saving_tokens`,
 `reason`) to `.project/telemetry/model-routing.jsonl` — the same stream as the
 routing decision, for later review. Config + threshold live under `preflight:` in
-`governance/model-routing.yaml`. In drive mode `scripts/praxis-drive.sh` runs this
-automatically per iteration; there is no human step.
+`governance/model-routing.yaml`. You normally do **not** call this by hand — enforcement is automatic in both
+modes. In drive mode `scripts/praxis-drive.sh` runs it every iteration; in
+interactive mode a `PreToolUse(Task)` hook runs it on every sub-agent spawn and
+**denies** a cache-forfeiting model-down with a corrective instruction to
+re-spawn using the `applied` model/effort. Invoking it yourself (above) is only
+for explicitly checking a route; the guardrail fires either way, no human step.
 
 Resolve with the shared resolver (single source of truth), then pass the result
 on the spawn:

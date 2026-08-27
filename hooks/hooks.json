@@ -10,12 +10,13 @@
         ]
       }
     ],
-    "SessionEnd": [
+    "PreToolUse": [
       {
+        "matcher": "Task",
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PreToolUse || true"
           }
         ]
       }
@@ -57,6 +58,16 @@
           {
             "type": "command",
             "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
           }
         ]
       }
