@@ -121,6 +121,7 @@ Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasonin
 | frontend-developer | standard | medium | Same |
 | mobile-developer | standard | medium | Same — implementation against the packet and stack-flutter |
 | data-engineer | standard | medium | Pipeline implementation is mostly mechanical; escalate high-blast-radius designs |
+| database-engineer | standard | medium | Non-trivial OLTP only (RLS/grants, zero-downtime live migrations, indexing/replication); escalate for security-sensitive or destructive changes |
 | ml-ai-engineer | deep | high | Research-heavy, novel problems, eval design |
 | code-reviewer | deep | high | Missing a bug in review is expensive |
 | security-reviewer | deep | high | Adversarial + high-stakes; false negatives catastrophic |
@@ -212,6 +213,12 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 ```markdown
 # Model Escalation Log
 ```
+
+## Cache-aware pre-flight guardrail
+
+`scripts/routing-preflight.py` enforces the cache-aware routing policy deterministically and appends an `event:"routing_preflight"` record with its rationale to `.project/telemetry/model-routing.jsonl`. For the default Codex mapping — every tier is `model: auto` on one base model, so a tier change is an **effort-only** move — the check is a transparent no-op: there is no separate model cache to forfeit, so every move applies as requested (one base model, one prompt cache). It becomes load-bearing only if you pin **distinct models** per tier in `governance/model-routing.yaml`; then a context-heavy model-down is auto-substituted with an effort-down exactly as on Claude Code. Either way the audit record is written, so `model-routing.jsonl` shows what the guardrail decided. Config lives under `preflight:` in `governance/model-routing.yaml`.
+
+---
 
 ## Worked example, anti-rationalization table, and red flags
 

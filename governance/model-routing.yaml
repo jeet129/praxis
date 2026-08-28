@@ -85,3 +85,17 @@ cost_weights:
   deep: 5.0
   standard: 1.0
   light: 0.25
+
+# ----------------------------------------------------------------------
+# Cache-aware routing pre-flight (scripts/routing-preflight.py).
+# A model-family DOWN-switch on a context-heavy task forfeits the warm
+# prompt cache; the guardrail substitutes effort-down on the same model.
+# Enforced deterministically (no human). See docs / adaptive-model-routing.
+# ----------------------------------------------------------------------
+preflight:
+  enabled: 1                 # 1 = on
+  mode: enforce              # enforce | advise (advise = log intent only)
+  cache_share_threshold: 0.40   # >= this cache-read share on a model-down => substitute effort-down
+  window: 20                 # recent invocation_usage records to profile
+  cache_read_mult: 0.1
+  cache_write_mult: 1.25

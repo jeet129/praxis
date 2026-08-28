@@ -26,6 +26,7 @@ outputs:
  - dashboard specifications
  - alert rules tied to SLOs (page on symptoms, not causes)
 consumers:
+  - database-engineer (DB SLOs: lock and replication-lag monitoring)
  - backend-developer (adds instrumentation)
  - frontend-developer (adds RUM + error tracking)
  - platform-sre (wires collectors and stack)

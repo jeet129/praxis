@@ -93,8 +93,8 @@ manifest.write_text(json.dumps({
     "version": "0.1.0",
     "description": (
         "Praxis — production-grade skill library + agents + workflows + "
-        "governance for AI-augmented software delivery. 91 skills, 17 agents, "
-        "9 workflows, 18 governance gates."
+        "governance for AI-augmented software delivery. 91 skills, 18 agents, "
+        "9 workflows, 19 governance gates."
     ),
 }, indent=2) + "\n")
 record(manifest)

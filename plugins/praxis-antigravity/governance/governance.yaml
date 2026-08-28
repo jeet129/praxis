@@ -402,6 +402,48 @@ gates:
       - identified_bottlenecks
       - capacity_buffer_at_target_load
 
+  iac_plan_review:
+    description: |
+      Activated when has_infrastructure == true (any slice or release whose diff
+      touches IaC modules, per-environment compositions, K8s/GitOps manifests,
+      or pipeline-as-code). Reviews the PROPOSED PLAN — the computed
+      resource-change set (create / update / replace / destroy) — not the IaC
+      source. This is the review generic code review is shaped wrong to catch:
+      a one-line source diff can force a destroy-and-recreate of a stateful
+      resource, and only the plan reveals it.
+
+      SCOPE: this is a workflow review CHECKPOINT, enforced by the runner
+      pausing until the verdict is BLOCK-free before the workflow advances to
+      the apply/deploy step. It does NOT intercept `apply`/`destroy` at
+      runtime — that is a CI-approval / runtime-policy concern outside praxis
+      governance. The gate guarantees the plan was reviewed and cleared before
+      apply is authorized; it does not itself run the apply.
+    primary_approver: principal   # team mode: sre_lead (+ security_lead whenever the plan carries a Class-B access-control change)
+    escalation: principal          # team mode: engineering_manager
+    decision_artifact: iac_plan_review_record   # + adr when a destructive change is knowingly accepted
+    artifact_path: .project/operational/iac-plan-reviews/
+    evidence_required:
+      - plan_resource_change_summary    # tool-agnostic per-resource action (terraform plan -json / pulumi preview --json / cfn change set); the SUMMARY, not the full dump — matches platform-sre's log-hygiene rule
+      - destructive_change_disposition  # every delete / replace / guardrail-off / access change is tagged and dispositioned (see conditional_evidence)
+      - blast_radius_note               # which environment; what breaks if this is wrong
+    conditional_evidence:
+      data_bearing_destroy_or_replace:      # Class A — highest severity
+        required_when: "plan deletes or replaces a stateful/data-bearing resource (db, object store, disk, pvc, warehouse, persistent cache), including a 'forces replacement' on an immutable field"
+        evidence_items: "verified restorable backup/snapshot + expand-contract or data-migration plan (per database-engineer / schema-migration) + maintenance window + rollback"
+      access_control_change:                # Class B
+        required_when: "plan removes or widens an IAM binding/role, rotates a service-account key, or changes an RLS policy / grant"
+        evidence_items: "security-reviewer sign-off; least-privilege rationale; no unintended privilege widening or lockout"
+      exposure_change:                      # Class C
+        required_when: "plan widens network exposure (public ingress, 0.0.0.0/0), removes a firewall/egress control, or deletes a NAT / peering / route"
+        evidence_items: "exposure rationale + compensating control; security-reviewer sign-off for any public-facing widening"
+      guardrail_removed:                    # Class D
+        required_when: "plan sets deletion_protection=false, removes prevent_destroy, force_destroy=true, skip_final_snapshot=true, or shortens a retention/lifecycle policy"
+        evidence_items: "explicit intent + why the guardrail is removed now; re-enable plan if temporary"
+      cascade_replacement:                  # Class E
+        required_when: "a single provider/module/version bump expands into N replacements or deletes"
+        evidence_items: "the full replacement list; each in-scope resource escalates to its Class A/B/C evidence"
+      # Class F (stateless create / additive update, no replacement) -> auto-pass, informational only.
+
 # ------------------------------------------------------------------
 # Routing behavior
 # ------------------------------------------------------------------

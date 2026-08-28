@@ -143,6 +143,7 @@ Each agent declares a `capability_tier:` in its frontmatter; `scripts/apply-mode
 | frontend-developer | standard | Same |
 | mobile-developer | standard | Same — implementation against the packet and stack-flutter |
 | data-engineer | standard | Pipeline implementation is mostly mechanical |
+| database-engineer | standard | Non-trivial OLTP only (RLS/grants, zero-downtime live migrations, indexing/partitioning/replication); routine schema stays with backend-developer; escalate to deep for security-sensitive or destructive changes |
 | ml-ai-engineer | deep | Research-heavy, novel problems, eval design |
 | code-reviewer | deep | Missing a bug in review is expensive |
 | security-reviewer | deep | Adversarial + high-stakes; false negatives catastrophic |
@@ -177,6 +178,31 @@ prefer dropping *effort* within the same model over switching model; reserve
 model-down moves for output-heavy or large-gap tasks. Ratios are per-harness
 (`governance/model-routing.yaml`); see `llm-cost-optimization` →
 "Cache economics vs model routing."
+
+**Enforce it with the pre-flight guardrail (do not rely on judgment alone).**
+Before you dispatch any tier DOWN-route, run the deterministic check — it applies
+the cache-aware decision for you and logs the rationale:
+
+```bash
+scripts/routing-preflight.py --from-tier <current> --to-tier <proposed> \
+  --project-dir . --session "$SESSION" --agent <agent> [--slice <s>] [--task <t>]
+```
+
+It reads the recent cache-read share from telemetry and returns an `action`:
+`apply` (take the route as requested — effort-only, up-route, cold start, or a
+genuinely output-heavy task) or `enforce_effort_down` (a context-heavy model-down
+that would forfeit a warm cache — **keep the current model, take only the lower
+effort**). Spawn with the `model`/`effort` from the check's `applied` field, not
+the raw proposed tier. The check appends a `routing_preflight` record (with
+`cache_read_share`, `action`, `requested` vs `applied`, `est_saving_tokens`,
+`reason`) to `.project/telemetry/model-routing.jsonl` — the same stream as the
+routing decision, for later review. Config + threshold live under `preflight:` in
+`governance/model-routing.yaml`. You normally do **not** call this by hand — enforcement is automatic in both
+modes. In drive mode `scripts/praxis-drive.sh` runs it every iteration; in
+interactive mode a `PreToolUse(Task)` hook runs it on every sub-agent spawn and
+**denies** a cache-forfeiting model-down with a corrective instruction to
+re-spawn using the `applied` model/effort. Invoking it yourself (above) is only
+for explicitly checking a route; the guardrail fires either way, no human step.
 
 Resolve with the shared resolver (single source of truth), then pass the result
 on the spawn:

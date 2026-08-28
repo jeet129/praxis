@@ -44,6 +44,9 @@ jobs:
       - name: Validate references
         run: python3 scripts/validate-references.py
 
+      - name: Validate reviewer coverage (security/quality skills a reviewer must load)
+        run: python3 scripts/validate-review-coverage.py
+
       - name: Factory routing report smoke test (fail-soft on repos with no telemetry)
         run: python3 scripts/factory-routing-report.py --project-dir . --format json --out /tmp/ci-report.json
 

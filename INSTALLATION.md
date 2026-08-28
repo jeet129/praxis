@@ -13,7 +13,7 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 Before installing, calibrate expectations. The library ships with:
 
 ✅ **91 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
-✅ **17 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 5 `deep`, 11 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
+✅ **18 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 5 `deep`, 11 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
 ✅ **9 workflows** orchestrating multi-step delivery.
 ✅ **12 slash commands** that map intent to skill sequences: `/start /intake /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
 ✅ **Hook subscriptions driving a universal artifact tap** — harness-appropriate event sets that share one `hooks/tap.sh`. Claude Code: SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop. Codex has no `SessionEnd` (its turn-scoped `Stop` is the analog), so the generated Codex package swaps `SessionEnd` → `Stop` and the tap emits the JSON acknowledgement `Stop` requires; end-of-session token capture is an upsert (one line per session, never double-counted).
@@ -244,7 +244,7 @@ Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `
 
 **What you get with plugin-dir loading:**
 - All 91 SKILLs available.
-- All 17 agents available.
+- All 18 agents available.
 - All 12 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
 - Governance gates accessible.
@@ -271,14 +271,14 @@ Confirm you can see the Praxis. Specifically:
 2. Read .claude/skills/using-praxis/SKILL.md and summarize the
    intent → workflow routing.
 3. Read .claude/governance/governance.yaml and list the 6 core gates +
-   12 conditional gates.
+   13 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 12 slash commands, 91 SKILLs, 17 agents, governance gates as listed.
+Expected: 12 slash commands, 91 SKILLs, 18 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 91 SKILLs, 17 agents.
+Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 91 SKILLs, 18 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 

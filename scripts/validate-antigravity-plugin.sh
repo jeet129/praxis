@@ -54,7 +54,7 @@ done
 # Front-door skill + a spot-check of agents present.
 [[ -f "$PLUGIN/skills/using-praxis/SKILL.md" ]] || fail "missing front-door skill using-praxis"
 n_agents=$(ls "$PLUGIN"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
-[[ "$n_agents" == "17" ]] || fail "expected 17 markdown agents, found $n_agents"
+[[ "$n_agents" == "18" ]] || fail "expected 18 markdown agents, found $n_agents"
 
 # Freshness: canonical files copied as-is must be byte-identical in the mirror.
 for f in skills/using-praxis/SKILL.md agents/solution-architect.md governance/governance.yaml; do

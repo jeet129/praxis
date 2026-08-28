@@ -93,7 +93,7 @@ your-project/
     ├── skills/
     │   ├── cmd-*.md                    ← 12 workflow commands → /start /discover …
     │   └── <name>/SKILL.md             ← 91 library skills
-    ├── agents/*.md                     ← 17 role agents
+    ├── agents/*.md                     ← 18 role agents
     ├── workflows/  governance/  patterns/  references/
     └── README.md  PLAYBOOK.md  INSTALLATION.md
 ```
@@ -187,6 +187,18 @@ Antigravity read. The installer writes it once (guarded); whichever tool install
 first owns it, and its content is valid for every AGENTS.md consumer. Antigravity
 does not depend on it — `agy` auto-discovers `.agents/plugins/praxis/` on its own,
 so even when Codex owns `AGENTS.md`, the Antigravity plugin still loads.
+
+## New in this build (cache-aware routing + infra-security)
+
+The Antigravity package now carries the latest cross-harness work — it lands
+automatically because Antigravity reads the same canonical `agents/`, `skills/`,
+and `governance/`:
+
+- **`database-engineer` agent (18th role)** — the transactional-DB specialist; `agy` reads it like any other markdown agent.
+- **`iac_plan_review` gate (19th gate)** — infrastructure plan review before apply; in `governance/governance.yaml`, activated per the `has_infrastructure` charter flag.
+- **Cache-aware routing guidance** — the `adaptive-model-routing` skill carries the prompt-cache economics and the down-route rubric.
+
+**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship (and Antigravity has no hook wiring yet, below). On Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced, until Antigravity's hook schema is confirmed.
 
 ## Telemetry (hooks) — not yet wired
 

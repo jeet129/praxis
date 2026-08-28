@@ -58,6 +58,8 @@ Run the seven-phase AOP per `using-praxis`. Role-specific notes per phase:
 
 **One-slice focus.** You work on one slice at a time. Multi-slice planning is the PM's roadmap. You execute one slice at a time so the hand-offs and integration check happen cleanly.
 
+**Canonical specialist roster — never invent a role.** The ONLY valid `subagent_type` values are: `delivery-lead`, `product-manager`, `solution-architect`, `architecture-challenger`, `lead-developer`, `backend-developer`, `frontend-developer`, `mobile-developer`, `data-engineer`, `database-engineer`, `ml-ai-engineer`, `platform-sre`, `code-reviewer`, `security-reviewer`, `qa-engineer`, `tech-writer`, `ux-designer`, `system-steward`. If a task seems to need a role not on this list, map it to the closest existing one — never spawn a `subagent_type` that is not listed, or the Task call fails with "Agent type 'praxis:<name>' not found." Database work specifically: routine schema / CRUD / straightforward migrations -> `backend-developer`; non-trivial or at-scale DB work — RLS policies and grants, zero-downtime migrations on large live tables, indexing / partitioning / replication / pooling -> `database-engineer`; analytics, warehouse, and pipelines -> `data-engineer`; physical data *design* -> `solution-architect` via the `data-modeling` skill.
+
 ## Common task decompositions
 
 For a typical slice introducing a user-facing feature on a Spring + React + Postgres stack:

@@ -132,7 +132,7 @@ and skills, and tell me which roles and which skills are available. Then read
 the governance.yaml and summarize the active gates.
 ```
 
-You should see Claude Code list **17 agents**, **91 skills**, and the **6 core governance gates** (plus 12 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
+You should see Claude Code list **18 agents**, **91 skills**, and the **6 core governance gates** (plus 13 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
 
 ---
 
@@ -153,7 +153,7 @@ Four layers. Each invocation flows top-down.
 │   Tier 1: product-manager, solution-architect,          │
 │           lead-developer, platform-sre, ux-designer     │
 │   Tier 2: backend-dev, frontend-dev, data-engineer,     │
-│           ml-ai-engineer                                │
+│           database-eng, ml-ai-engineer                  │
 │   Cross-cutting: architecture-challenger, code-reviewer,│
 │           security-reviewer, qa-engineer, tech-writer,  │
 │           system-steward                                │
@@ -277,7 +277,7 @@ Phase B+: UX & Design (if has_frontend)
 Phase C/D: Implementation slices
   └─ lead-developer decomposes; per-slice workflow:
      implementation-slice.yaml
-     └─ backend-developer, frontend-developer, data-engineer, ml-ai-engineer
+     └─ backend-developer, frontend-developer, data-engineer, database-engineer, ml-ai-engineer
         (whichever applies per slice)
         + skills: stack-X → secure-coding → testing-strategy →
           observability → ... → code-review → security-review → QA
@@ -976,7 +976,7 @@ should consult the files below per task type.
 
 ```
 You: Read AGENTS.md and confirm you can navigate to .team/agents/ and
-.team/skills/. Then list the 17 agents and the 91 skills you can see.
+.team/skills/. Then list the 18 agents and the 91 skills you can see.
 Read governance.yaml and summarize active gates.
 ```
 

@@ -27,6 +27,8 @@ You own:
 - **`supply-chain-security`** — SCA findings, SBOM diff, license check, base-image provenance.
 - **`compliance-privacy`** — verify the change conforms to the project's compliance regimes (SOC2/GDPR/HIPAA/PCI/ISO 27001/etc.).
 - **`responsible-ai`** — for ML/AI bearing PRs, verify the responsible-AI controls.
+- **`iac`** — audit infrastructure-as-code for security misconfigurations: public exposure (`0.0.0.0/0` ingress, public buckets), missing encryption-at-rest, over-broad IAM bindings, disabled deletion-protection, plaintext secrets. Per the `iac` skill's consumer contract. Engage when a PR touches IaC modules, per-env compositions, K8s/GitOps manifests, or pipeline-as-code.
+- **`llm-safety`** — for LLM/agentic PRs, audit prompt-injection, jailbreak, tool-abuse, and untrusted-input-to-model surfaces (distinct from `responsible-ai`'s fairness/ethics remit). Per the `llm-safety` skill's consumer contract. Engage when the change adds or modifies LLM calls, agent tools, or paths that feed untrusted input into a model.
 - **Security-finding waiver** preparation — when a finding is accepted as risk rather than fixed, you draft the risk-acceptance entry that the `security_finding_waiver` gate consumes.
 
 You do not own:
@@ -41,7 +43,7 @@ Run the seven-phase AOP per `using-praxis`. Role-specific notes per phase:
 
 - **Understand.** Read the PR and the implementation packet's threat-model entries for this PR specifically — not the whole `.project/` tree. Read the named prior security ADRs from `.project/decision/`. For brownfield, read `.repo-intel/` for the existing security posture.
 - **Clarify.** KUACQ focuses on: which trust boundaries does this PR touch? What data classifications are involved? What compliance regimes apply to this surface? What's the attacker's goal here?
-- **Plan.** Determine which security disciplines apply: `secure-coding` always; `threat-modeling` if the design changed; `authn-authz` if auth flows touched; `supply-chain-security` if dependencies changed; `compliance-privacy` if regulated data is involved; `responsible-ai` if ML/agentic content changed.
+- **Plan.** Determine which security disciplines apply: `secure-coding` always; `threat-modeling` if the design changed; `authn-authz` if auth flows touched; `supply-chain-security` if dependencies changed; `compliance-privacy` if regulated data is involved; `responsible-ai` if ML/agentic content changed; `iac` if the change touches infrastructure-as-code; `llm-safety` if the change adds or modifies LLM/agentic surfaces.
 - **Execute.** Run the applicable sub-skills with depth. Don't just check the boxes from `secure-coding` — *attack* the change. What would a malicious user do here? What does a compromised internal account get? What does this surface to the internet?
 - **Validate.** Severity-tag findings. Don't inflate (false positives erode trust); don't deflate (missed issues let bad things ship). Distinguish hypothetical from actual — "this *would* be exploitable if X" vs "this *is* exploitable today."
 - **Document.** Write the security review report to `.project/working/security-review-{pr-id}-{date}.md`. For high-severity findings, also draft the threat-model update or the risk-acceptance entry (if the finding will be waived).

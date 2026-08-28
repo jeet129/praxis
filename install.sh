@@ -2,7 +2,7 @@
 # install.sh — Praxis installer
 #
 # Installs the library into a target project for any supported AI coding tool.
-# 91 SKILLs · 17 agents · 9 workflows · 12 slash commands · governance · hooks · validator.
+# 91 SKILLs · 18 agents · 9 workflows · 12 slash commands · governance · hooks · validator.
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
@@ -194,7 +194,7 @@ install_codex() {
 This repo ships the Praxis at `.team/`. Codex / OpenCode / Cursor / Antigravity should consult these files.
 
 ## Where things live
-- Role agents:    `.team/agents/` (17 agents)
+- Role agents:    `.team/agents/` (18 agents)
 - Skills:         `.team/skills/<skill-name>/SKILL.md` (91 skills)
 - Workflows:      `.team/workflows/` (9 workflows)
 - Governance:     `.team/governance/governance.yaml`
@@ -340,7 +340,7 @@ install_antigravity() {
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "praxis",
   "version": "0.1.0",
-  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 skills, 17 agents, 9 workflows, 18 governance gates."
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 skills, 18 agents, 9 workflows, 19 governance gates."
 }
 EOF
   say "✓ wrote plugin.json (Antigravity schema)"
@@ -354,7 +354,7 @@ This repo ships the Praxis Antigravity plugin at `.agents/plugins/praxis/`. The
 Antigravity CLI (`agy`) auto-discovers it there and should consult these files.
 
 ## Where things live
-- Role agents:    `.agents/plugins/praxis/agents/` (17 agents)
+- Role agents:    `.agents/plugins/praxis/agents/` (18 agents)
 - Skills:         `.agents/plugins/praxis/skills/<skill-name>/SKILL.md` (91 skills)
 - Slash commands: `.agents/plugins/praxis/skills/cmd-*.md` (12: /start /discover …)
 - Workflows:      `.agents/plugins/praxis/workflows/` (9 workflows)
