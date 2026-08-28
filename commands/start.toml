@@ -11,6 +11,7 @@ Step 1 — Run `delivery-planner`. Capture the project charter at `.project/sema
 - compliance_regimes (list or "none")
 - scale_target_qps + availability_target
 - is_multi_tenant
+- has_infrastructure (true if the project provisions or changes infrastructure-as-code — activates the iac_plan_review gate)
 - preferred stack(s) + cloud
 
 Step 2 — Establish the architecture-documentation skeleton per `architecture-documentation`:

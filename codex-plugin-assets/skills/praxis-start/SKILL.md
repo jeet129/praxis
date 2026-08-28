@@ -22,7 +22,7 @@ Run the Praxis bootstrap flow for Codex.
 
 1. Locate the installed plugin root by walking up from this skill until `workflows/` and `governance/` are present.
 2. Read `skills/delivery-planner/SKILL.md`, `skills/project-memory/SKILL.md`, and `governance/governance.yaml`.
-3. Create or update `.project/semantic/project-charter.md` with project mode, data/ML/AI flags, compliance regimes, scale, availability, tenancy, stack, and cloud.
+3. Create or update `.project/semantic/project-charter.md` with project mode, data/ML/AI flags, compliance regimes, scale, availability, tenancy, infrastructure (`has_infrastructure` — true if the project provisions or changes infrastructure-as-code; activates the iac_plan_review gate), stack, and cloud.
 4. Create the `.project/` memory tree if missing.
 5. Summarize active governance gates from `governance/governance.yaml`.
 6. Seed per-project governance overrides: copy the plugin's `governance/model-routing.yaml` and `governance/autonomy.yaml` to `.project/governance/` if not already present, then ask the user ONE concise question set — keep default adaptive routing/autonomy, or tune `force_tier`, `cost_weights`, `stop_after`, `run_budget` for this engagement. Apply answers to the PROJECT copies only; never edit the plugin's files.
