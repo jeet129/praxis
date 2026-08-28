@@ -42,7 +42,7 @@ Same 11 as Claude Code, mirrored at `.gemini/commands/`:
 Type:
 ```
 "Read GEMINI.md and confirm you can navigate to .gemini/skills/ and .gemini/agents/.
-List the 17 agents and the 91 SKILLs."
+List the 18 agents and the 91 SKILLs."
 ```
 
-You should see: 17 agents, 91 SKILLs listed by name. If the count is off, re-run `./install.sh --tool=gemini --dry-run` and compare.
+You should see: 18 agents, 91 SKILLs listed by name. If the count is off, re-run `./install.sh --tool=gemini --dry-run` and compare.

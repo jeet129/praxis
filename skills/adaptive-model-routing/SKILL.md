@@ -143,6 +143,7 @@ Each agent declares a `capability_tier:` in its frontmatter; `scripts/apply-mode
 | frontend-developer | standard | Same |
 | mobile-developer | standard | Same — implementation against the packet and stack-flutter |
 | data-engineer | standard | Pipeline implementation is mostly mechanical |
+| database-engineer | standard | Non-trivial OLTP only (RLS/grants, zero-downtime live migrations, indexing/partitioning/replication); routine schema stays with backend-developer; escalate to deep for security-sensitive or destructive changes |
 | ml-ai-engineer | deep | Research-heavy, novel problems, eval design |
 | code-reviewer | deep | Missing a bug in review is expensive |
 | security-reviewer | deep | Adversarial + high-stakes; false negatives catastrophic |

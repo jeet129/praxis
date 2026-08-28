@@ -121,6 +121,7 @@ Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasonin
 | frontend-developer | standard | medium | Same |
 | mobile-developer | standard | medium | Same — implementation against the packet and stack-flutter |
 | data-engineer | standard | medium | Pipeline implementation is mostly mechanical; escalate high-blast-radius designs |
+| database-engineer | standard | medium | Non-trivial OLTP only (RLS/grants, zero-downtime live migrations, indexing/replication); escalate for security-sensitive or destructive changes |
 | ml-ai-engineer | deep | high | Research-heavy, novel problems, eval design |
 | code-reviewer | deep | high | Missing a bug in review is expensive |
 | security-reviewer | deep | high | Adversarial + high-stakes; false negatives catastrophic |

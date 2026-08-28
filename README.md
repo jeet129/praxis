@@ -5,7 +5,7 @@
 Praxis brings architecture, planning, implementation, verification, security
 review, and human sign-off into a portable workflow across your AI coding tools.
 
-Praxis turns a single AI coding tool into a full delivery org: 17 role agents
+Praxis turns a single AI coding tool into a full delivery org: 18 role agents
 (PM, architect, security, QA, SRE, and more) draw on 91 disciplined skills
 through 9 workflows, gated by 18 governance checkpoints with evidence packs —
 so requirements, architecture, and releases get principal sign-off, not
@@ -312,7 +312,7 @@ praxis/
 ├── plugins/praxis-codex/     Generated Codex plugin package
 ├── codex-plugin-assets/      Codex-only command skills + subagent templates
 ├── .claude-plugin/           Claude Code plugin + marketplace manifests
-├── agents/                   17 role agents (count is CI-checked, see scripts/build-registry.py)
+├── agents/                   18 role agents (count is CI-checked, see scripts/build-registry.py)
 ├── skills/                   91 active SKILLs (installer skips any tombstoned SKILLs; none currently)
 ├── workflows/                9 named workflows
 ├── governance/               governance.yaml (6 core + 12 conditional gates) + model-routing.yaml
