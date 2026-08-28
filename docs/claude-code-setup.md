@@ -62,7 +62,7 @@ Once installed, you drive the platform through slash commands that run workflows
 
 ## What the plugin gives you
 
-Installed as a plugin, the content lives in the plugin (nothing is copied into your repo) — 18 role agents, 91 SKILLs, 9 workflows, `governance.yaml` (6 core + 12 conditional gates), 12 slash commands, the SessionStart hook, plus scripts, patterns, and references. The only thing created in your project is the `.project/` memory tree (populated as you work).
+Installed as a plugin, the content lives in the plugin (nothing is copied into your repo) — 18 role agents, 91 SKILLs, 9 workflows, `governance.yaml` (6 core + 13 conditional gates), 12 slash commands, the SessionStart hook, plus scripts, patterns, and references. The only thing created in your project is the `.project/` memory tree (populated as you work).
 
 The copy-based `install.sh` alternative instead writes that same content into a `your-project/.claude/` directory (frozen snapshot) — see `INSTALLATION.md` for when to prefer it (multi-tool installs, offline/CI, pinned team versions).
 
@@ -110,6 +110,6 @@ Type:
 available. Read governance.yaml and summarize active gates."
 ```
 
-You should see: 18 agents, 91 SKILLs, 6 core gates + 12 conditional. If a slash command isn't recognized, run `/plugin` and confirm `praxis` shows as installed and enabled.
+You should see: 18 agents, 91 SKILLs, 6 core gates + 13 conditional. If a slash command isn't recognized, run `/plugin` and confirm `praxis` shows as installed and enabled.
 
 Then type `/start` — you should see the delivery-planner interview begin (mode, data plane, ML, compliance, scale, stack questions). See `docs/quickstart.md` for the full 5-minute path.

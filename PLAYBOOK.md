@@ -132,7 +132,7 @@ and skills, and tell me which roles and which skills are available. Then read
 the governance.yaml and summarize the active gates.
 ```
 
-You should see Claude Code list **18 agents**, **91 skills**, and the **6 core governance gates** (plus 12 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
+You should see Claude Code list **18 agents**, **91 skills**, and the **6 core governance gates** (plus 13 conditional project-specific gates). If it can't see them, the install scope is wrong — re-run `install.sh --dry-run` to confirm the destination.
 
 ---
 

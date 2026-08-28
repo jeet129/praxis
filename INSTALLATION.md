@@ -271,7 +271,7 @@ Confirm you can see the Praxis. Specifically:
 2. Read .claude/skills/using-praxis/SKILL.md and summarize the
    intent → workflow routing.
 3. Read .claude/governance/governance.yaml and list the 6 core gates +
-   12 conditional gates.
+   13 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
 Expected: 12 slash commands, 91 SKILLs, 18 agents, governance gates as listed.

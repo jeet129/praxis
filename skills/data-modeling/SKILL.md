@@ -28,6 +28,7 @@ outputs:
  - indexing strategy
  - persistence store choice + rationale (ADR)
 consumers:
+  - database-engineer (physical design: indexing, partitioning, RLS)
  - backend-developer (implements the schema and queries)
  - data-engineer (consumes for analytical model design)
  - code-review (checks code against the model)

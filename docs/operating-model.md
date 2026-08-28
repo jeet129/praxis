@@ -36,7 +36,7 @@ flowchart TD
     DL["delivery-lead orchestration<br/>(agents/delivery-lead.md, Layer 2 of using-praxis)"]
     DL --> AG["Agents + skills + tier routing<br/>(agents/*.md, skills/*, governance/model-routing.yaml)"]
     AG --> WP["Work products<br/>(.project/ semantic / working / episodic artifacts)"]
-    WP --> GT["Gates<br/>(governance/governance.yaml — 18 gates)"]
+    WP --> GT["Gates<br/>(governance/governance.yaml — 19 gates)"]
     GT --> HA["Human approval<br/>(principal reviews evidence pack)"]
     HA -->|approved| NEXT[Next phase / next slice]
     HA -->|rejected| DL

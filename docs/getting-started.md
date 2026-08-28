@@ -60,7 +60,7 @@ Same content, different addressing:
 - **91 SKILLs** — foundation, discovery, architecture, UX, implementation, release, ops, data, ML / agentic-AI, maintenance, self-improvement.
 - **18 role agents**, each declaring an abstract `capability_tier` (`deep | standard | light`) instead of a hardcoded model — Delivery Lead, PM, Solution Architect, Architecture Challenger, Lead Dev, BE / FE / Data / Database / ML-AI / Mobile specialists, Code / Security / QA reviewers, Tech Writer, Platform/SRE, UX Designer, System Steward.
 - **9 workflows** — greenfield-api-service, greenfield-saas, brownfield-enhancement, implementation-slice, production-release, ideation-refinement-loop, expedited-change, spike, modernization.
-- **Governance** — 18 gates (6 core + 12 conditional) with approver matrix and evidence packs.
+- **Governance** — 19 gates (6 core + 13 conditional) with approver matrix and evidence packs.
 - **Capability-tier model routing** — `governance/model-routing.yaml` maps each tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/-flash/-flash-lite); `adaptive-model-routing` SKILL shifts the tier ±1 per task at runtime. See [`model-routing.md`](model-routing.md).
 - **12 slash commands** — `/start /discover /architect /slice /release /audit /steward /review /refine-idea /factory-record /drive`.
 - **6 hook subscriptions** — SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop; drive the deterministic JSONL streams (`agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl`) and command stubs. The old per-Read skill/agent/session stub types are retired (~5% real-world capture).
