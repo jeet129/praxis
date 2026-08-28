@@ -44,6 +44,45 @@ The installer handles this Antigravity-specific shaping for you.
 ./install.sh --tool=antigravity /path/to/your-project
 ```
 
+### From a specific branch (e.g. `features/improvements`)
+
+Unlike Claude Code (`/plugin marketplace add jeet129/praxis@features/improvements`)
+and Codex (`codex plugin marketplace add … --ref features/improvements`),
+Antigravity's `agy plugin install` and this installer take a **local path** — the
+Antigravity plugin docs document no remote `owner/repo@ref` install. So a
+feature-branch install goes through a local clone of that branch, then the normal
+install:
+
+```bash
+git clone -b features/improvements https://github.com/jeet129/praxis.git
+cd praxis
+./install.sh --tool=antigravity /path/to/your-project     # workspace layout (recommended)
+```
+
+Or register the committed native package into your global `agy`:
+
+```bash
+agy plugin install ./plugins/praxis-antigravity
+```
+
+Either way this uses the branch **as pushed to GitHub** — commit and push first,
+or the clone won't include un-pushed local work. The global-package route also
+needs the branch's `plugins/praxis-antigravity/` mirror to be freshly built and
+committed (the pre-commit hook rebuilds it; or run
+`scripts/build-antigravity-plugin.sh` and commit before pushing) — the same
+discipline as Codex's `plugins/praxis-codex/`.
+
+### From a local checkout you already have
+
+If you are developing on the branch and already have it checked out, skip the
+clone and point the installer (or `agy plugin install`) at the checkout directly:
+
+```bash
+./install.sh --tool=antigravity /path/to/your-project     # run from the checkout root
+# or, to globally install the committed native package:
+agy plugin install ./plugins/praxis-antigravity
+```
+
 ## What lands
 
 ```
