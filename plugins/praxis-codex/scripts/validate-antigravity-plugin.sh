@@ -40,16 +40,17 @@ if leaked:
 PY
 
 # Antigravity has NO commands/ dir — slash commands come from skills/*.md with
-# `name:`. Assert the package does not ship a commands/ dir, and that the 12
-# workflow commands were emitted as name-bearing cmd-*.md skills.
-[[ ! -d "$PLUGIN/commands" ]] || fail "package must not contain a commands/ dir (Antigravity uses skills/*.md with name:)"
-n_cmd=$(ls "$PLUGIN"/skills/cmd-*.md 2>/dev/null | wc -l | tr -d ' ')
-[[ "$n_cmd" == "12" ]] || fail "expected 12 cmd-*.md command-skills, found $n_cmd"
+# `name:`. Assert no commands/ dir, and that the 12 workflow commands were
+# emitted as nested name-bearing <name>/SKILL.md skills (agy discovers nested).
+[[ ! -d "$PLUGIN/commands" ]] || fail "package must not contain a commands/ dir (Antigravity uses nested skills/<name>/SKILL.md)"
+n_cmd=0
 for base in start intake discover refine-idea architect slice review audit release steward factory-record drive; do
-  f="$PLUGIN/skills/cmd-$base.md"
-  [[ -f "$f" ]] || fail "missing command-skill: cmd-$base.md"
-  grep -q "^name: $base$" "$f" || fail "cmd-$base.md missing injected 'name: $base' frontmatter"
+  f="$PLUGIN/skills/$base/SKILL.md"
+  [[ -f "$f" ]] || fail "missing command-skill: skills/$base/SKILL.md"
+  grep -q "^name: $base$" "$f" || fail "skills/$base/SKILL.md missing 'name: $base' frontmatter"
+  n_cmd=$((n_cmd+1))
 done
+[[ "$n_cmd" == "12" ]] || fail "expected 12 nested command-skills, found $n_cmd"
 
 # Front-door skill + a spot-check of agents present.
 [[ -f "$PLUGIN/skills/using-praxis/SKILL.md" ]] || fail "missing front-door skill using-praxis"
@@ -87,19 +88,19 @@ fi
 python3 - "$ROOT/.claude/commands" "$OVERLAY/skills" <<'PYCHK'
 import sys, pathlib
 canon = {p.stem for p in pathlib.Path(sys.argv[1]).glob("*.md")}
-overlay = {p.name[len("cmd-"):-len(".md")] for p in pathlib.Path(sys.argv[2]).glob("cmd-*.md")}
+overlay = {p.parent.name for p in pathlib.Path(sys.argv[2]).glob("*/SKILL.md")}
 missing = sorted(canon - overlay)
 extra = sorted(overlay - canon)
 if missing:
     raise SystemExit("overlay is missing command-skill(s) for canonical command(s): "
-                     + ", ".join(missing) + " (add cmd-<name>.md to antigravity-plugin-assets/skills/)")
+                     + ", ".join(missing) + " (add <name>/SKILL.md to antigravity-plugin-assets/skills/)")
 if extra:
     raise SystemExit("overlay has command-skill(s) with no canonical command: "
                      + ", ".join(extra) + " (remove or align antigravity-plugin-assets/skills/)")
 PYCHK
 
 # No Claude-isms may leak into the packaged command-skills.
-if grep -rEn 'Task\(\{|CLAUDE_PLUGIN_ROOT|--tool[[:space:]]+claude-code|~/\.claude' "$PLUGIN"/skills/cmd-*.md >/dev/null 2>&1; then
+if grep -rEn 'Task\(\{|CLAUDE_PLUGIN_ROOT|--tool[[:space:]]+claude-code|~/\.claude' "$PLUGIN"/skills/{start,intake,discover,refine-idea,architect,slice,review,audit,release,steward,factory-record,drive}/SKILL.md >/dev/null 2>&1; then
   fail "packaged command-skills contain Claude-specific content (Task()/CLAUDE_PLUGIN_ROOT/claude-code/~/.claude) — fix the overlay and rebuild"
 fi
 

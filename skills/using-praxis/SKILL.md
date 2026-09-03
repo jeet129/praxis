@@ -178,7 +178,7 @@ scenario needs a new workflow or a planner flag.
 | `/review` | On-demand closed-loop artifact review | reviewer roles + `.project/operational/reviews/` |
 | `/factory-record` | Capture a rich telemetry observation | `scripts/factory-record.sh` |
 
-Each slash command is a Markdown file (YAML frontmatter + prompt) under `.claude/commands/` for Claude Code; Codex ships each command as a `$praxis-<name>` command skill (generated into the Codex plugin's `skills/praxis-*` from `codex-plugin-assets/`); Antigravity ships them as `cmd-*` skills generated from `antigravity-plugin-assets/`. Read the command file if you want to see exactly which SKILLs it invokes.
+Each slash command is a Markdown file (YAML frontmatter + prompt) under `.claude/commands/` for Claude Code; Codex ships each command as a `$praxis-<name>` command skill (generated into the Codex plugin's `skills/praxis-*` from `codex-plugin-assets/`); Antigravity ships each as a nested `skills/<name>/SKILL.md` (from `antigravity-plugin-assets/`), discoverable as `praxis:<name>` via `/skills`. Read the command file if you want to see exactly which SKILLs it invokes.
 
 ## Agent → role mapping
 

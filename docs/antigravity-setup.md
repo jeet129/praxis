@@ -4,11 +4,12 @@
 > **documented** Antigravity plugin format (antigravity.google/docs/cli/plugins):
 > a minimal `plugin.json`, skills-as-slash-commands, and the `.agents/plugins/`
 > workspace layout. The installer output is validated structurally (manifest
-> shape, plugin location, 12 command-skills, AGENTS.md front door). It has **not
-> yet been exercised end-to-end against a live `agy` build** — one thing to
-> confirm on your machine is whether `agy` discovers nested `skills/<name>/SKILL.md`
-> or only flat `skills/*.md` (the 12 command-skills are flat and will register;
-> the 91 library skills are nested). The **AGENTS.md front-door path is reliable**
+> shape, plugin location, 12 command-skills, AGENTS.md front door). Verified
+> against a live `agy` build: **`agy` discovers only nested `skills/<name>/SKILL.md`
+> and ignores flat `skills/*.md`**, so the 12 command-skills ship nested (like the
+> 91 library skills). They register as `praxis:<name>` and are listed under
+> `/skills` — Antigravity has no native plugin slash commands. The **AGENTS.md
+> front-door path is reliable**
 > regardless of the plugin subsystem.
 >
 > **Not yet supported:** unattended *drive mode* on Antigravity — its headless /
@@ -33,7 +34,7 @@ It is **not** Claude's format and **not** Codex's:
 |---|---|---|---|
 | Manifest | `.claude-plugin/plugin.json` (skills[]/agents[]/commands arrays) | `.codex-plugin/plugin.json` (`skills:"./skills/"`, `hooks:`) | `plugin.json` — **minimal**: `$schema` + `name` + optional `description`/`version` |
 | Agents | markdown | **TOML** (`.toml`) | markdown |
-| Slash commands | `commands/*.md` | command-skills | **`skills/*.md` with `name:` frontmatter** (no `commands/` dir) |
+| Slash commands | `commands/*.md` | command-skills | **nested `skills/<name>/SKILL.md` with `name:`** → `praxis:<name>` via `/skills` (no `commands/` dir) |
 | Location | `.claude/` | `.agents/plugins/` marketplace → `plugins/praxis-codex/` | `.agents/plugins/<name>/` (workspace) or `~/.gemini/antigravity-cli/plugins/` (global) |
 
 The installer handles this Antigravity-specific shaping for you.
@@ -91,8 +92,8 @@ your-project/
 └── .agents/plugins/praxis/            ← auto-discovered plugin
     ├── plugin.json                    ← minimal Antigravity manifest
     ├── skills/
-    │   ├── cmd-*.md                    ← 12 workflow commands → /start /discover …
-    │   └── <name>/SKILL.md             ← 91 library skills
+    │   └── <name>/SKILL.md             ← 91 library skills + 12 command-skills
+    │                                      (praxis:start praxis:discover …, via /skills)
     ├── agents/*.md                     ← 18 role agents
     ├── workflows/  governance/  patterns/  references/
     └── README.md  PLAYBOOK.md  INSTALLATION.md
@@ -121,13 +122,15 @@ agy plugin install ./.agents/plugins/praxis
 (Local path — remote/git URLs are not documented.) Manage with `agy plugin list`,
 `agy plugin disable praxis`, `agy plugin uninstall praxis`.
 
-## Slash commands
+## Workflow commands (as skills)
 
-The 12 workflow commands ship as `skills/cmd-*.md` (each carries a `name:` so
-`agy` registers it):
+The 12 workflow commands ship as nested `skills/<command>/SKILL.md` (each carries
+a `name:`, so `agy` registers each as a `praxis:<command>` skill listed under
+`/skills`). Antigravity has no native plugin slash commands, so invoke them by
+name or prompt (e.g. "run praxis:start"):
 
-`/start` `/intake` `/discover` `/refine-idea` `/architect` `/slice`
-`/review` `/audit` `/release` `/steward` `/factory-record` `/drive`
+`praxis:start` `praxis:intake` `praxis:discover` `praxis:refine-idea` `praxis:architect` `praxis:slice`
+`praxis:review` `praxis:audit` `praxis:release` `praxis:steward` `praxis:factory-record` `praxis:drive`
 
 > `/drive` is present but drive mode isn't supported on Antigravity yet (see the
 > status note). Safe to run interactively; don't rely on unattended `agy -p`.
@@ -136,7 +139,7 @@ The 12 workflow commands ship as `skills/cmd-*.md` (each carries a `name:` so
 
 ```
 1. ls AGENTS.md .agents/plugins/praxis/plugin.json     → both exist
-2. ls .agents/plugins/praxis/skills/cmd-*.md | wc -l    → 12
+2. ls -d .agents/plugins/praxis/skills/{start,intake,discover,refine-idea,architect,slice,review,audit,release,steward,factory-record,drive}/ | wc -l  → 12
 3. agy plugin list                                      → praxis listed (if registered)
 ```
 

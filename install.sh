@@ -330,8 +330,8 @@ install_antigravity() {
   # overlay (antigravity-plugin-assets/skills/) — harness-correct: prose delegation
   # instead of Claude's Task() API, and no Claude-specific paths.
   if [[ -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills" ]]; then
-    cp "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/cmd-*.md "$dest/skills/" 2>/dev/null || true
-    say "✓ wrote $(ls "$dest/skills"/cmd-*.md 2>/dev/null | wc -l | tr -d ' ') workflow command-skills (/start /discover … → slash commands)"
+    cp -R "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/* "$dest/skills/" 2>/dev/null || true
+    say "✓ wrote $(ls -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') workflow command-skills (praxis:start praxis:discover … via /skills)"
   fi
 
   # Manifest — minimal Antigravity schema.
@@ -356,7 +356,7 @@ Antigravity CLI (`agy`) auto-discovers it there and should consult these files.
 ## Where things live
 - Role agents:    `.agents/plugins/praxis/agents/` (18 agents)
 - Skills:         `.agents/plugins/praxis/skills/<skill-name>/SKILL.md` (91 skills)
-- Slash commands: `.agents/plugins/praxis/skills/cmd-*.md` (12: /start /discover …)
+- Command-skills: `.agents/plugins/praxis/skills/<command>/SKILL.md` (12: praxis:start praxis:discover …, via /skills)
 - Workflows:      `.agents/plugins/praxis/workflows/` (9 workflows)
 - Governance:     `.agents/plugins/praxis/governance/governance.yaml`
 - References:     `.agents/plugins/praxis/references/`

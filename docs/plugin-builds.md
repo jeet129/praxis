@@ -192,12 +192,13 @@ package shapes:
 - `plugin.json` at the package **root**, MINIMAL: `$schema` + `name` (required)
   + optional `description`/`version`. No Claude `skills[]`/`agents[]`/`commands`
   arrays; no Codex `skills:`/`hooks:` keys.
-- Slash commands come from `skills/*.md` with a `name:` frontmatter key — there
-  is no `commands/` dir. The 12 workflow command-skills are HAND-AUTHORED in
-  `antigravity-plugin-assets/skills/` (the Antigravity analog of
+- Slash commands come from nested `skills/<name>/SKILL.md` dirs with a `name:`
+  key — there is no `commands/` dir, and `agy` discovers nested SKILL.md, not
+  flat `skills/*.md`. The 12 workflow command-skills are HAND-AUTHORED in
+  `antigravity-plugin-assets/skills/<name>/SKILL.md` (the Antigravity analog of
   `codex-plugin-assets/`) — harness-correct: prose delegation instead of Claude's
-  `Task()` API, and no Claude-specific paths. The build copies them in as
-  `skills/cmd-*.md`.
+  `Task()` API, and no Claude-specific paths. They register as `praxis:<name>`
+  under `/skills`.
 - Agents stay **markdown** (no TOML transform — unlike Codex).
 
 The build combines:
@@ -217,7 +218,7 @@ bash scripts/validate-antigravity-plugin.sh
 ```
 
 The validator enforces overlay↔canonical command parity: add a command to
-`.claude/commands/` and you must add a matching `cmd-<name>.md` to the overlay,
+`.claude/commands/` and you must add a matching `<name>/SKILL.md` to the overlay,
 or validation fails. The pre-commit hook rebuilds/validates/re-stages `plugins/praxis-antigravity/`
 alongside the Codex package whenever canonical source or `.claude/commands/`
 changes. The build is deterministic and reconciles the mirror (exit 4 rather

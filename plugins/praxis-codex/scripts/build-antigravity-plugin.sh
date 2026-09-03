@@ -4,9 +4,11 @@
 # Antigravity's plugin format (antigravity.google/docs/cli/plugins) is its own:
 #   • plugin.json at the package ROOT — MINIMAL: $schema + name (required) +
 #     optional description/version. NOT Claude's arrays, NOT Codex's schema.
-#   • Slash commands come from skills/*.md that carry a `name:` frontmatter key
-#     (there is no commands/ dir). The 12 workflow command-skills are HAND-AUTHORED
-#     in antigravity-plugin-assets/skills/ (the Antigravity analog of
+#   • Slash commands come from nested skills/<name>/SKILL.md dirs that carry a
+#     `name:` frontmatter key (no commands/ dir; agy discovers nested
+#     skills/<name>/SKILL.md and ignores flat skills/*.md). The 12 workflow
+#     command-skills are HAND-AUTHORED in antigravity-plugin-assets/skills/<name>/
+#     SKILL.md (the Antigravity analog of
 #     codex-plugin-assets/) — harness-correct: prose delegation instead of Claude's
 #     Task() API, and no Claude-specific paths.
 #   • Agents are markdown (no TOML transform — unlike Codex).
@@ -78,7 +80,7 @@ for name in ("skills", "agents", "workflows", "governance", "references", "patte
         place_tree(source, out / name)
 
 # Antigravity command-skills come from the hand-authored overlay
-# (antigravity-plugin-assets/skills/) — harness-correct cmd-*.md with `name:`
+# (antigravity-plugin-assets/skills/) — harness-correct <name>/SKILL.md with `name:`
 # frontmatter, prose delegation, and no Claude-specific paths. This is the
 # Antigravity analog of codex-plugin-assets/; the build copies them in as-is.
 overlay_skills = src / "skills"
