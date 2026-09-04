@@ -158,6 +158,8 @@ def main():
     ap.add_argument("--session", default=""); ap.add_argument("--agent", default="")
     ap.add_argument("--slice", default=""); ap.add_argument("--task", default="")
     ap.add_argument("--mode", default="enforce", choices=["enforce", "advise"])
+    ap.add_argument("--harness", default=(os.environ.get("PRAXIS_HARNESS") or "claude-code"),
+                    help="which harness is routing (claude-code|codex|antigravity|...)")
     ap.add_argument("--no-log", action="store_true")
     a = ap.parse_args()
 
@@ -165,7 +167,7 @@ def main():
     profile = recent_profile(a.project_dir, cfg["window"])
     d = decide(a.from_tier, a.to_tier, profile, cfg)
     d.update({"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "event": "routing_preflight", "mode": a.mode,
+              "event": "routing_preflight", "harness": a.harness, "mode": a.mode,
               "session": a.session or None, "agent": a.agent or None,
               "slice": a.slice or None, "task": a.task or None,
               "from_tier": a.from_tier})

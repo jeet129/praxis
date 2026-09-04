@@ -238,7 +238,7 @@ Harness specifics:
   `$praxis-setup-subagents` after changing the override; live ±1 at spawn isn't
   available on Codex — set the tier in the profile instead.
 
-The routing decision is made BEFORE the spawn, and logged to `.project/telemetry/model-routing.jsonl` (timestamp, agent, task, per-signal scores, tier, resolved model, rationale). Load `references/routing-examples.md` for a fully worked log entry. Log entries serve the quarterly `llm-cost-optimization` review — frequency reports can show which agent types actually need the deep tier vs which are habitually over-provisioned.
+The routing decision is made BEFORE the spawn, and logged to `.project/telemetry/model-routing.jsonl` (timestamp, harness, agent, task, per-signal scores, tier, resolved model, rationale — include `harness` so decisions from different loop-runners stay attributable; see the canonical envelope in `docs/telemetry.md`). Load `references/routing-examples.md` for a fully worked log entry. Log entries serve the quarterly `llm-cost-optimization` review — frequency reports can show which agent types actually need the deep tier vs which are habitually over-provisioned.
 
 ---
 

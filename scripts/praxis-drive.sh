@@ -77,6 +77,7 @@ case "$HARNESS" in
   claude-code|codex) ;;
   *) echo "praxis-drive.sh: unsupported --harness '$HARNESS' (want claude-code|codex)" >&2; exit 1 ;;
 esac
+export PRAXIS_HARNESS="$HARNESS"
 
 # Apply project-level overrides now that PROJECT_DIR is resolved.
 if [[ -f "$PROJECT_DIR/.project/governance/autonomy.yaml" ]]; then
@@ -111,6 +112,7 @@ trap cleanup EXIT
 
 cat > "$PY_HELPER" <<'PYEOF'
 import json
+import os
 import re
 import shlex
 import sys
@@ -895,6 +897,7 @@ def cmd_append_record(jsonl_path, ts, run_id, iteration, slice_id, task_id, agen
 
     record = {
         "ts": ts,
+        "harness": os.environ.get("PRAXIS_HARNESS") or None,
         "run_id": run_id,
         "iteration": int(iteration),
         "mode": mode,   # "slice" (default, matches pre-workflow-drive records) | "workflow"

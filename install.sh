@@ -334,6 +334,14 @@ install_antigravity() {
     say "✓ wrote $(ls -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') workflow command-skills (praxis:start praxis:discover … via /skills)"
   fi
 
+  # Lifecycle hooks: agy telemetry manifest (self-contained; logs model-per-step
+  # routing, tool activity, and session stops under <workspace>/.project/telemetry/).
+  # agy exposes no token/cost/spawn data, so nothing beyond that is loggable.
+  if [[ -f "$LIBRARY_ROOT/antigravity-plugin-assets/hooks.json" ]]; then
+    cp "$LIBRARY_ROOT/antigravity-plugin-assets/hooks.json" "$dest/hooks.json"
+    say "✓ wrote hooks.json (agy telemetry: routing + activity + session)"
+  fi
+
   # Manifest — minimal Antigravity schema.
   cat > "$dest/plugin.json" <<'EOF'
 {

@@ -121,7 +121,7 @@ Every routing decision — default tier, chosen tier, score, and a short
 rationale — gets logged to `.project/telemetry/model-routing.jsonl`:
 
 ```jsonc
-{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+{"ts": "2026-06-28T09:14:00Z", "harness": "claude-code", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
 ```
 
 `scripts/factory-routing-report.py` cross-references this against the

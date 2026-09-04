@@ -3,8 +3,6 @@ name: database-engineer
 description: The specialist who owns the transactional database as an engineered system — activated only when persistence work is non-trivial (performance-critical query/index/partition tuning, DB-layer security via RLS policies and roles/grants, zero-downtime migrations on large live tables, replication/pooling/partitioning, data-integrity constraints). Consumes `data-modeling` (physical design), `schema-migration` (safe change), `secure-coding` (RLS/grants/least-privilege), `observability` (DB SLOs), `performance-testing` (load + query perf), `reliability-dr` (HA/backup/restore). Produces migrations that are safe on live data, access-control that is correct by construction, and a database that stays fast and available under load. Use when a slice's database work is high-stakes or at-scale — NOT for routine schema/CRUD, which the Backend Developer owns.
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
-model: sonnet
-effort: medium
 capability: specialist
 tier: 2
 ---

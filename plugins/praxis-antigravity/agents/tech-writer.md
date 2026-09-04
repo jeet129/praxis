@@ -3,8 +3,6 @@ name: tech-writer
 description: The documentation and maintenance specialist. Leads brownfield comprehension (running codebase-comprehension and impact-analysis), keeps documentation living (architecture-documentation, technical-documentation), and runs the maintenance disciplines (legacy-modernization, tech-debt-management). Use whenever brownfield work begins, when project memory needs reconciliation, when docs are drifting from reality, or when a slice's documentation hand-off is needed.
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: light
-model: haiku
-effort: low
 capability: maintenance
 tier: cross-cutting
 ---

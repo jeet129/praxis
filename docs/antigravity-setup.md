@@ -201,11 +201,98 @@ and `governance/`:
 - **`iac_plan_review` gate (19th gate)** — infrastructure plan review before apply; in `governance/governance.yaml`, activated per the `has_infrastructure` charter flag.
 - **Cache-aware routing guidance** — the `adaptive-model-routing` skill carries the prompt-cache economics and the down-route rubric.
 
-**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship (and Antigravity has no hook wiring yet, below). On Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced, until Antigravity's hook schema is confirmed.
+**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship. Antigravity now HAS hook wiring (telemetry, below), but its hooks expose no token/cost data and no spawn interception comparable to Claude Code's `PreToolUse(Task)`, so these guards stay guidance on Antigravity On Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced, until Antigravity's hook schema is confirmed.
 
-## Telemetry (hooks) — not yet wired
+## Telemetry (hooks) — wired, scoped to what `agy` exposes
 
-The per-model token/cache tap (`hooks/tap.sh`) is wired for Claude Code and
-Codex. Antigravity's hook event schema isn't confirmed against a live `agy`
-build, so no `hooks.json` ships in the Antigravity package yet — routing/cost
-telemetry on Antigravity is manual until then.
+The package now ships `hooks.json` at its root — a self-contained `agy`
+lifecycle-hooks manifest (verified against the `agy` hooks schema and a live
+`agy` run). On every session it appends telemetry under the workspace's
+`.project/telemetry/`:
+
+- `model-routing.jsonl` (**shared canonical stream**) — the model serving each
+  invocation (`PreInvocation` / `PostInvocation`), written as `event:
+  "model_invocation"`, `harness: "antigravity"`. This is the SAME file the Claude
+  Code / Codex tap writes tier-routing decisions into; the canonical `harness`
+  field partitions them, and the `factory-*-report.py` scripts filter to
+  `claude-code`/`codex` so these observational rows never skew the decision counts.
+- `sessions.jsonl` (**shared canonical stream**) — a session-stop record
+  (`Stop` -> `event: "session_stop"`, `harness: "antigravity"`), alongside the
+  Claude/Codex session boundaries in the same file.
+- `antigravity-activity.jsonl` (**agy-specific**) — tool-level audit
+  (`PreToolUse` / `PostToolUse`): tool name, step index, `error` on failures.
+  Stays agy-scoped: raw agy tool calls have no cross-harness equivalent
+  (Claude/Codex tool activity lives in the factory-metrics *markdown* store, and
+  agy tool calls are not praxis artifacts), so folding them into the shared
+  `agent-spawns.jsonl` would corrupt that stream's spawn/complete schema.
+
+The hook is inline (no sibling script), never blocks the loop (it always emits
+the correct stdout contract and falls back cleanly if `python3` is absent), and
+scopes itself to the workspace via the payload's `workspacePaths`. Every record carries the canonical envelope (`ts`, `harness`, `event`, `session`) defined in `docs/telemetry.md`, so shared-stream rows stay attributable and mergeable by `harness`.
+
+**What `agy` does NOT expose — and therefore is NOT logged.** Unlike the Claude
+Code / Codex `hooks/tap.sh` (which taps per-model token counts and cache
+read/write), `agy`'s hook payloads and its `transcript_full.jsonl` carry **no
+token counts, no cache read/write breakdown, no dollar cost, and no
+subagent-spawn events**. So the cache-economics story the `adaptive-model-routing`
+skill tells is *unmeasurable* on Antigravity: you can log which model ran and
+what it did, but not what it cost. Antigravity telemetry is **routing +
+activity, not cost** — by platform limitation, not by choice.
+
+Format: the manifest is authored at `antigravity-plugin-assets/hooks.json`,
+copied verbatim into the package by `scripts/build-antigravity-plugin.sh`, and
+its shape (top-level named hooks; only `agy`'s five events —
+`PreToolUse`/`PostToolUse` grouped, `PreInvocation`/`PostInvocation`/`Stop`
+flat) is asserted by `scripts/validate-antigravity-plugin.sh`, which rejects a
+Claude-format `{"hooks": {…}}` leak (that shape makes `agy` report
+`hooks: 1 processed` but silently register no handlers).
+
+## Cache-aware routing on Antigravity — why it's guidance-only
+
+The `adaptive-model-routing` skill carries the cache-aware routing policy
+(prompt-cache economics + the down-route rubric), and on Antigravity it runs
+as **agent-followed guidance**, not enforcement. That is a platform
+limitation, not a choice: the break-even math the policy rests on needs real
+input / output / cache-read / cache-write token counts, and `agy` exposes
+**none of them anywhere**. This was verified exhaustively (Sep 2026, `agy`
+1.1.24) so the next person does not have to re-investigate:
+
+- **Hook payloads** — no token fields on any of the five events (confirmed
+  against a live `Stop` payload capture, not just the docs).
+- **Transcripts** — `transcript.jsonl` and `transcript_full.jsonl` (and their
+  `chunks/`) carry no `UsageMetadata` / token keys on a deep scan.
+- **CLI logs** (`~/.gemini/antigravity-cli/log/`) — no `usageMetadata`,
+  `tokenCount`, or `cachedContentTokenCount`.
+- **Local databases** — `conversation_summaries.db` and `conversations/*.db`
+  persist only turn/step counts (`step_count`, `gen_metadata` protobuf), no
+  token columns.
+- **`/usage` command** — an interactive quota TUI (model quota percentages)
+  with no per-call tokens and no machine-readable output.
+- **Official + community sources agree.** The Google AI Developers Forum
+  thread [*How to check Token usage in Antigravity Hooks*](https://discuss.ai.google.dev/t/how-to-check-token-usage-in-antigravity-hooks/172967)
+  is an unresolved feature request with no official support (and OpenTelemetry
+  export reported unavailable); the community tool
+  [`antigravity-usage`](https://github.com/gigaprakosa/antigravity-usage)
+  states outright that "the JSONL transcripts carry no `UsageMetadata`" and
+  "token counts are not persisted" — it *estimates* tokens as
+  turn-count × an assumed per-turn size.
+
+**Why we do not ship a token estimator.** The only available proxy is
+turn/step counts (which our hooks already record as `invocationNum` / `stepIdx`
+and the routing telemetry as `model_invocation` rows). Multiplying those by an
+assumed per-turn token size — what the community tool does — is a guess, not a
+measurement, and feeding guessed tokens into a routing *decision* would produce
+exactly the dishonest telemetry the rest of this design avoids. So on
+Antigravity the policy stays advisory: the skill tells the assistant what to
+do, and nothing computes a break-even or intercepts a spawn.
+
+**The exact signal we're waiting on.** If Google adds `UsageMetadata`
+(`promptTokenCount` / `candidatesTokenCount` / `cachedContentTokenCount`) to
+`agy` hook payloads or the JSONL transcripts, cache-aware routing becomes
+implementable with **no restructuring** here: the telemetry hooks already emit
+harness-tagged `model_invocation` rows carrying the model per invocation, so we
+would only add the token fields to those rows and turn on the break-even math.
+Until then, Claude Code / Codex remain the harnesses where cache economics are
+measured and enforced (`hooks/tap.sh` + `scripts/routing-preflight.py`).
+
+**Agent definitions ship tier-only on agy.** Because agy applies no per-agent model, the packaged agents carry only `capability_tier:` (deep/standard/light) — the build strips the Claude `model:`/`effort:` frontmatter the canonical agents use, so the agy package never advertises a model it cannot select. Resolve a tier to a concrete agy model by hand via `/model` using the mapping above.

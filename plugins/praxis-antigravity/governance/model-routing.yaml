@@ -66,6 +66,29 @@ harnesses:
       standard: auto
       light: auto
 
+  # ADVISORY ONLY — agy applies NOTHING from this block. Antigravity honors no
+  # per-agent model selection: subagents inherit the session model, hooks cannot
+  # set a model, and the SDK config exposes no model field (see
+  # docs/antigravity-setup.md, "Cache-aware routing on Antigravity"). This is the
+  # documented tier -> model+effort recommendation the operator/agent applies BY
+  # HAND via `/model` and `--effort`. Values are model FAMILY + effort, NOT pinned
+  # version slugs (which drift every Gemini release) — resolve to your account's
+  # current slug, e.g. deep -> gemini-<ver>-pro-high,
+  # standard -> gemini-<ver>-flash-medium, light -> gemini-<ver>-flash-low.
+  # Nothing in the build/apply/report pipeline reads this block;
+  # apply-model-routing.py parses and ignores it (it writes only claude-code and codex).
+  antigravity:
+    field: model            # advisory label only; NO file is written for agy
+    map:
+      deep: pro
+      standard: flash
+      light: flash
+    effort_field: effort
+    effort_map:
+      deep: high
+      standard: medium
+      light: low
+
 # Optional governance pin: set to a tier name to force every agent to that tier
 # (e.g. a compliance-critical engagement that mandates `deep` everywhere).
 overrides:

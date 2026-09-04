@@ -50,20 +50,22 @@ tool. See "Running the reports" below.
 
 ```jsonc
 // agent-spawns.jsonl — spawn, written when a sub-agent is launched
-{"ts": "2026-06-28T09:15:00Z", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
+{"ts": "2026-06-28T09:15:00Z", "harness": "claude-code", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
 
 // agent-spawns.jsonl — complete, written when a sub-agent finishes
-{"ts": "2026-06-28T09:42:00Z", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
+{"ts": "2026-06-28T09:42:00Z", "harness": "claude-code", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
 
 // model-routing.jsonl — the delivery-lead's routing-decision rationale
-{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+{"ts": "2026-06-28T09:14:00Z", "harness": "claude-code", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
 
 // drive.jsonl — one line per scripts/praxis-drive.sh iteration
-{"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,"slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard","outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
+{"ts":"2026-07-10T12:00:00Z","harness":"claude-code","run_id":"drive-20260710-1200","iteration":4,"slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard","outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
 
 // sessions.jsonl — one line per session boundary
-{"ts": "2026-06-28T09:00:00Z", "event": "session_start", "session": "8f3c-a1b2"}
+{"ts": "2026-06-28T09:00:00Z", "harness": "claude-code", "event": "session_start", "session": "8f3c-a1b2"}
 ```
+
+**Canonical envelope (every row, every harness).** Regardless of stream or which tool wrote it, each record carries four common fields: `ts` (ISO 8601 UTC), `harness` (which loop-runner produced it — `claude-code` | `codex` | `antigravity` | `cursor` | `opencode` | `copilot` | `kiro`), `event` (the record kind), and `session` (session/conversation id; agy uses its `conversationId`). Everything else is stream-specific payload, which legitimately differs by harness — e.g. Claude Code and Codex carry real token counts and praxis tier-routing *decisions* (`chosen_tier`/`score`), whereas Antigravity carries model-observed-per-invocation and a tool audit and **no token/cost data at all** (agy does not expose it). So consumers unify by filtering on `harness`, not by assuming identical columns. (The checkpoint store in `references/factory-metrics-schema.md` records the same concept under the field name `tool`; `harness` and `tool` are equivalent — `harness` is the name used across the JSONL streams.)
 
 **Paths:** `.project/telemetry/agent-spawns.jsonl`, `model-routing.jsonl`,
 `drive.jsonl`, `sessions.jsonl`.

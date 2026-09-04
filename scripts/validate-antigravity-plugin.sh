@@ -57,8 +57,21 @@ done
 n_agents=$(ls "$PLUGIN"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
 [[ "$n_agents" == "18" ]] || fail "expected 18 markdown agents, found $n_agents"
 
+# Antigravity honors no per-agent model (subagents inherit the session model;
+# hooks cannot set one; the SDK config has no model field). The build strips the
+# Claude `model:`/`effort:` frontmatter from the agy agents, leaving the
+# harness-agnostic `capability_tier:`. Assert that held: every agy agent must
+# declare a tier and must NOT re-introduce a model/effort line (which would
+# advertise a model agy cannot use). See docs/antigravity-setup.md.
+for af in "$PLUGIN"/agents/*.md; do
+  grep -qE '^capability_tier:' "$af" || fail "agy agent $(basename "$af") missing capability_tier"
+  if grep -qE '^(model|effort):' "$af"; then
+    fail "agy agent $(basename "$af") carries model:/effort: frontmatter — agy honors no per-agent model; rebuild (scripts/build-antigravity-plugin.sh) to strip it"
+  fi
+done
+
 # Freshness: canonical files copied as-is must be byte-identical in the mirror.
-for f in skills/using-praxis/SKILL.md agents/solution-architect.md governance/governance.yaml; do
+for f in skills/using-praxis/SKILL.md governance/governance.yaml; do
   if [[ -f "$ROOT/$f" ]]; then
     diff -q "$ROOT/$f" "$PLUGIN/$f" >/dev/null 2>&1 \
       || fail "mirror stale/diverged: $f differs from canonical — run scripts/build-antigravity-plugin.sh and commit"
@@ -103,5 +116,57 @@ PYCHK
 if grep -rEn 'Task\(\{|CLAUDE_PLUGIN_ROOT|--tool[[:space:]]+claude-code|~/\.claude' "$PLUGIN"/skills/{start,intake,discover,refine-idea,architect,slice,review,audit,release,steward,factory-record,drive}/SKILL.md >/dev/null 2>&1; then
   fail "packaged command-skills contain Claude-specific content (Task()/CLAUDE_PLUGIN_ROOT/claude-code/~/.claude) — fix the overlay and rebuild"
 fi
+
+# Lifecycle hooks: the telemetry manifest must exist AND be in agy's real format
+# (top-level named hooks; only the five agy events). This guards against the
+# Claude-format leak ({"hooks": {SessionStart|UserPromptSubmit|Subagent*...}})
+# that agy counts as "1 processed" but silently drops every handler.
+[[ -f "$PLUGIN/hooks.json" ]] || fail "missing hooks.json (agy telemetry manifest) at package root"
+[[ -f "$OVERLAY/hooks.json" ]] || fail "missing hand-authored antigravity-plugin-assets/hooks.json (build source)"
+diff -q "$OVERLAY/hooks.json" "$PLUGIN/hooks.json" >/dev/null 2>&1 \
+  || fail "mirror stale: plugins/praxis-antigravity/hooks.json differs from antigravity-plugin-assets/hooks.json — rebuild"
+python3 - "$PLUGIN/hooks.json" <<'PYHOOK'
+import json, sys
+ALLOWED = {"PreToolUse", "PostToolUse", "PreInvocation", "PostInvocation", "Stop"}
+GROUPED = {"PreToolUse", "PostToolUse"}
+# Claude Code events that agy does NOT support; their presence is the exact bug
+# that makes agy count the hook but register no handlers.
+CLAUDE = {"SessionStart", "SessionEnd", "UserPromptSubmit", "SubagentStart",
+          "SubagentStop", "Notification", "PreCompact", "Stop"} - ALLOWED
+d = json.load(open(sys.argv[1]))
+if not isinstance(d, dict) or not d:
+    raise SystemExit("hooks.json must be a non-empty object of named hooks")
+if "hooks" in d and isinstance(d["hooks"], dict) and set(d["hooks"]) & (ALLOWED | {"SessionStart"}):
+    raise SystemExit('hooks.json uses the Claude {"hooks": {events}} wrapper; agy '
+                     'expects TOP-LEVEL NAMED hooks (e.g. {"praxis-telemetry": {...}})')
+seen_events = set()
+for name, spec in d.items():
+    if not isinstance(spec, dict):
+        raise SystemExit(f'named hook "{name}" must map to an event object')
+    for ev, handlers in spec.items():
+        if ev == "enabled":
+            continue
+        if ev not in ALLOWED:
+            raise SystemExit(f'named hook "{name}" declares unsupported event "{ev}" '
+                             f'(agy supports only {sorted(ALLOWED)})')
+        seen_events.add(ev)
+        if not isinstance(handlers, list):
+            raise SystemExit(f'"{name}.{ev}" must be a list')
+        for h in handlers:
+            if ev in GROUPED:
+                if "matcher" not in h or "hooks" not in h:
+                    raise SystemExit(f'"{name}.{ev}" (grouped) needs matcher + hooks wrapper')
+                inner = h["hooks"]
+            else:
+                inner = [h]  # flat: handler objects directly
+            for hh in inner:
+                if hh.get("type", "command") != "command":
+                    raise SystemExit('only type:"command" hooks are supported by agy')
+                if not hh.get("command"):
+                    raise SystemExit(f'"{name}.{ev}" handler missing command')
+if not seen_events:
+    raise SystemExit("hooks.json registers no agy events")
+print(f"hooks.json ok: named hooks {sorted(d)}, events {sorted(seen_events)}")
+PYHOOK
 
 echo "Antigravity plugin validation passed."

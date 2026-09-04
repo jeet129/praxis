@@ -284,12 +284,13 @@ This is the deterministic half of routing telemetry — it captures what actuall
 Written by the delivery-lead per `skills/adaptive-model-routing/SKILL.md`, before each agent spawn — the deliberate half of routing telemetry (the rubric decision, not just the outcome):
 
 ```jsonc
-{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+{"ts": "2026-06-28T09:14:00Z", "harness": "claude-code", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
 ```
 
 | Field | Type | Description |
 |---|---|---|
 | `ts` | ISO 8601 UTC | When the routing decision was made |
+| `harness` | enum | Which loop-runner produced the record — `claude-code` \| `codex` \| `antigravity` \| `cursor` \| `opencode` \| `copilot` \| `kiro`. Canonical envelope field on every telemetry row; equivalent to the checkpoint store's `tool`. Older records may omit it; reports tolerate absence. |
 | `agent` | string | Agent the decision applies to |
 | `default_tier` | enum | `deep` \| `standard` \| `light` — the agent's baseline tier per `capability_tier:` in `agents/<agent>.md` |
 | `chosen_tier` | enum | `deep` \| `standard` \| `light` — the tier actually selected after scoring |

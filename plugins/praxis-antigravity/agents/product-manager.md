@@ -3,8 +3,6 @@ name: product-manager
 description: The Phase A lead — owns product discovery and requirements through the requirements_freeze gate. Runs product-discovery, user-research, requirements-elicitation, requirements-interrogation, and nfr-definition. Produces the opportunity brief, JTBD framing, success metrics, user stories with acceptance criteria, assumptions register, open-questions log, scope boundary, and NFR register. Use whenever a project starts (full discovery + requirements cycle), or whenever a new slice within an existing project needs its requirements articulated. ALWAYS run before the Solution Architect on greenfield, and on any brownfield enhancement that introduces new user-facing behavior.
 tools: Read, Write, Edit, Glob, Grep
 capability_tier: standard
-model: sonnet
-effort: medium
 capability: phase-lead
 tier: 1
 ---

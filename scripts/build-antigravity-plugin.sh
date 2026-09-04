@@ -79,6 +79,26 @@ for name in ("skills", "agents", "workflows", "governance", "references", "patte
     if source.exists():
         place_tree(source, out / name)
 
+# Antigravity honors NO per-agent model selection: subagents inherit the session
+# model, hooks cannot set a model, and the SDK config exposes no model field
+# (see docs/antigravity-setup.md, "Cache-aware routing on Antigravity"). The
+# canonical agents carry Claude `model:`/`effort:` frontmatter as Claude Code's
+# static default; shipping those verbatim in the agy package advertises models
+# agy can never use. Strip them from the agy agents, keeping the harness-agnostic
+# `capability_tier:` — the real routing signal, resolved by hand via `/model` per
+# the advisory tier map. Canonical agents/ are untouched (Claude Code needs them).
+import re as _re
+for _ap in sorted((out / "agents").glob("*.md")):
+    _txt = _ap.read_text()
+    _m = _re.match(r"^(---\n)(.*?)(\n---\n)(.*)$", _txt, _re.S)
+    if not _m:
+        continue
+    _fm = _m.group(2)
+    _fm2 = "\n".join(l for l in _fm.split("\n")
+                      if not _re.match(r"\s*(model|effort)\s*:", l))
+    if _fm2 != _fm:
+        _ap.write_text(_m.group(1) + _fm2 + _m.group(3) + _m.group(4))
+
 # Antigravity command-skills come from the hand-authored overlay
 # (antigravity-plugin-assets/skills/) — harness-correct <name>/SKILL.md with `name:`
 # frontmatter, prose delegation, and no Claude-specific paths. This is the
@@ -86,6 +106,17 @@ for name in ("skills", "agents", "workflows", "governance", "references", "patte
 overlay_skills = src / "skills"
 if overlay_skills.exists():
     place_tree(overlay_skills, out / "skills")
+
+# Lifecycle hooks: the agy telemetry manifest ships at the package root. It is
+# self-contained (inline commands, no sibling script to copy), so it survives
+# `agy plugin install` regardless of which files agy propagates. agy exposes no
+# token/cost/cache or subagent-spawn data, so it logs only what is real:
+# model-per-step (routing), tool activity, and session stops, under the
+# workspace's .project/telemetry/.
+hooks_manifest = src / "hooks.json"
+if hooks_manifest.exists():
+    shutil.copy2(hooks_manifest, out / "hooks.json")
+    record(out / "hooks.json")
 
 # Minimal Antigravity manifest at package root.
 manifest = out / "plugin.json"

@@ -3,8 +3,6 @@ name: qa-engineer
 description: Owns quality gates across implementation and release. Runs testing-strategy (per slice), accessibility (audit pass), performance-testing (pre-prod), chaos-engineering (pre-prod), code-review (test-quality dimension). Distinct from Security Reviewer (different concerns, different tools). Verifies slice AC is met; signs off on acceptance before slice closes. Use whenever a slice is being implemented (test-plan is part of the implementation packet) and at slice close (acceptance gate).
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
-model: sonnet
-effort: medium
 capability: gate-reviewer
 tier: cross-cutting
 ---

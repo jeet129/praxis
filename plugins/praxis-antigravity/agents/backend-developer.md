@@ -3,8 +3,6 @@ name: backend-developer
 description: The backend specialist — implements server-side slices against the active backend stack (Java/Spring, Node/TS, or Python). Consumes `engineering-standards`, the active stack pack (stack-java-spring / stack-node-ts / stack-python), `secure-coding`, `testing-strategy`, `observability`. Produces production-grade code with idiomatic structure, tests, instrumentation, and a clean PR. Use whenever a slice's backend tasks are dispatched by the Lead Developer.
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
-model: sonnet
-effort: medium
 capability: specialist
 tier: 2
 ---

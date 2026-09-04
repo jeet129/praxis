@@ -3,8 +3,6 @@ name: mobile-developer
 description: The mobile specialist — implements user-facing slices as a native mobile app against the active mobile stack (`stack-flutter`). Consumes `engineering-standards`, `stack-flutter`, `frontend-design` (visual craft — the same anti-generic discipline as web), `api-design` (client-side contract consumption), `accessibility`, `secure-coding` (mobile branch — secure storage, certificate pinning, deep-link validation), `testing-strategy` (mobile branch), `observability` (crash reporting / mobile RUM). Produces production-grade mobile code with idiomatic structure, accessible UI, tests, instrumentation, and a clean PR. Use whenever a slice's mobile tasks are dispatched by the Lead Developer (routed as "Mobile Dev").
 tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
-model: sonnet
-effort: medium
 capability: specialist
 tier: 2
 ---
