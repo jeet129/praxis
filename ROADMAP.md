@@ -100,11 +100,8 @@ Work that's scoped, mostly mechanical, and blocks or de-risks everything else.
   and 2 brownfield engagements — the single highest-value validation activity,
   and the gate everything else (trigger tuning, skill slimming, reference
   priority) should ultimately be driven by.
-- **Exercise the six under-test harness adapters end-to-end.** Claude Code and
-  Codex are tested end-to-end on real engagements; Cursor,
-  OpenCode, GitHub Copilot, Kiro, and Antigravity are shipped and
-  structurally validated (installer output + CI cover their layout) but
-  haven't run a real delivery engagement yet. Run at least one real slice or
+- **Exercise the four remaining under-test harness adapters end-to-end.** Claude Code and
+  Codex are tested end-to-end on real engagements, and Antigravity is now exercised across two real repos at operational parity (telemetry verified; cost/enforced routing blocked upstream by agy). Cursor, OpenCode, GitHub Copilot, and Kiro are shipped and structurally validated (installer output + CI cover their layout) but haven't run a real delivery engagement yet. Run at least one real slice or
   small project through each before calling any of them more than
   structurally sound.
 - **Model-routing telemetry review.** Now that routing decisions log to

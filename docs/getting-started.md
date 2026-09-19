@@ -14,7 +14,7 @@ New here? Start with [`quickstart.md`](quickstart.md) instead — the 5-minute p
 | OpenCode | Adapter shipped, structurally validated — not yet exercised end-to-end | [`opencode-setup.md`](opencode-setup.md) |
 | GitHub Copilot | Adapter shipped, structurally validated — not yet exercised end-to-end | [`copilot-setup.md`](copilot-setup.md) |
 | Kiro | Adapter shipped, structurally validated — not yet exercised end-to-end | [`kiro-setup.md`](kiro-setup.md) |
-| Antigravity | Adapter shipped, structurally validated — not yet exercised end-to-end | [`antigravity-setup.md`](antigravity-setup.md) |
+| Antigravity | Exercised across two repos; operational parity (skills/agents/telemetry). Cost telemetry & enforced/auto routing blocked upstream by agy — guidance-only | [`antigravity-setup.md`](antigravity-setup.md) |
 
 ## Plugin install first (Claude Code + Codex)
 

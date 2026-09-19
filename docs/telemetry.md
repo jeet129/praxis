@@ -133,8 +133,9 @@ note at the top of each script.
 | `scripts/factory-usage-report.py` | Layer (a) checkpoints, plus working packets/task ledgers, routing logs, command stubs, and sessions | Per-skill and per-agent usage (checkpoints/packets naming it, last-seen, never-observed list), per-workflow checkpoint/gate breakdown, per-command invocations, engagement summary (sessions, span, checkpoints, total cost proxy) |
 | `scripts/factory-routing-report.py` | Layer (b) JSONL streams, plus `routing-*.md` and legacy factory-metrics records | Data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals, routing-discipline coverage %, drive-run summaries, heuristic recommendations |
 | `scripts/factory-token-report.py` | `drive.jsonl` real-usage fields + local Claude Code session transcripts | Real (not proxy) token/cost totals — per-model, per-day, per-slice (best-effort), input:output ratio, cache-hit ratio, and a proxy-calibration table against `cost_proxy`. See "Real token telemetry" below. |
+| `scripts/factory-antigravity-report.py` | agy-tagged rows: `antigravity-activity.jsonl` + `model-routing.jsonl` (`event:model_invocation`) + `sessions.jsonl` (`event:session_stop`) | Antigravity activity + routing: session count, tool-usage mix, model mix (which model actually served each invocation), tool-error rate, and a tier-vs-model hygiene note. **No tokens/cost** — agy exposes none; the other three reports filter agy out, so this is the only consumer of the agy streams. |
 
-Both are zero-dependency Python 3, fail-soft (a missing/malformed source
+All are zero-dependency Python 3, fail-soft (a missing/malformed source
 degrades that section of the report, never crashes the script), and accept
 `--project-dir` (project root or a `.project` dir directly), `--format
 md|json`, and `--out`.

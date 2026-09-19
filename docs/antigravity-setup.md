@@ -201,7 +201,7 @@ and `governance/`:
 - **`iac_plan_review` gate (19th gate)** — infrastructure plan review before apply; in `governance/governance.yaml`, activated per the `has_infrastructure` charter flag.
 - **Cache-aware routing guidance** — the `adaptive-model-routing` skill carries the prompt-cache economics and the down-route rubric.
 
-**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship. Antigravity now HAS hook wiring (telemetry, below), but its hooks expose no token/cost data and no spawn interception comparable to Claude Code's `PreToolUse(Task)`, so these guards stay guidance on Antigravity On Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced, until Antigravity's hook schema is confirmed.
+**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship. Antigravity now has hook wiring (telemetry, below), but its hooks expose no token/cost data and no spawn interception comparable to Claude Code's `PreToolUse(Task)`. So on Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced.
 
 ## Telemetry (hooks) — wired, scoped to what `agy` exposes
 
@@ -246,6 +246,8 @@ its shape (top-level named hooks; only `agy`'s five events —
 flat) is asserted by `scripts/validate-antigravity-plugin.sh`, which rejects a
 Claude-format `{"hooks": {…}}` leak (that shape makes `agy` report
 `hooks: 1 processed` but silently register no handlers).
+
+**Reading it.** `scripts/factory-antigravity-report.py --project-dir <repo>` summarizes the agy streams — session count, tool-usage mix, model mix (which model actually served each invocation), tool-error rate, and a tier-vs-model hygiene note. The three `factory-*` cost/routing reports filter agy rows out (agy has no tokens), so this is the only consumer of the agy telemetry. It reports activity and routing only — never tokens or cost.
 
 ## Cache-aware routing on Antigravity — why it's guidance-only
 
