@@ -26,6 +26,7 @@ outputs:
  - concrete fix suggestions
  - pass/fail verdict (used as merge gate)
 consumers:
+  - database-engineer (DB-layer security: RLS policies, roles/grants, least-privilege)
  - backend-developer (applies during writing)
  - frontend-developer (applies during writing — FE-specific checks)
  - security-reviewer (uses as review baseline)

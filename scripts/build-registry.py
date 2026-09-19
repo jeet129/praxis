@@ -11,7 +11,6 @@ Derived surfaces this script rewrites:
   * .claude-plugin/plugin.json   — `skills` and `agents` arrays, description counts
   * .claude-plugin/marketplace.json — plugins[0].description count phrase
   * plugin.json (root)           — description count phrase
-  * GEMINI.md                    — "(N SKILLs)" phrase
   * .cursor/rules/000-ai-delivery-platform.md — "N SKILLs"/"N role agents"/"N workflows" lines
   * skills/skill-registry/SKILL.md    — "~N skills", "current_count: N", "All N active SKILLs"
   * skills/factory-evaluation/SKILL.md — "SKILLs: N (target 70-90)"
@@ -199,19 +198,6 @@ def process_root_plugin_json(counts, drift, check):
         path.write_text(text)
 
 
-def process_gemini_md(counts, drift, check):
-    path = ROOT / "GEMINI.md"
-    if not path.exists():
-        return
-    text = path.read_text()
-    n_skills = len(counts["skills"])
-    new_text = re.sub(r"\(\d+ SKILLs\)", f"({n_skills} SKILLs)", text)
-    if new_text != text:
-        drift.notes.append(f"{path}\n  (N SKILLs) phrase updated to ({n_skills} SKILLs)")
-    if not check and new_text != text:
-        path.write_text(new_text)
-
-
 def process_cursor_rules(counts, drift, check):
     path = ROOT / ".cursor" / "rules" / "000-ai-delivery-platform.md"
     if not path.exists():
@@ -291,7 +277,7 @@ def process_text_count_surfaces(counts, drift, check):
     ]
     for rel in ("README.md", "install.sh",
                 "commands/start.md", ".claude/commands/start.md",
-                "commands/start.toml", ".gemini/commands/start.toml"):
+                "commands/start.toml"):
         path = ROOT / rel
         if not path.exists():
             continue
@@ -311,7 +297,6 @@ def main():
     process_claude_plugin_json(counts, drift, check)
     process_marketplace_json(counts, drift, check)
     process_root_plugin_json(counts, drift, check)
-    process_gemini_md(counts, drift, check)
     process_cursor_rules(counts, drift, check)
     process_skill_registry_skill(counts, drift, check)
     process_factory_evaluation_skill(counts, drift, check)

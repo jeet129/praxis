@@ -725,9 +725,14 @@ def build_report(project_dir: Path, claude_projects: Path, transcripts_dir_overr
     working_dir = project_dir / "working"
     project_root = project_root_from_dot_dir(project_dir)
 
-    sessions_events = read_jsonl(telemetry_dir / "sessions.jsonl")
+    # Harness-scoped (claude-code/codex): token/cost accounting is built from
+    # the Claude/Codex transcripts; drop other-harness rows (e.g. antigravity,
+    # which carries no tokens) so shared-file folding cannot skew windows.
+    sessions_events = [r for r in read_jsonl(telemetry_dir / "sessions.jsonl")
+                       if r.get("harness") in (None, "claude-code", "codex")]
     drive_events = read_jsonl(telemetry_dir / "drive.jsonl")
-    routing_events = read_jsonl(telemetry_dir / "model-routing.jsonl")
+    routing_events = [r for r in read_jsonl(telemetry_dir / "model-routing.jsonl")
+                      if r.get("harness") in (None, "claude-code", "codex")]
     session_ids = {e.get("session") for e in sessions_events if e.get("session")}
 
     routing_prose_events = load_routing_prose_events(working_dir)

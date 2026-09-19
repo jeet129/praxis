@@ -40,6 +40,7 @@ if [[ -n "${CODEX_HOME:-}" || -n "${CODEX_SESSION_ID:-}" || "$PLUGIN_ROOT" == *c
   TAP_TOOL="codex"
 fi
 TAP_TOOL="${PRAXIS_TAP_TOOL:-$TAP_TOOL}"
+export PRAXIS_HARNESS="$TAP_TOOL"
 
 # Telemetry must never break the user's session.
 trap 'exit 0' ERR
@@ -136,6 +137,9 @@ record() {
 # --------------------------------------------------------------------
 telemetry_event() {
   local json="$1"
+  case "$json" in
+    '{'*) json="{\"harness\":\"${PRAXIS_HARNESS:-$TAP_TOOL}\",${json#\{}" ;;
+  esac
   local tdir="$cwd/.project/telemetry"
   mkdir -p "$tdir" 2>/dev/null || return 0
   echo "$json" >> "$tdir/agent-spawns.jsonl" 2>/dev/null || true
@@ -261,7 +265,7 @@ case "$EVENT" in
         # device routing-preflight.py emits a JSON record on stdout (and also
         # appends it to model-routing.jsonl); read the verdict from that JSON.
         pf_json=$(python3 "$pf_script" --from-tier "$from_tier" --to-tier "$to_tier" \
-               --project-dir "$cwd" \
+               --project-dir "$cwd" --harness "$TAP_TOOL" \
                --session "$session_id" --agent "${sub:-unknown}" 2>/dev/null | tail -1 || true)
         action=$(printf '%s' "$pf_json" | jq -r '.action // empty' 2>/dev/null || true)
         if [[ "$action" == "enforce_effort_down" ]]; then
@@ -531,6 +535,7 @@ if sum(tot.values()) == 0:
 by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
 agent = current_agent or passed_agent or "unknown"
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "harness": os.environ.get("PRAXIS_HARNESS") or None,
        "event": "invocation_usage", "session": sid,
        "agent": agent, **tot,
        "by_model": by_model,
@@ -574,7 +579,7 @@ PYEOF
     # Session boundary as a single JSONL line (was: one stub .md per fire)
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_start\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_start\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     ;;
 
   SessionEnd|Stop)
@@ -586,13 +591,13 @@ PYEOF
     # refreshed in place rather than duplicated — no double-count.
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     HAVE_TRANSCRIPT_STORE=0
     [[ -d "$HOME/.claude/projects" || -d "$HOME/.codex/sessions" ]] && HAVE_TRANSCRIPT_STORE=1
     if [[ "$session_id" == nojq-* ]]; then
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"jq_missing_no_session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"jq_missing_no_session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     elif [[ $HAVE_TRANSCRIPT_STORE -eq 0 ]]; then
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     fi
     rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
     rm -f "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true
@@ -613,7 +618,7 @@ PYEOF
       fi
       if [[ -z "$transcript" ]]; then
         # Telemetry failures must be observable: leave a breadcrumb instead of silence.
-        echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"transcript_not_found_under_claude_or_codex_stores\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+        echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"transcript_not_found_under_claude_or_codex_stores\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
       fi
       if [[ -n "$transcript" ]]; then
         python3 - "$transcript" "$session_id" "$tdir/tokens.jsonl" 2>/dev/null <<'PYEOF' || true
@@ -669,6 +674,7 @@ except Exception:
 if sum(tot.values()) == 0:
     sys.exit(0)
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "harness": os.environ.get("PRAXIS_HARNESS") or None,
        "session": sid, "source": "session_end_hook", **tot,
        "models_by_output": models}
 line = json.dumps(rec)

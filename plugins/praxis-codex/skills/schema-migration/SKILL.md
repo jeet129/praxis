@@ -25,6 +25,7 @@ outputs:
   - backfill job (separate from the schema change itself)
   - zero-downtime checklist per release
 consumers:
+  - database-engineer (zero-downtime migrations, lock analysis, backfills on live tables)
   - backend-developer (writes and runs migrations)
   - data-engineer (coordinates with pipeline schema dependencies)
   - platform-sre (executes migrations against production, owns rollback)

@@ -48,7 +48,7 @@ The planner consumes:
 | `product-discovery` output | `.project/working/` | Vision, JTBD, opportunity sizing, MVP scope |
 | `nfr-definition` output | `.project/working/` | Scale targets, RTO/RPO, performance targets, regulatory bindings |
 | `architecture-pattern-selection` (if run) | `.project/working/` | Macro architecture (monolith / microservices / event-driven / serverless), distributed-systems decisions |
-| Project characteristics (extracted) | discovery + architecture | Canonical flags (all agents read): `mode` (G/B), `has_data_plane`, `has_ml`, `has_agentic_ai`, `is_multi_tenant`, `compliance_regimes`, `scale_target_qps`, `availability_target`. Planner-extended flags (planner uses; not propagated): `has_ui`, `team_size`, `budget_constrained`, `design_fidelity` (standard | premium — which tier of the design-tool chain in `frontend-design/references/design-tooling.md` the project has: connected design MCPs, generation-tool accounts, or text-only floor; activates the visual-review branch and the UX design-brief/token artifacts when `has_ui`). |
+| Project characteristics (extracted) | discovery + architecture | Canonical flags (all agents read): `mode` (G/B), `has_data_plane`, `has_ml`, `has_agentic_ai`, `is_multi_tenant`, `has_infrastructure`, `compliance_regimes`, `scale_target_qps`, `availability_target`. Planner-extended flags (planner uses; not propagated): `has_ui`, `team_size`, `budget_constrained`, `design_fidelity` (standard | premium — which tier of the design-tool chain in `frontend-design/references/design-tooling.md` the project has: connected design MCPs, generation-tool accounts, or text-only floor; activates the visual-review branch and the UX design-brief/token artifacts when `has_ui`). |
 
 The planner can be invoked with partial inputs — it produces the *most-instantiated* workflow possible given what's available, and the orchestrator re-plans when more inputs arrive.
 
@@ -116,6 +116,9 @@ if project.has_agentic_ai:
 if project.is_multi_tenant:
     activate skills: multi-tenancy
     add gate: tenant-isolation-review
+if project.has_infrastructure:
+    activate skills: iac
+    add gate: iac-plan-review    # plan-level review of infra changes (create/update/replace/destroy) before apply
 if project.mode == 'brownfield':
     activate skills: codebase-comprehension, impact-analysis
     prepend phase: comprehension before any modification step

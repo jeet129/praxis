@@ -29,6 +29,7 @@ outputs:
   - restore drill schedule + last-pass attestation
   - error budget policy (what slows feature work when budget burns)
 consumers:
+  - database-engineer (replication, backup/restore, PITR for the data tier)
   - platform-sre (primary author)
   - observability (consumes SLI definitions for instrumentation)
   - deploy-release (consumes for production_go_live evidence)

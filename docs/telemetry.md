@@ -50,20 +50,22 @@ tool. See "Running the reports" below.
 
 ```jsonc
 // agent-spawns.jsonl — spawn, written when a sub-agent is launched
-{"ts": "2026-06-28T09:15:00Z", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
+{"ts": "2026-06-28T09:15:00Z", "harness": "claude-code", "event": "spawn", "session": "8f3c-a1b2", "agent": "solution-architect", "model": null}
 
 // agent-spawns.jsonl — complete, written when a sub-agent finishes
-{"ts": "2026-06-28T09:42:00Z", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
+{"ts": "2026-06-28T09:42:00Z", "harness": "claude-code", "event": "complete", "session": "8f3c-a1b2", "agent": "solution-architect", "status": "success", "input_tokens": null, "output_tokens": null}
 
 // model-routing.jsonl — the delivery-lead's routing-decision rationale
-{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+{"ts": "2026-06-28T09:14:00Z", "harness": "claude-code", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
 
 // drive.jsonl — one line per scripts/praxis-drive.sh iteration
-{"ts":"2026-07-10T12:00:00Z","run_id":"drive-20260710-1200","iteration":4,"slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard","outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
+{"ts":"2026-07-10T12:00:00Z","harness":"claude-code","run_id":"drive-20260710-1200","iteration":4,"slice":"S9","task":"S9-T2","agent":"backend-developer","tier":"standard","outcome":"done","ledger_hash":"a1b2c3","stop_flags":[],"cost_proxy":1.0}
 
 // sessions.jsonl — one line per session boundary
-{"ts": "2026-06-28T09:00:00Z", "event": "session_start", "session": "8f3c-a1b2"}
+{"ts": "2026-06-28T09:00:00Z", "harness": "claude-code", "event": "session_start", "session": "8f3c-a1b2"}
 ```
+
+**Canonical envelope (every row, every harness).** Regardless of stream or which tool wrote it, each record carries four common fields: `ts` (ISO 8601 UTC), `harness` (which loop-runner produced it — `claude-code` | `codex` | `antigravity` | `cursor` | `opencode` | `copilot` | `kiro`), `event` (the record kind), and `session` (session/conversation id; agy uses its `conversationId`). Everything else is stream-specific payload, which legitimately differs by harness — e.g. Claude Code and Codex carry real token counts and praxis tier-routing *decisions* (`chosen_tier`/`score`), whereas Antigravity carries model-observed-per-invocation and a tool audit and **no token/cost data at all** (agy does not expose it). So consumers unify by filtering on `harness`, not by assuming identical columns. (The checkpoint store in `references/factory-metrics-schema.md` records the same concept under the field name `tool`; `harness` and `tool` are equivalent — `harness` is the name used across the JSONL streams.)
 
 **Paths:** `.project/telemetry/agent-spawns.jsonl`, `model-routing.jsonl`,
 `drive.jsonl`, `sessions.jsonl`.
@@ -131,8 +133,9 @@ note at the top of each script.
 | `scripts/factory-usage-report.py` | Layer (a) checkpoints, plus working packets/task ledgers, routing logs, command stubs, and sessions | Per-skill and per-agent usage (checkpoints/packets naming it, last-seen, never-observed list), per-workflow checkpoint/gate breakdown, per-command invocations, engagement summary (sessions, span, checkpoints, total cost proxy) |
 | `scripts/factory-routing-report.py` | Layer (b) JSONL streams, plus `routing-*.md` and legacy factory-metrics records | Data coverage, per-slice dispatches, per-agent activity, tier & cost-proxy totals, routing-discipline coverage %, drive-run summaries, heuristic recommendations |
 | `scripts/factory-token-report.py` | `drive.jsonl` real-usage fields + local Claude Code session transcripts | Real (not proxy) token/cost totals — per-model, per-day, per-slice (best-effort), input:output ratio, cache-hit ratio, and a proxy-calibration table against `cost_proxy`. See "Real token telemetry" below. |
+| `scripts/factory-antigravity-report.py` | agy-tagged rows: `antigravity-activity.jsonl` + `model-routing.jsonl` (`event:model_invocation`) + `sessions.jsonl` (`event:session_stop`) | Antigravity activity + routing: session count, tool-usage mix, model mix (which model actually served each invocation), tool-error rate, and a tier-vs-model hygiene note. **No tokens/cost** — agy exposes none; the other three reports filter agy out, so this is the only consumer of the agy streams. |
 
-Both are zero-dependency Python 3, fail-soft (a missing/malformed source
+All are zero-dependency Python 3, fail-soft (a missing/malformed source
 degrades that section of the report, never crashes the script), and accept
 `--project-dir` (project root or a `.project` dir directly), `--format
 md|json`, and `--out`.
