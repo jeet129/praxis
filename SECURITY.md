@@ -2,7 +2,7 @@
 
 ## Supported status
 
-Praxis is **early-stage software** (`0.1.0`) — a prompt/skill/agent library, not a running service.
+Praxis is **early-stage software** (`0.2.0`) — a prompt/skill/agent library, not a running service.
 There is a single actively-maintained line (the `main` branch); there are no
 released version branches receiving backports. Security-relevant fixes land on
 `main` and are noted in [`CHANGELOG.md`](CHANGELOG.md).

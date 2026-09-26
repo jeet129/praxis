@@ -11,6 +11,8 @@ minor versions until it stabilizes.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-26
+
 ### Added
 
 - **`scripts/factory-antigravity-report.py` — the consumer for agy telemetry.** The three `factory-*` cost/routing reports correctly filter Antigravity rows out (agy exposes no tokens), which left the captured agy streams write-only. This report reads them — `antigravity-activity.jsonl` plus the agy-tagged `model-routing.jsonl`/`sessions.jsonl` rows — and prints session count + date range, tool-usage mix, model mix (which model actually served each invocation), tool-error rate, and a tier-vs-model hygiene note (it flags the observed "everything ran flash-medium regardless of tier" pattern, since agy has no per-agent auto-routing). Zero-dependency, fail-soft, `--project-dir/--format/--out` like its siblings; reports activity + routing only, never tokens/cost (by agy platform limit). Wired into `docs/telemetry.md` and `docs/antigravity-setup.md`.
