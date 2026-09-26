@@ -201,7 +201,7 @@ and `governance/`:
 - **`iac_plan_review` gate (19th gate)** — infrastructure plan review before apply; in `governance/governance.yaml`, activated per the `has_infrastructure` charter flag.
 - **Cache-aware routing guidance** — the `adaptive-model-routing` skill carries the prompt-cache economics and the down-route rubric.
 
-**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `PreToolUse(Task)` cache-aware guard, `routing-preflight.py`, the `iac-plan-classify.py` destructive-change fail-closed check, and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship. Antigravity now has hook wiring (telemetry, below), but its hooks expose no token/cost data and no spawn interception comparable to Claude Code's `PreToolUse(Task)`. So on Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced.
+**Present as guidance vs. hook/CI-enforced.** The *deterministic* enforcement pieces — the `iac-plan-classify.py` destructive-change fail-closed check and the `validate-review-coverage.py` CI guard — are hook/CI-driven and live under `scripts/`, which this package does not ship. (Model routing is correctness-first and the routing pre-flight is advisory on every harness, so there is no routing *enforcement* to ship.) Antigravity now has hook wiring (telemetry, below), but its hooks expose no token/cost data and no spawn interception comparable to Claude Code's `PreToolUse(Task)`. So on Antigravity these operate as **agent-followed guidance**: the skill and the gate tell the assistant what to do, but nothing intercepts a spawn or fails a plan closed the way the Claude Code hook / CI does. Same policy, advisory rather than enforced.
 
 ## Telemetry (hooks) — wired, scoped to what `agy` exposes
 
@@ -295,6 +295,6 @@ implementable with **no restructuring** here: the telemetry hooks already emit
 harness-tagged `model_invocation` rows carrying the model per invocation, so we
 would only add the token fields to those rows and turn on the break-even math.
 Until then, Claude Code / Codex remain the harnesses where cache economics are
-measured and enforced (`hooks/tap.sh` + `scripts/routing-preflight.py`).
+measured (`hooks/tap.sh`); routing itself is correctness-first on every harness, with the pre-flight advisory.
 
 **Agent definitions ship tier-only on agy.** Because agy applies no per-agent model, the packaged agents carry only `capability_tier:` (deep/standard/light) — the build strips the Claude `model:`/`effort:` frontmatter the canonical agents use, so the agy package never advertises a model it cannot select. Resolve a tier to a concrete agy model by hand via `/model` using the mapping above.

@@ -168,41 +168,43 @@ same tier — a project override wins in both. Do NOT resolve against the plugin
 file directly, and do NOT rely on the baked frontmatter alone (that is only the
 fallback default).
 
-**Cache-aware down-routing.** A tier switch that changes the underlying model
-forfeits prompt-cache prefix reuse — the lower tier can't read the orchestrator's
-or a prior spawn's cached prefix. When the tier's price gap is smaller than the
-cache-read discount (~10×) — as it currently is for most Claude Code tier steps,
-and always for Codex effort-only steps on one base model — that miss can exceed
-the tier saving. So for a context-heavy sub-task reusing a large cached prefix,
-prefer dropping *effort* within the same model over switching model; reserve
-model-down moves for output-heavy or large-gap tasks. Ratios are per-harness
-(`governance/model-routing.yaml`); see `llm-cost-optimization` →
-"Cache economics vs model routing."
+**Correctness sets the tier; the cache never keeps you on a more expensive model.**
+Route on capability: **up-route whenever correctness needs it** — never gated on
+cost or cache, because a wrong answer re-reads the whole context to redo the work,
+the priciest event in a cache-dominated system. Within what correctness allows, take
+the cheaper model.
 
-**Enforce it with the pre-flight guardrail (do not rely on judgment alone).**
-Before you dispatch any tier DOWN-route, run the deterministic check — it applies
-the cache-aware decision for you and logs the rationale:
+The prompt cache is **not** a reason to sit above that floor. A tier change
+re-renders the prompt prefix — the reasoning/effort configuration is rendered into
+the prompt on Claude, Codex, and Gemini alike — so **both** a model-family switch
+**and** an effort change forfeit the warm cache. There is no cache-preserving lever
+to substitute: lowering effort on the same model incurs the same prefix re-write as
+switching models, but keeps the expensive per-token rate. Given the re-write is
+unavoidable on any tier change, a **model-down is the cost-optimal move for a reused
+prefix** — the one-time re-write amortizes within ~1-2 reuses because the cheaper
+model's recurring cache reads are cheaper in *absolute* terms. Holding the more
+expensive model "for the cache" only pays off for a genuine one-shot (non-reused)
+call. Ratios are per-harness (`governance/model-routing.yaml`); see
+`llm-cost-optimization` -> "Cache economics vs model routing."
+
+**The routing pre-flight logs every route (advisory).** `scripts/routing-preflight.py`
+records each tier change — the route, recent cache-read share, and prefix
+amortization — as a `routing_preflight` record in
+`.project/telemetry/model-routing.jsonl`, for later review:
 
 ```bash
 scripts/routing-preflight.py --from-tier <current> --to-tier <proposed> \
   --project-dir . --session "$SESSION" --agent <agent> [--slice <s>] [--task <t>]
 ```
 
-It reads the recent cache-read share from telemetry and returns an `action`:
-`apply` (take the route as requested — effort-only, up-route, cold start, or a
-genuinely output-heavy task) or `enforce_effort_down` (a context-heavy model-down
-that would forfeit a warm cache — **keep the current model, take only the lower
-effort**). Spawn with the `model`/`effort` from the check's `applied` field, not
-the raw proposed tier. The check appends a `routing_preflight` record (with
-`cache_read_share`, `action`, `requested` vs `applied`, `est_saving_tokens`,
-`reason`) to `.project/telemetry/model-routing.jsonl` — the same stream as the
-routing decision, for later review. Config + threshold live under `preflight:` in
-`governance/model-routing.yaml`. You normally do **not** call this by hand — enforcement is automatic in both
-modes. In drive mode `scripts/praxis-drive.sh` runs it every iteration; in
-interactive mode a `PreToolUse(Task)` hook runs it on every sub-agent spawn and
-**denies** a cache-forfeiting model-down with a corrective instruction to
-re-spawn using the `applied` model/effort. Invoking it yourself (above) is only
-for explicitly checking a route; the guardrail fires either way, no human step.
+It is **advisory**: it applies the requested route as-is and **never denies a spawn
+or substitutes a lever** — the cache is not a reason to block a down-route, and
+correctness enforcement lives in this rubric (`capability_tier` + up-route), not in
+the hook. In drive mode `scripts/praxis-drive.sh` logs it each iteration; in
+interactive mode a `PreToolUse(Task)` hook logs it per spawn. For a genuine one-shot
+down-route the record notes that holding the warm model is marginally cheaper, but
+the route still applies as requested. Config lives under `preflight:` in
+`governance/model-routing.yaml`.
 
 Resolve with the shared resolver (single source of truth), then pass the result
 on the spawn:
@@ -210,7 +212,9 @@ on the spawn:
 ```bash
 # tier decided by the rubric (may be a ±1 adjustment). Resolve from the
 # EFFECTIVE table — this honors a project override, same as drive:
-scripts/resolve-model.py --harness claude-code --tier deep --project-dir .
+# plugin-anchored path: the agent's CWD is the PROJECT, not the plugin, so a
+# bare 'scripts/...' would not resolve and the tier would log as 'inherit'.
+"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/resolve-model.py" --harness claude-code --tier deep --project-dir .
 #   -> model: opus   effort: high     ('inherit' = table maps this tier to auto)
 ```
 

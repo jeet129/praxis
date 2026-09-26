@@ -110,15 +110,16 @@ cost_weights:
   light: 0.25
 
 # ----------------------------------------------------------------------
-# Cache-aware routing pre-flight (scripts/routing-preflight.py).
-# A model-family DOWN-switch on a context-heavy task forfeits the warm
-# prompt cache; the guardrail substitutes effort-down on the same model.
-# Enforced deterministically (no human). See docs / adaptive-model-routing.
+# Routing pre-flight (scripts/routing-preflight.py) — ADVISORY LOG.
+# Correctness sets the tier (capability_tier + up-route); the prompt cache is
+# NOT a reason to hold a more expensive model. A tier change re-renders the
+# prompt prefix whether you switch model OR change effort, so there is no
+# cache-preserving lever to substitute — a model-down is cost-optimal for a
+# reused prefix (the one-time re-write amortizes in ~1-2 reuses). The pre-flight
+# only LOGS each route to model-routing.jsonl; it never denies or substitutes.
 # ----------------------------------------------------------------------
 preflight:
-  enabled: 1                 # 1 = on
-  mode: enforce              # enforce | advise (advise = log intent only)
-  cache_share_threshold: 0.40   # >= this cache-read share on a model-down => substitute effort-down
+  enabled: 1                 # 1 = on (writes the advisory routing_preflight log)
+  mode: advise               # advisory only; the route always applies as requested
   window: 20                 # recent invocation_usage records to profile
-  cache_read_mult: 0.1
-  cache_write_mult: 1.25
+  reuse_amortization_min: 1.5   # cache-read:write ratio >= this => "reused" (model-down amortizes); below => one-shot, HOLD marginally cheaper (advisory note only)

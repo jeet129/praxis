@@ -155,9 +155,9 @@ Decompose every delegated sub-task's tokens into three buckets and route each on
 2. **Task-unique input** — no cache either way; cheapest on the smallest capable model.
 3. **Output / thinking tokens** — never cached; cheapest on the smallest capable model.
 
-A model-down route saves the tier ratio on (2)+(3) but forfeits the cache on (1); the crossover is the token mix — big reused context + short output favors keeping the model, small context + large output favors down-routing.
+A model-down route saves the tier ratio on (2)+(3) and pays a one-time cache re-write on (1). That re-write is unavoidable on **any** tier change: the reasoning/effort config is rendered into the prompt (Claude, Codex, Gemini), so lowering effort on the same model breaks the cache exactly as switching models does. So the re-write is not a reason to stay expensive — for a reused prefix a model-down amortizes it within ~1-2 reuses (the cheaper model's recurring cache reads are cheaper in absolute terms); only a genuine one-shot call favors holding the model.
 
-**Corollary: the reasoning-effort lever is cache-preserving; a model-family switch is not.** When a large cached prefix is in play, prefer effort-down on the same model — it captures the output/thinking savings without a cache miss. Reserve model-down moves for output-heavy, low-shared-context, or large-gap tasks. Validate before trusting a model-down policy: correlate `factory-token-report.py`'s cache-hit ratio with `factory-routing-report.py`'s per-tier escalation rate — a high cache-hit ratio plus escalations on a down-routed tier means that route is net-negative.
+**Corollary: neither lever preserves the cache — so route on correctness, not cache.** Up-route whenever correctness needs it (never gated on cost/cache). Otherwise take the cheaper model; the cache is not a reason to sit above the correctness floor, and effort-down is not a cache-preserving substitute (it re-writes the prefix and keeps the expensive rate — dominated). Validate a down-route on quality, not cache: correlate `factory-token-report.py`'s cache-hit ratio with `factory-routing-report.py`'s per-tier escalation rate — repeated escalations (rework) on a down-routed tier mean that tier is under-capable for the task, which is the real reason to hold or up-route.
 
 ## Token budgets
 

@@ -350,6 +350,23 @@ not a measurement, because shared context means tokens can't be cleanly
 split by task (`source: window` in report section 9). Each report row is
 labeled with which rung produced it — never silently blended.
 
+**Agent Teams (experimental) — a hard boundary on the ladder.** With
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` the delivery-lead spawns sub-agents via
+the `Agent` tool with `run_in_background`, and each runs as its own background
+session. Their token/cache usage is therefore NOT in the parent transcript that
+rung (b) mines, is NOT delivered to `SubagentStop` (no completion event fires
+for them), and is NOT persisted to any local per-agent transcript
+(`~/.claude/tasks/<session>/` is empty; `~/.claude/teams/<session>/` holds only
+team config) — so there is no file to mine. What Praxis captures for these
+agents is the observable half: spawn, agent name, routing/tier decision,
+warm-tier, and completion status (the `Agent` tool is matched alongside `Task`
+in `hooks/tap.sh` and the `hooks/hooks.json` matchers). Per-agent tokens/cache
+are unavailable locally by platform design — the same class of limit as
+Antigravity's token blindness — and the full multi-tier usage exists only
+server-side (`/cost`, the usage dashboard, or the OTEL pipeline above). Classic
+`Task` spawns are unaffected: they run inline, so their usage lands in the
+parent transcript and rung (b) attributes it normally.
+
 **3. Tier proxy (fallback, always available).** When neither of the above
 applies — no drive runs, no local transcript history — `cost_proxy` from
 `factory-routing-report.py` is what's left: a coarse, tier-weighted relative
