@@ -10,7 +10,7 @@ Read `.project/semantic/project-charter.md` to know the project's flags (G/B mod
 
 ## Library content
 - 91 SKILLs in `skills/<name>/SKILL.md`
-- 17 role agents in `agents/`
+- 18 role agents in `agents/`
 - 9 workflows in `workflows/`
 - Governance in `governance/governance.yaml`
 - References in `references/`

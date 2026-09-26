@@ -7,8 +7,8 @@ stop conditions when the loop halts.
 ## What drive mode is
 
 Drive mode is an **outer loop**: `scripts/praxis-drive.sh` repeatedly
-re-invokes a fresh, stateless harness call (`claude -p`, `codex exec`, or
-`gemini -p`) against the current state of the task ledger on disk, one task
+re-invokes a fresh, stateless harness call (`claude -p` or `codex exec`)
+against the current state of the task ledger on disk, one task
 per iteration, until a stop condition fires. Be honest about the division of
 labor — **the agent does the work; the runner enforces the guardrails.**
 Nothing inside the harness invocation is trusted to self-limit; the runner

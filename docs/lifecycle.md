@@ -80,6 +80,7 @@ Then **Architecture Challenger** reviews with all 5 sub-personas (scale / securi
 - `has_data_plane == true`: Data Engineer joins the parallel branch.
 - `has_ml == true OR has_agentic_ai == true`: ML/AI Engineer joins; `responsible_ai_review` gate added.
 - `is_multi_tenant == true`: `tenant_isolation_review` gate added.
+- `has_infrastructure == true`: Platform/SRE's infrastructure-as-code changes run within the slice loop and route through the `iac_plan_review` gate — a plan-level review of the computed resource changes (create/update/replace/destroy) before apply, so a destructive plan (e.g. a stateful resource forced to replace, an IAM binding removed, exposure widened) is caught at the slice, not only at production go-live. Provisioning therefore spans Phase 4 (per-slice infra) and Phase 5 (release); it is not a separate phase.
 
 ### Phase 5 — Release (`/release`)
 

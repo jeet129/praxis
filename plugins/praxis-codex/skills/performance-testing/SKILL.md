@@ -27,6 +27,7 @@ outputs:
   - bottleneck inventory (what saturated, at what load)
   - perf-test-soak-pass attestation (for production_go_live)
 consumers:
+  - database-engineer (query/index performance under load)
   - qa-engineer (primary author of tests)
   - platform-sre (co-author for infra/capacity-side scenarios)
   - solution-architect (consumes results for architecture decisions)

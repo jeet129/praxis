@@ -37,6 +37,8 @@ TRIGGERS=(
   "scripts/"
   "hooks/"
   "codex-plugin-assets/"
+  "antigravity-plugin-assets/"
+  ".claude/commands/"
 )
 
 # Detect whether any staged file lives under a trigger path
@@ -99,6 +101,30 @@ if [[ -n "$(git diff --name-only plugins/praxis-codex/ 2>/dev/null)" ]] \
   echo ""
   echo "praxis pre-commit: staging regenerated plugins/praxis-codex/"
   git add plugins/praxis-codex/
+fi
+
+# ----------------------------------------------------------------------
+# Antigravity plugin package — same rebuild / validate / restage discipline.
+# Its content is a SEPARATE artifact from Codex/Claude (own schema + own dir),
+# so it is regenerated and staged independently.
+# ----------------------------------------------------------------------
+if [[ -x scripts/build-antigravity-plugin.sh ]]; then
+  echo "praxis pre-commit: regenerating plugins/praxis-antigravity/ ..."
+  if ! scripts/build-antigravity-plugin.sh; then
+    echo "ERROR: Antigravity plugin build failed. Fix the source, then re-commit." >&2
+    exit 1
+  fi
+  if [[ -x scripts/validate-antigravity-plugin.sh ]]; then
+    if ! scripts/validate-antigravity-plugin.sh; then
+      echo "ERROR: Antigravity plugin validation failed. Fix the source, then re-commit." >&2
+      exit 1
+    fi
+  fi
+  if [[ -n "$(git diff --name-only plugins/praxis-antigravity/ 2>/dev/null)" ]] \
+     || [[ -n "$(git ls-files --others --exclude-standard plugins/praxis-antigravity/ 2>/dev/null)" ]]; then
+    echo "praxis pre-commit: staging regenerated plugins/praxis-antigravity/"
+    git add plugins/praxis-antigravity/
+  fi
 fi
 
 # ----------------------------------------------------------------------

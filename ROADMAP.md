@@ -100,25 +100,21 @@ Work that's scoped, mostly mechanical, and blocks or de-risks everything else.
   and 2 brownfield engagements — the single highest-value validation activity,
   and the gate everything else (trigger tuning, skill slimming, reference
   priority) should ultimately be driven by.
-- **Exercise the six under-test harness adapters end-to-end.** Claude Code and
-  Codex are tested end-to-end on real engagements; Gemini CLI, Cursor,
-  OpenCode, GitHub Copilot, Kiro, and Antigravity are shipped and
-  structurally validated (installer output + CI cover their layout) but
-  haven't run a real delivery engagement yet. Run at least one real slice or
+- **Exercise the four remaining under-test harness adapters end-to-end.** Claude Code and
+  Codex are tested end-to-end on real engagements, and Antigravity is now exercised across two real repos at operational parity (telemetry verified; cost/enforced routing blocked upstream by agy). Cursor, OpenCode, GitHub Copilot, and Kiro are shipped and structurally validated (installer output + CI cover their layout) but haven't run a real delivery engagement yet. Run at least one real slice or
   small project through each before calling any of them more than
   structurally sound.
 - **Model-routing telemetry review.** Now that routing decisions log to
   `.project/telemetry/model-routing.jsonl`, do at least one real pass
   correlating tier choices against gate-failure/escalation rates before
   claiming the ±1-tier adaptive routing is well-calibrated.
-- **Codex/Gemini drive parity hardening.** `governance/autonomy.yaml`
-  declares headless invocation commands for all three harnesses
-  (`claude-code`, `codex`, `gemini-cli`), but only the Claude Code path has
-  real mileage. Exercise `scripts/praxis-drive.sh` against `codex exec` and
-  `gemini -p` on a real slice, confirm budget-flag behavior where the
-  harness doesn't natively support `--max-budget-usd` (currently `null` for
-  both), and fix any harness-specific stop-condition or ledger-parsing gaps
-  found along the way.
+- **Codex drive parity hardening.** `governance/autonomy.yaml` declares
+  headless invocation commands for `claude-code` and `codex`, but only the
+  Claude Code path has real mileage. Exercise `scripts/praxis-drive.sh`
+  against `codex exec` on a real slice, confirm budget-flag behavior where
+  the harness doesn't natively support `--max-budget-usd` (currently `null`),
+  and fix any harness-specific stop-condition or ledger-parsing gaps found
+  along the way.
 
 ## Mid-term
 
@@ -183,7 +179,7 @@ Depends on real signal that doesn't exist yet, or is explicitly opportunistic.
   concurrent ledger writes and multi-agent coordination.
 - **`low`-priority reference backlog** (Jenkins, FedRAMP, Synapse, and other
   narrow-applicability items) from `references/MISSING-INVENTORY.md`.
-- **Claude Code marketplace publication** and continued Codex/Gemini/other
+- **Claude Code marketplace publication** and continued Codex/other
   harness parity, once the library has enough real-project mileage to call
   itself stable rather than early-stage.
 

@@ -65,12 +65,29 @@ harnesses:
       deep: auto
       standard: auto
       light: auto
-  gemini-cli:
-    field: model
+
+  # ADVISORY ONLY — agy applies NOTHING from this block. Antigravity honors no
+  # per-agent model selection: subagents inherit the session model, hooks cannot
+  # set a model, and the SDK config exposes no model field (see
+  # docs/antigravity-setup.md, "Cache-aware routing on Antigravity"). This is the
+  # documented tier -> model+effort recommendation the operator/agent applies BY
+  # HAND via `/model` and `--effort`. Values are model FAMILY + effort, NOT pinned
+  # version slugs (which drift every Gemini release) — resolve to your account's
+  # current slug, e.g. deep -> gemini-<ver>-pro-high,
+  # standard -> gemini-<ver>-flash-medium, light -> gemini-<ver>-flash-low.
+  # Nothing in the build/apply/report pipeline reads this block;
+  # apply-model-routing.py parses and ignores it (it writes only claude-code and codex).
+  antigravity:
+    field: model            # advisory label only; NO file is written for agy
     map:
-      deep: gemini-2.5-pro
-      standard: gemini-2.5-flash
-      light: gemini-2.5-flash-lite
+      deep: pro
+      standard: flash
+      light: flash
+    effort_field: effort
+    effort_map:
+      deep: high
+      standard: medium
+      light: low
 
 # Optional governance pin: set to a tier name to force every agent to that tier
 # (e.g. a compliance-critical engagement that mandates `deep` everywhere).
@@ -91,3 +108,18 @@ cost_weights:
   deep: 5.0
   standard: 1.0
   light: 0.25
+
+# ----------------------------------------------------------------------
+# Routing pre-flight (scripts/routing-preflight.py) — ADVISORY LOG.
+# Correctness sets the tier (capability_tier + up-route); the prompt cache is
+# NOT a reason to hold a more expensive model. A tier change re-renders the
+# prompt prefix whether you switch model OR change effort, so there is no
+# cache-preserving lever to substitute — a model-down is cost-optimal for a
+# reused prefix (the one-time re-write amortizes in ~1-2 reuses). The pre-flight
+# only LOGS each route to model-routing.jsonl; it never denies or substitutes.
+# ----------------------------------------------------------------------
+preflight:
+  enabled: 1                 # 1 = on (writes the advisory routing_preflight log)
+  mode: advise               # advisory only; the route always applies as requested
+  window: 20                 # recent invocation_usage records to profile
+  reuse_amortization_min: 1.5   # cache-read:write ratio >= this => "reused" (model-down amortizes); below => one-shot, HOLD marginally cheaper (advisory note only)

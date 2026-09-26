@@ -2,11 +2,11 @@
 # install.sh — Praxis installer
 #
 # Installs the library into a target project for any supported AI coding tool.
-# 91 SKILLs · 17 agents · 9 workflows · 12 slash commands · governance · hooks · validator.
+# 91 SKILLs · 18 agents · 9 workflows · 12 slash commands · governance · hooks · validator.
 #
 # Usage:
 #   ./install.sh [TARGET]                       # default: claude-code into current dir
-#   ./install.sh --tool=<name> [TARGET]         # tool: claude-code | codex | cursor | gemini | opencode | copilot | kiro | antigravity | all
+#   ./install.sh --tool=<name> [TARGET]         # tool: claude-code | codex | cursor | opencode | copilot | kiro | antigravity | all
 #   ./install.sh --user                         # user-global Claude Code install (~/.claude/)
 #   ./install.sh --dry-run [TARGET]             # preview without doing anything
 #   ./install.sh --force [TARGET]               # overwrite existing install
@@ -15,7 +15,6 @@
 # Examples:
 #   ./install.sh ~/dev/my-project                       # Claude Code (default)
 #   ./install.sh --tool=cursor ~/dev/my-project         # Cursor
-#   ./install.sh --tool=gemini ~/dev/my-project         # Gemini CLI
 #   ./install.sh --tool=all ~/dev/my-project            # Every supported tool
 #   ./install.sh --dry-run --tool=copilot ~/dev/proj    # Preview Copilot install
 
@@ -35,7 +34,7 @@ SKIP_MEMORY=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIBRARY_ROOT="$SCRIPT_DIR"
 
-VALID_TOOLS=(claude-code codex cursor gemini opencode copilot kiro antigravity all)
+VALID_TOOLS=(claude-code codex cursor opencode copilot kiro antigravity all)
 
 usage() {
   sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
@@ -100,8 +99,8 @@ hdr() { echo; echo "==> $*"; }
 
 N_AGENTS=$(find "$LIBRARY_ROOT/agents" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')
 # Count ACTIVE skills (skip tombstones — SKILL.md files with state: removed)
-N_SKILLS=$(grep -L '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-N_REMOVED=$(grep -l '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+N_SKILLS=$( { grep -L '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+N_REMOVED=$( { grep -l '^state: removed' "$LIBRARY_ROOT/skills"/*/SKILL.md 2>/dev/null || true; } | wc -l | tr -d ' ')
 N_WORKFLOWS=$(find "$LIBRARY_ROOT/workflows" -name '*.yaml' | wc -l | tr -d ' ')
 
 # Copy a list of subdirectories from library to dest. Args: dest, then list.
@@ -195,7 +194,7 @@ install_codex() {
 This repo ships the Praxis at `.team/`. Codex / OpenCode / Cursor / Antigravity should consult these files.
 
 ## Where things live
-- Role agents:    `.team/agents/` (17 agents)
+- Role agents:    `.team/agents/` (18 agents)
 - Skills:         `.team/skills/<skill-name>/SKILL.md` (91 skills)
 - Workflows:      `.team/workflows/` (9 workflows)
 - Governance:     `.team/governance/governance.yaml`
@@ -246,33 +245,6 @@ install_cursor() {
   mkdir -p "$lib_dest"
   copy_subs "$lib_dest" agents skills workflows governance patterns references
   copy_files "$lib_dest" README.md PLAYBOOK.md
-}
-
-install_gemini() {
-  local dest="$TARGET/.gemini"
-  hdr "Installing Gemini CLI layout → $dest"
-  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would create $dest + GEMINI.md at repo root"; return; fi
-  check_exists_or_force "$dest"
-  rm -rf "$dest"
-  mkdir -p "$dest/skills" "$dest/commands"
-  # Skills
-  if [[ -d "$LIBRARY_ROOT/skills" ]]; then
-    cp -R "$LIBRARY_ROOT/skills/." "$dest/skills/"
-    say "✓ copied skills/"
-  fi
-  # Mirror commands
-  if [[ -d "$LIBRARY_ROOT/.gemini/commands" ]]; then
-    cp -R "$LIBRARY_ROOT/.gemini/commands/." "$dest/commands/"
-    say "✓ copied slash commands"
-  fi
-  # Other content under .gemini for reference
-  copy_subs "$dest" agents workflows governance references patterns
-  copy_files "$dest" README.md PLAYBOOK.md INSTALLATION.md
-  # GEMINI.md at repo root
-  if [[ -f "$LIBRARY_ROOT/GEMINI.md" ]]; then
-    cp "$LIBRARY_ROOT/GEMINI.md" "$TARGET/"
-    say "✓ wrote GEMINI.md (repo root)"
-  fi
 }
 
 install_opencode() {
@@ -332,26 +304,97 @@ install_kiro() {
 }
 
 install_antigravity() {
-  hdr "Installing Antigravity layout → $TARGET"
-  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would copy library + plugin.json at root"; return; fi
-  # Antigravity uses plugin.json at repo root
-  if [[ -f "$LIBRARY_ROOT/plugin.json" ]]; then
-    cp "$LIBRARY_ROOT/plugin.json" "$TARGET/"
-    say "✓ wrote plugin.json (repo root)"
+  # Antigravity CLI (agy) native plugin. Antigravity's plugin format is its OWN —
+  # verified against https://antigravity.google/docs/cli/plugins:
+  #   • plugin.json is MINIMAL: $schema + name (required) + optional description/version.
+  #     It is NOT Claude's skills[]/agents[]/commands arrays and NOT Codex's schema.
+  #   • There is no commands/ dir — slash commands come from skills/*.md that carry a
+  #     `name:` frontmatter key. (Our 12 workflow commands only have `description:`, so
+  #     we inject a name and emit them as skills below.)
+  #   • Workspace plugins are auto-discovered at .agents/plugins/<name>/ (global copies
+  #     live at ~/.gemini/antigravity-cli/plugins/). `agy plugin install <local-path>`
+  #     registers a plugin from a local path.
+  local dest="$TARGET/.agents/plugins/praxis"
+  hdr "Installing Antigravity plugin → $dest"
+  if [[ $DRY_RUN -eq 1 ]]; then say "[dry-run] would create $dest (agy plugin) + AGENTS.md at repo root"; return; fi
+  check_exists_or_force "$dest"
+  rm -rf "$dest"
+  mkdir -p "$dest/skills"
+
+  # Library: skills (91) + agents/workflows/governance/patterns/references for the
+  # assistant to read and for AGENTS.md routing.
+  copy_subs "$dest" agents skills workflows governance patterns references
+  copy_files "$dest" README.md PLAYBOOK.md INSTALLATION.md
+
+  # Curated workflow commands → Antigravity slash commands, from the hand-authored
+  # overlay (antigravity-plugin-assets/skills/) — harness-correct: prose delegation
+  # instead of Claude's Task() API, and no Claude-specific paths.
+  if [[ -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills" ]]; then
+    cp -R "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/* "$dest/skills/" 2>/dev/null || true
+    say "✓ wrote $(ls -d "$LIBRARY_ROOT/antigravity-plugin-assets/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') workflow command-skills (praxis:start praxis:discover … via /skills)"
   fi
-  # Library lands at root subdirs (skills/, agents/, etc.) — same as Antigravity expects
-  for sub in agents skills workflows governance patterns references; do
-    if [[ -d "$LIBRARY_ROOT/$sub" && ! -d "$TARGET/$sub" ]]; then
-      cp -R "$LIBRARY_ROOT/$sub" "$TARGET/"
-      say "✓ copied $sub/"
-    fi
-  done
-  # Antigravity uses commands/ at repo root
-  if [[ -d "$LIBRARY_ROOT/.claude/commands" && ! -d "$TARGET/commands" ]]; then
-    cp -R "$LIBRARY_ROOT/.claude/commands" "$TARGET/"
-    say "✓ copied commands/"
+
+  # Lifecycle hooks: agy telemetry manifest (self-contained; logs model-per-step
+  # routing, tool activity, and session stops under <workspace>/.project/telemetry/).
+  # agy exposes no token/cost/spawn data, so nothing beyond that is loggable.
+  if [[ -f "$LIBRARY_ROOT/antigravity-plugin-assets/hooks.json" ]]; then
+    cp "$LIBRARY_ROOT/antigravity-plugin-assets/hooks.json" "$dest/hooks.json"
+    say "✓ wrote hooks.json (agy telemetry: routing + activity + session)"
   fi
-  copy_files "$TARGET" README.md PLAYBOOK.md
+
+  # Manifest — minimal Antigravity schema.
+  cat > "$dest/plugin.json" <<'EOF'
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "praxis",
+  "version": "0.1.0",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 skills, 18 agents, 9 workflows, 19 governance gates."
+}
+EOF
+  say "✓ wrote plugin.json (Antigravity schema)"
+
+  # AGENTS.md front door at repo root — agy reads this even without the plugin subsystem.
+  if [[ ! -f "$TARGET/AGENTS.md" ]]; then
+    cat > "$TARGET/AGENTS.md" <<'EOF'
+# Agents and Skills Index — Praxis
+
+This repo ships the Praxis Antigravity plugin at `.agents/plugins/praxis/`. The
+Antigravity CLI (`agy`) auto-discovers it there and should consult these files.
+
+## Where things live
+- Role agents:    `.agents/plugins/praxis/agents/` (18 agents)
+- Skills:         `.agents/plugins/praxis/skills/<skill-name>/SKILL.md` (91 skills)
+- Command-skills: `.agents/plugins/praxis/skills/<command>/SKILL.md` (12: praxis:start praxis:discover …, via /skills)
+- Workflows:      `.agents/plugins/praxis/workflows/` (9 workflows)
+- Governance:     `.agents/plugins/praxis/governance/governance.yaml`
+- References:     `.agents/plugins/praxis/references/`
+
+## Routing by task type
+| Task type | Start here |
+|---|---|
+| Bootstrap new project | `.agents/plugins/praxis/skills/delivery-planner/SKILL.md` |
+| New API service | `.agents/plugins/praxis/workflows/greenfield-api-service.yaml` |
+| New SaaS product | `.agents/plugins/praxis/workflows/greenfield-saas.yaml` |
+| Enhance existing system | `.agents/plugins/praxis/workflows/brownfield-enhancement.yaml` |
+| Per-slice implementation | `.agents/plugins/praxis/workflows/implementation-slice.yaml` |
+| Release to production | `.agents/plugins/praxis/workflows/production-release.yaml` |
+| Quarterly library review | `.agents/plugins/praxis/agents/system-steward.md` |
+| ANY non-trivial task | `.agents/plugins/praxis/skills/using-praxis/SKILL.md` (front-door) |
+
+## Project memory
+All artifacts under `.project/` per the six-type taxonomy.
+
+## Governance
+All gates per `.agents/plugins/praxis/governance/governance.yaml`. Solo mode routes to principal.
+
+## Documentation
+- `.agents/plugins/praxis/README.md` — library overview
+- `.agents/plugins/praxis/PLAYBOOK.md` — operating playbook
+EOF
+    say "✓ wrote AGENTS.md (repo root)"
+  else
+    say "• AGENTS.md already present — left as-is (shared front door)"
+  fi
 }
 
 # ----------------------------------------------------------------------
@@ -405,7 +448,6 @@ case "$TOOL" in
   claude-code)  install_claude_code ;;
   codex)        install_codex ;;
   cursor)       install_cursor ;;
-  gemini)       install_gemini ;;
   opencode)     install_opencode ;;
   copilot)      install_copilot ;;
   kiro)         install_kiro ;;
@@ -414,7 +456,6 @@ case "$TOOL" in
     install_claude_code
     install_codex
     install_cursor
-    install_gemini
     install_opencode
     install_copilot
     install_kiro
@@ -452,9 +493,6 @@ case "$TOOL" in
   cursor|all)       echo "   • Cursor:       cd $TARGET && cursor ." ;;
 esac
 case "$TOOL" in
-  gemini|all)       echo "   • Gemini CLI:   cd $TARGET && gemini" ;;
-esac
-case "$TOOL" in
   opencode|all)     echo "   • OpenCode:     cd $TARGET && opencode" ;;
 esac
 case "$TOOL" in
@@ -477,7 +515,7 @@ cat <<EOF
 
 3. Bootstrap the project (run once):
 
-   /start  (Claude Code, Gemini, Antigravity slash command)
+   /start  (Claude Code, Antigravity slash command)
 
    OR paste:
    "Run delivery-planner. Capture the charter at

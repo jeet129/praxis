@@ -143,6 +143,22 @@ For self-hosted models or providers that expose KV-cache reuse:
 
 vLLM, TensorRT-LLM, SGLang all support KV-cache reuse.
 
+### Cache economics vs model routing (the interaction)
+
+Caching and model-tier routing are usually optimized separately — but they interact, and the interaction often flips the naive answer. This is **provider- and harness-agnostic**; only the numbers change. The prompt-cache read discount is large (commonly ~10×; cached input ≈ 0.1× full input), and it is frequently **larger than the price gap between adjacent capability tiers**. When that holds, a **cache-warm higher tier can be cheaper than a cache-cold lower tier on shared context** — routing *down* to save money can cost more once the cached prefix is lost. Always derive the actual per-tier ratios for your harness from `governance/model-routing.yaml` cost weights and compare them against your provider's cache-read multiplier before down-routing.
+
+As one concrete example, current Claude Code tier gaps are ≈1.67× (deep→standard) and ≈5× (deep→light), both under the ~10× cache discount — so a cached deep-tier input (~$0.50/Mtok) undercuts an uncached light-tier input (~$1.00) and an uncached standard-tier input (~$3.00) on the shared prefix. Other harnesses differ in kind, not just degree: on Codex the tiers are often reasoning-effort levels of the *same* base model, so there is no per-token price step to capture by down-routing at all — the cache is almost always worth preserving. Run the check per harness.
+
+Decompose every delegated sub-task's tokens into three buckets and route each on its own economics:
+
+1. **Shared cacheable prefix** (system prompt, library/skill content, repeated project context) — cheapest on the model that already has it cached; a model switch forfeits the ~10× discount here, so down-routing *loses*.
+2. **Task-unique input** — no cache either way; cheapest on the smallest capable model.
+3. **Output / thinking tokens** — never cached; cheapest on the smallest capable model.
+
+A model-down route saves the tier ratio on (2)+(3) and pays a one-time cache re-write on (1). That re-write is unavoidable on **any** tier change: the reasoning/effort config is rendered into the prompt (Claude, Codex, Gemini), so lowering effort on the same model breaks the cache exactly as switching models does. So the re-write is not a reason to stay expensive — for a reused prefix a model-down amortizes it within ~1-2 reuses (the cheaper model's recurring cache reads are cheaper in absolute terms); only a genuine one-shot call favors holding the model.
+
+**Corollary: neither lever preserves the cache — so route on correctness, not cache.** Up-route whenever correctness needs it (never gated on cost/cache). Otherwise take the cheaper model; the cache is not a reason to sit above the correctness floor, and effort-down is not a cache-preserving substitute (it re-writes the prefix and keeps the expensive rate — dominated). Validate a down-route on quality, not cache: correlate `factory-token-report.py`'s cache-hit ratio with `factory-routing-report.py`'s per-tier escalation rate — repeated escalations (rework) on a down-routed tier mean that tier is under-capable for the task, which is the real reason to hold or up-route.
+
 ## Token budgets
 
 Per use case, set explicit budgets (max input tokens, max output tokens, expected cost per request). Load `references/cost-playbooks.md` for a worked token-budgets YAML example across simple-query / RAG-answer / long-conversation use cases.

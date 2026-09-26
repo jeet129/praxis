@@ -121,6 +121,7 @@ Each Codex agent profile in `codex-agents/<name>.toml` carries a `model_reasonin
 | frontend-developer | standard | medium | Same |
 | mobile-developer | standard | medium | Same — implementation against the packet and stack-flutter |
 | data-engineer | standard | medium | Pipeline implementation is mostly mechanical; escalate high-blast-radius designs |
+| database-engineer | standard | medium | Non-trivial OLTP only (RLS/grants, zero-downtime live migrations, indexing/replication); escalate for security-sensitive or destructive changes |
 | ml-ai-engineer | deep | high | Research-heavy, novel problems, eval design |
 | code-reviewer | deep | high | Missing a bug in review is expensive |
 | security-reviewer | deep | high | Adversarial + high-stakes; false negatives catastrophic |
@@ -212,6 +213,12 @@ When a medium-reasoning attempt is rejected or fails quality checks:
 ```markdown
 # Model Escalation Log
 ```
+
+## Cache-aware pre-flight guardrail
+
+`scripts/routing-preflight.py` logs each tier change (route, cache-read share, prefix amortization) as an `event:"routing_preflight"` record in `.project/telemetry/model-routing.jsonl`, for review. It is **advisory** — it applies the requested route as-is and never denies or substitutes; correctness (the rubric: `capability_tier` + up-route) sets the tier, and the prompt cache is not a reason to hold a more expensive model. For the default Codex mapping — every tier is `model: auto` on one base model, so a tier change is an **effort-only** move — there is a single prompt cache and nothing to weigh; the record is written for transparency. If you pin **distinct models** per tier in `governance/model-routing.yaml`, a model-down re-renders the prefix (as any effort change also would), so it is cost-optimal for a reused prefix — the pre-flight logs it, never blocks it. Config lives under `preflight:` in `governance/model-routing.yaml`.
+
+---
 
 ## Worked example, anti-rationalization table, and red flags
 
