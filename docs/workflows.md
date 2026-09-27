@@ -105,7 +105,7 @@ Strangler-fig, not big-bang. Deep comprehension and seam identification first; t
 
 ### ideation-refinement-loop — sharpen an idea
 
-A bounded creator/reviewer/enhancer loop over an ideation artifact, with an arbiter scoring convergence. Harnesses are runtime bindings — Claude, Codex, Gemini, etc. can each be bound to the creator/reviewer/enhancer/arbiter roles. Convergence is machine-checked (the arbiter writes a verdict; no findings ≥ major and next-pass value cosmetic/low ⇒ converged), then a human signs off at `ideation_refinement_approval`.
+A bounded creator/reviewer/enhancer loop over an ideation artifact, with an arbiter scoring convergence. Harnesses are runtime bindings — Claude, Codex, etc. can each be bound to the creator/reviewer/enhancer/arbiter roles. Convergence is machine-checked (the arbiter writes a verdict; no findings ≥ major and next-pass value cosmetic/low ⇒ converged), then a human signs off at `ideation_refinement_approval`.
 
 **Use when:** you have a raw idea/brief to refine before it enters discovery.
 **How:** `/refine-idea`.

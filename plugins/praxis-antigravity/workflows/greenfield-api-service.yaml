@@ -1,0 +1,246 @@
+# Workflow: greenfield-api-service
+# A new backend service from scratch on one of the supported stacks.
+# Composed by delivery-planner; executed by using-praxis.
+
+name: greenfield-api-service
+version: 1
+description: |
+  Build a new backend API service from scratch. Spans discovery, requirements,
+  architecture (with adversarial review), implementation slice-by-slice, code review,
+  and (Wave 2+) CI/CD + deployment.
+
+entry_criteria:
+  - mode == greenfield
+  - target_repo_identified == true
+  - principal_intent_captured == true
+
+# ------------------------------------------------------------------
+# PHASE A — Discovery & Requirements
+# ------------------------------------------------------------------
+steps:
+  - id: discovery
+    type: agent_invocation
+    agent: product-manager
+    skill: product-discovery
+    inputs:
+      from: principal_intent
+    outputs: [opportunity_brief, jtbd_statements, success_metrics, mvp_scope_hypothesis, assumptions_log]
+    on_failure: escalate
+
+  - id: requirements_elicitation
+    type: agent_invocation
+    agent: product-manager
+    skill: requirements-elicitation
+    inputs:
+      opportunity_brief: from(discovery.opportunity_brief)
+      mvp_scope_hypothesis: from(discovery.mvp_scope_hypothesis)
+    outputs: [requirements_brief, user_stories, assumptions_register, open_questions, scope_boundary]
+    on_failure: escalate
+
+  - id: nfr_definition
+    type: agent_invocation
+    agent: product-manager
+    skill: nfr-definition
+    inputs:
+      requirements_brief: from(requirements_elicitation.requirements_brief)
+      opportunity_brief: from(discovery.opportunity_brief)
+    outputs: [nfr_register]
+    on_failure: escalate
+
+  - id: requirements_complete_check
+    type: decision_node
+    predicate: requirements_complete(requirements_brief, user_stories, scope_boundary, nfr_register, open_questions)
+    # Judgment call — "complete" means good enough to freeze, not just present.
+    # Phase A stays human-gated per references/phase-gates.md §1.
+    fallback_gate: requirements_freeze
+    branches:
+      true: [requirements_freeze_gate]
+      false: [requirements_elicitation, with_gaps_as_input]
+
+  - id: requirements_freeze_gate
+    type: gate
+    name: requirements_freeze
+    approver: governance.requirements_freeze.approver
+    evidence:
+      - requirements_brief
+      - user_stories
+      - scope_boundary
+      - nfr_register
+      - open_questions
+      - assumptions_register
+
+# ------------------------------------------------------------------
+# PHASE B — Architecture & Design
+# ------------------------------------------------------------------
+  - id: architecture_design
+    type: agent_invocation
+    agent: solution-architect
+    skill: architecture-pattern-selection
+    inputs:
+      requirements_brief: from(requirements_elicitation.requirements_brief)
+      nfr_register: from(nfr_definition.nfr_register)
+      mode: greenfield
+    outputs: [architecture_decision, c4_diagrams, architecture_adr, threat_model_lightweight, failure_modes]
+    on_failure: escalate
+
+  - id: architecture_challenger_review
+    type: agent_invocation
+    agent: architecture-challenger
+    inputs:
+      architecture_decision: from(architecture_design.architecture_decision)
+      c4_diagrams: from(architecture_design.c4_diagrams)
+      nfr_register: from(nfr_definition.nfr_register)
+      sub_personas: from(planner.selected_challenger_sub_personas)
+    outputs: [challenge_report]
+
+  - id: challenger_findings_resolved
+    type: decision_node
+    predicate: challenger_findings_addressed(challenge_report, architecture_decision)
+    # Judgment call — did SA incorporate vs. reject each finding, and is any
+    # rejection's rationale sound? Rejections route through the dedicated
+    # governance gate rather than being self-certified here.
+    fallback_gate: challenger_objection_override
+    branches:
+      true: [nfr_check]
+      false: [architecture_design, with_challenge_report_as_input]
+
+  - id: nfr_check
+    type: decision_node
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
+    branches:
+      true: [project_phasing]
+      false: [architecture_design, with_nfr_violations_as_input]
+
+  - id: project_phasing
+    type: agent_invocation
+    agent: solution-architect
+    skill: project-phasing
+    inputs:
+      architecture_decision: from(architecture_design.architecture_decision)
+      user_stories: from(requirements_elicitation.user_stories)
+      nfr_register: from(nfr_definition.nfr_register)
+    outputs: [phased_roadmap, walking_skeleton_slice, dependency_graph, milestones]
+
+  - id: architecture_sign_off_gate
+    type: gate
+    name: architecture_sign_off
+    approver: governance.architecture_sign_off.approver
+    evidence:
+      - architecture_decision
+      - architecture_adr
+      - c4_diagrams
+      - challenge_report
+      - phased_roadmap
+
+# ------------------------------------------------------------------
+# PHASE C — Implementation (loop per slice)
+# ------------------------------------------------------------------
+  - id: implementation_loop
+    type: per_slice
+    source: from(project_phasing.phased_roadmap)
+    sub_workflow: implementation-slice
+    until: project_phasing.roadmap_complete == true
+
+# Note: implementation-slice is referenced as a sub-workflow.
+# In Wave 1 it's defined inline below for clarity; production deployments
+# would extract it to workflows/implementation-slice.yaml.
+
+implementation_slice_definition:
+  name: implementation-slice
+  steps:
+    - id: open_slice
+      type: agent_invocation
+      agent: delivery-lead
+      action: open_slice
+      inputs:
+        slice: from(parent.current_slice)
+        roadmap: from(parent.phased_roadmap)
+
+    - id: implementation_packet
+      type: agent_invocation
+      agent: solution-architect
+      action: build_implementation_packet
+      inputs:
+        slice: from(parent.current_slice)
+
+    - id: lead_developer_planning
+      type: agent_invocation
+      agent: lead-developer
+      action: decompose_slice
+      inputs:
+        implementation_packet: from(implementation_packet.output)
+      outputs: [task_dag, specialist_assignments]
+
+    - id: backend_implementation
+      type: agent_invocation
+      agent: backend-developer
+      inputs:
+        tasks: from(lead_developer_planning.task_dag.backend_tasks)
+        active_stack: from(planner.active_stack)
+      outputs: [pr_opened, tests_passing, observability_added]
+
+    # Wave 2+ adds:
+    # - code_review (with code-review skill)
+    # - security_review (with secure-coding + supply-chain-security)
+    # - qa_acceptance (with testing-strategy + AC verification)
+    # - ci_pipeline_run (with cicd-pipeline)
+    # - promote_through_environments (with deploy-release)
+    # - production_go_live_gate (with the production_go_live governance gate)
+    # For Wave 1, slices ship to a staging environment only;
+    # production-bound slices require Wave 2 completion.
+
+    - id: integration_validation
+      type: agent_invocation
+      agent: lead-developer
+      action: validate_slice_integration
+      inputs:
+        slice: from(parent.current_slice)
+        pr: from(backend_implementation.pr_opened)
+      outputs: [integration_passed]
+
+    - id: close_slice
+      type: agent_invocation
+      agent: delivery-lead
+      action: close_slice
+      inputs:
+        slice: from(parent.current_slice)
+        integration_status: from(integration_validation.integration_passed)
+
+# ------------------------------------------------------------------
+# Exit
+# ------------------------------------------------------------------
+exit_criteria:
+  - all_phases_complete
+  - implementation_loop.all_slices_closed == true
+  # Wave 2+ adds: production_go_live_approved == true
+
+failure_paths:
+  rollback:
+    - revert_repo_changes_for_current_slice
+    - close_slice_with_failure_status
+    - notify_principal_via_governance
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+# ------------------------------------------------------------------
+# Wave-1 scope note
+# ------------------------------------------------------------------
+notes: |
+  Wave 1 of this workflow ends at integration_validation in a staging environment.
+  Slices are reviewed (architecture review happens; code review and QA acceptance
+  ship in Wave 2), and ship to staging through whatever pipeline exists or is
+  manually constructed.
+
+  Wave 2 will extend implementation-slice with code-review, secure-coding,
+  supply-chain-security, testing-strategy/AC-verification, cicd-pipeline,
+  deploy-release, and the production_go_live gate. No project should
+  generate production-bound code on Wave 1 alone.

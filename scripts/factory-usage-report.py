@@ -443,6 +443,11 @@ def ingest_sessions(telemetry_dir: Path) -> dict:
                     obj = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                # Harness-scoped: skip other-harness session rows (e.g.
+                # antigravity session_stop) folded into the shared stream so
+                # they do not inflate claude-code/codex session counts.
+                if obj.get("harness") not in (None, "claude-code", "codex"):
+                    continue
                 out["events"] += 1
                 sid = obj.get("session")
                 if sid:

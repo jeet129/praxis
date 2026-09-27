@@ -47,7 +47,7 @@ Tailwind Plus / Untitled UI for the component baseline.
 `delivery-planner` characterization: when `has_frontend` (or mobile) is
 true, record the project's design tier in the charter (which MCPs are
 connected, which accounts exist). Harness note: Figma MCP support is
-first-class on Claude Code/Cursor; check current status on Codex/Gemini —
+first-class on Claude Code/Cursor; check current status on Codex —
 tier 2a/3 work anywhere the tool has network access, tiers 4/5 work
 everywhere including fully offline.
 

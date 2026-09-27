@@ -40,6 +40,7 @@ if [[ -n "${CODEX_HOME:-}" || -n "${CODEX_SESSION_ID:-}" || "$PLUGIN_ROOT" == *c
   TAP_TOOL="codex"
 fi
 TAP_TOOL="${PRAXIS_TAP_TOOL:-$TAP_TOOL}"
+export PRAXIS_HARNESS="$TAP_TOOL"
 
 # Telemetry must never break the user's session.
 trap 'exit 0' ERR
@@ -136,6 +137,9 @@ record() {
 # --------------------------------------------------------------------
 telemetry_event() {
   local json="$1"
+  case "$json" in
+    '{'*) json="{\"harness\":\"${PRAXIS_HARNESS:-$TAP_TOOL}\",${json#\{}" ;;
+  esac
   local tdir="$cwd/.project/telemetry"
   mkdir -p "$tdir" 2>/dev/null || return 0
   echo "$json" >> "$tdir/agent-spawns.jsonl" 2>/dev/null || true
@@ -233,18 +237,19 @@ classify_path() {
 case "$EVENT" in
 
   PreToolUse)
-    # Cache-aware routing guard (INTERACTIVE path). Before a sub-agent spawns,
-    # run the pre-flight and DENY a cache-forfeiting model-DOWN with a corrective
-    # instruction, so the model re-issues the spawn with the effort-down
-    # model/effort. Deterministic enforcement — no human, and no explicit call
-    # from the agent. claude-code only (codex effort-only tiers cannot forfeit a
-    # separate model cache). Fail-open: any missing field / error just allows.
+    # Routing pre-flight (INTERACTIVE path) — ADVISORY LOG ONLY. Correctness
+    # sets the tier (the rubric); the cache is NOT a reason to hold a more
+    # expensive model, so this NEVER denies a spawn. It records the route + cache
+    # economics to model-routing.jsonl for review and tracks the warm tier.
+    # claude-code only; fail-open on any missing field / error.
+    # Spawn tool: classic path uses `Task`; experimental Agent Teams
+    # (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) uses the `Agent` tool. Both carry
+    # tool_input.subagent_type, so both must trip the advisory pre-flight.
     tool_name=$(echo "$payload" | jq -r '.tool_name // empty' 2>/dev/null)
-    if [[ "$tool_name" == "Task" && "$TAP_TOOL" == "claude-code" ]]; then
+    if [[ ( "$tool_name" == "Task" || "$tool_name" == "Agent" ) && "$TAP_TOOL" == "claude-code" ]]; then
       pf_script="$PLUGIN_ROOT/scripts/routing-preflight.py"
       sub=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null); sub="${sub#praxis:}"
       spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
-      # to_tier from the pinned model, else the agent's frontmatter capability_tier
       to_tier=""
       case "$spawn_model" in
         *opus*)   to_tier=deep ;;
@@ -256,23 +261,13 @@ case "$EVENT" in
       fi
       warm_file="$cwd/.project/telemetry/.warm-tier-${session_id}"
       from_tier=$(head -1 "$warm_file" 2>/dev/null || true)
+      # Advisory: log the route + cache economics to model-routing.jsonl. Never denies.
       if [[ -n "$to_tier" && -n "$from_tier" && "$to_tier" != "$from_tier" && -f "$pf_script" ]]; then
-        # this call also APPENDS the routing_preflight audit record to model-routing.jsonl
-        # device routing-preflight.py emits a JSON record on stdout (and also
-        # appends it to model-routing.jsonl); read the verdict from that JSON.
-        pf_json=$(python3 "$pf_script" --from-tier "$from_tier" --to-tier "$to_tier" \
-               --project-dir "$cwd" \
-               --session "$session_id" --agent "${sub:-unknown}" 2>/dev/null | tail -1 || true)
-        action=$(printf '%s' "$pf_json" | jq -r '.action // empty' 2>/dev/null || true)
-        if [[ "$action" == "enforce_effort_down" ]]; then
-          pmodel=$(printf '%s' "$pf_json" | jq -r '.applied.model // empty' 2>/dev/null || true)
-          peffort=$(printf '%s' "$pf_json" | jq -r '.applied.effort // empty' 2>/dev/null || true)
-          reason="Cache-aware routing (praxis, enforce mode): spawning ${sub:-this agent} on '${spawn_model:-$to_tier}' (${to_tier} tier) would forfeit the warm ${from_tier}-tier prompt cache. Switching model family cold-writes the whole prefix on the new model and loses the ~10x-cheaper cache reads on the bulk of the tokens; a one-off down-route never reuses the prefix enough to pay that back. Re-spawn KEEPING the warm model and lowering effort instead: set model='${pmodel}' and effort='${peffort}'. Do not switch the model family down mid-session."
-          jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
-          exit 0
-        fi
+        python3 "$pf_script" --from-tier "$from_tier" --to-tier "$to_tier" \
+               --project-dir "$cwd" --harness "$TAP_TOOL" --mode advise \
+               --session "$session_id" --agent "${sub:-unknown}" >/dev/null 2>&1 || true
       fi
-      # allow: record this spawn's tier as the new warm tier (best-effort)
+      # Track this spawn's tier as the new warm tier (best-effort).
       if [[ -n "$to_tier" ]]; then
         mkdir -p "$cwd/.project/telemetry" 2>/dev/null && printf '%s\n' "$to_tier" > "$warm_file" 2>/dev/null || true
       fi
@@ -290,11 +285,13 @@ case "$EVENT" in
         # checkpoint records + packets/ledgers/routing (see
         # references/factory-metrics-schema.md "Checkpoint records").
         ;;
-      Task)
+      Task|Agent)
         # Sub-agent spawn: tool_input.subagent_type carries the agent name.
-        # The Task tool is also called for non-agent purposes; only record
-        # if subagent_type is present.
-        subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null)
+        # `Task` is the classic spawn tool; `Agent` is the experimental Agent
+        # Teams spawn tool (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) — same
+        # subagent_type field. Both are also callable for non-agent purposes;
+        # only record if subagent_type is present.
+        subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null); subagent="${subagent#praxis:}"
         if [[ -n "$subagent" && "$subagent" != "null" ]]; then
           record agent "$subagent" spawn
           # Correlation for the next SubagentStop, whose payload omits the name.
@@ -459,9 +456,11 @@ def _extract_agent(d):
         return None
     msg = d.get("message")
     content = msg.get("content") if isinstance(msg, dict) else d.get("content")
+    # `Task` is the classic spawn tool; `Agent` is the experimental Agent Teams
+    # spawn tool — both name the subagent via input.subagent_type.
     if isinstance(content, list):
         for blk in content:
-            if isinstance(blk, dict) and blk.get("type") == "tool_use" and blk.get("name") == "Task":
+            if isinstance(blk, dict) and blk.get("type") == "tool_use" and blk.get("name") in ("Task", "Agent"):
                 st = (blk.get("input") or {}).get("subagent_type")
                 if isinstance(st, str) and st:
                     return st.split(":")[-1]
@@ -531,6 +530,7 @@ if sum(tot.values()) == 0:
 by_model = {m: b for m, b in by_model.items() if sum(b.values()) > 0}
 agent = current_agent or passed_agent or "unknown"
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "harness": os.environ.get("PRAXIS_HARNESS") or None,
        "event": "invocation_usage", "session": sid,
        "agent": agent, **tot,
        "by_model": by_model,
@@ -574,7 +574,7 @@ PYEOF
     # Session boundary as a single JSONL line (was: one stub .md per fire)
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_start\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_start\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     ;;
 
   SessionEnd|Stop)
@@ -586,13 +586,13 @@ PYEOF
     # refreshed in place rather than duplicated — no double-count.
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"session_end\",\"session\":\"$session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     HAVE_TRANSCRIPT_STORE=0
     [[ -d "$HOME/.claude/projects" || -d "$HOME/.codex/sessions" ]] && HAVE_TRANSCRIPT_STORE=1
     if [[ "$session_id" == nojq-* ]]; then
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"jq_missing_no_session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"jq_missing_no_session_id\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     elif [[ $HAVE_TRANSCRIPT_STORE -eq 0 ]]; then
-      echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+      echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"no_claude_projects_dir\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
     fi
     rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
     rm -f "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true
@@ -613,7 +613,7 @@ PYEOF
       fi
       if [[ -z "$transcript" ]]; then
         # Telemetry failures must be observable: leave a breadcrumb instead of silence.
-        echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"transcript_not_found_under_claude_or_codex_stores\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
+        echo "{\"harness\":\"$TAP_TOOL\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"token_capture_skipped\",\"session\":\"$session_id\",\"reason\":\"transcript_not_found_under_claude_or_codex_stores\"}" >> "$tdir/sessions.jsonl" 2>/dev/null || true
       fi
       if [[ -n "$transcript" ]]; then
         python3 - "$transcript" "$session_id" "$tdir/tokens.jsonl" 2>/dev/null <<'PYEOF' || true
@@ -669,6 +669,7 @@ except Exception:
 if sum(tot.values()) == 0:
     sys.exit(0)
 rec = {"ts": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "harness": os.environ.get("PRAXIS_HARNESS") or None,
        "session": sid, "source": "session_end_hook", **tot,
        "models_by_output": models}
 line = json.dumps(rec)

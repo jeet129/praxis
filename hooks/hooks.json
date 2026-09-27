@@ -12,7 +12,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Task",
+        "matcher": "Task|Agent",
         "hooks": [
           {
             "type": "command",
@@ -23,7 +23,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Read|Task|Write|Edit|NotebookEdit",
+        "matcher": "Read|Task|Agent|Write|Edit|NotebookEdit",
         "hooks": [
           {
             "type": "command",

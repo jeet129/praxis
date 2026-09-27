@@ -8,6 +8,7 @@ Worked examples supporting `adaptive-model-routing`. Load this file when you nee
 # .project/telemetry/model-routing.jsonl — one JSON object per line;
 # fields shown here in YAML for readability
 - timestamp: 2026-07-02T10:00:00
+  harness: claude-code   # which loop-runner (claude-code|codex|antigravity|...) — canonical envelope field
   agent: solution-architect
   task: "architecture-pattern-selection for payment service"
   score: 8

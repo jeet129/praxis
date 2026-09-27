@@ -81,7 +81,7 @@ flowchart TD
     CMD["Commands (optional entry)<br/>commands/*.md — /start /discover /architect /slice<br/>/release /audit /steward /review /refine-idea<br/>/factory-record /drive"]
     WFL["Workflows<br/>workflows/*.yaml — 9 named compositions"]
     SKL["Skills<br/>skills/*/SKILL.md — 91 SKILLs, incl. skills/using-praxis (front door)<br/>and skills/autonomous-drive (drive protocol)"]
-    AGH["Agents / harnesses<br/>agents/*.md role personas, run via each harness<br/>(claude-code / codex / gemini-cli)"]
+    AGH["Agents / harnesses<br/>agents/*.md role personas, run via each harness<br/>(claude-code / codex)"]
     MOD["Models via capability tiers<br/>governance/model-routing.yaml — deep / standard / light"]
 
     USER --> CMD
@@ -104,7 +104,7 @@ name.
 ```mermaid
 sequenceDiagram
     participant R as scripts/praxis-drive.sh (runner)
-    participant H as Fresh harness invocation<br/>(claude -p / codex exec / gemini -p)
+    participant H as Fresh harness invocation<br/>(claude -p / codex exec)
     participant DL as delivery-lead<br/>(skills/autonomous-drive protocol, one task)
     participant L as Task ledger<br/>.project/working/slice-<id>-tasks.yaml
     participant HU as Human

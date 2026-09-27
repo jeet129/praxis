@@ -17,14 +17,14 @@ Before installing, calibrate expectations. The library ships with:
 ✅ **9 workflows** orchestrating multi-step delivery.
 ✅ **12 slash commands** that map intent to skill sequences: `/start /intake /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
 ✅ **Hook subscriptions driving a universal artifact tap** — harness-appropriate event sets that share one `hooks/tap.sh`. Claude Code: SessionStart, SessionEnd, PostToolUse, UserPromptSubmit, SubagentStart, SubagentStop. Codex has no `SessionEnd` (its turn-scoped `Stop` is the analog), so the generated Codex package swaps `SessionEnd` → `Stop` and the tap emits the JSON acknowledgement `Stop` requires; end-of-session token capture is an upsert (one line per session, never double-counted).
-✅ **Capability-tier routing** — `governance/model-routing.yaml` resolves each agent's tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low; Gemini CLI: gemini-2.5-pro/flash/flash-lite), applied by `scripts/apply-model-routing.py`. At runtime `delivery-lead` shifts ±1 tier per task via the `adaptive-model-routing` rubric.
+✅ **Capability-tier routing** — `governance/model-routing.yaml` resolves each agent's tier to a concrete model per harness (Claude Code: opus/sonnet/haiku; Codex: reasoning-effort high/medium/low), applied by `scripts/apply-model-routing.py`. At runtime `delivery-lead` shifts ±1 tier per task via the `adaptive-model-routing` rubric.
 ✅ **Telemetry stack, three layers** — (a) checkpoint records: `.project/episodic/checkpoint-*.md`, written by delivery-lead at every gate/phase/slice/loop closure, mined by `scripts/factory-usage-report.py` (the primary, near-100%-capture usage source); (b) structured JSONL streams under `.project/telemetry/` — `agent-spawns.jsonl`, `sessions.jsonl`, `drive.jsonl` (deterministic, hook/runner-written) and `model-routing.jsonl` (delivery-lead discipline), aggregated by `scripts/factory-routing-report.py`; (c) a thin stub layer (command invocations + human `/factory-record` observations; the old per-Read skill/agent/session stubs are retired). Full explanation in `docs/telemetry.md`.
 ✅ **Coverage gate** — `scripts/factory-aging.sh` flags experimental SKILLs with stale/missing telemetry (now reading against the checkpoint-record baseline, not the retired stub types).
 ✅ **Usage + routing reporters** — `scripts/factory-usage-report.py` mines checkpoint records for per-skill/agent/workflow/command usage; `scripts/factory-routing-report.py` aggregates the JSONL streams for cost/routing analysis; `scripts/factory-frequency.sh` / `scripts/factory-aging.sh` remain for legacy stub-layer aggregation and coverage checks.
 
 **Harness status:** the two paths above (and everything below) are written
 against Claude Code, which along with Codex is tested end-to-end on real
-engagements. The other six file-install adapters (Cursor, Gemini CLI,
+engagements. The other five file-install adapters (Cursor,
 OpenCode, GitHub Copilot, Kiro, Antigravity) are shipped and structurally
 validated — the installer writes their layout and the validator suite covers
 it — but not yet exercised end-to-end on a real engagement. Expect rough
@@ -52,7 +52,7 @@ The "quarterly steward cadence" is real DISCIPLINE you run — but now with real
 ### 1.1 System requirements
 
 - **macOS or Linux.** Bash 4+, standard Unix tools. Tested on macOS.
-- **AI coding tool** — at least one of: Claude Code (recommended), Codex, Cursor, Gemini CLI, OpenCode, GitHub Copilot, Kiro, Antigravity.
+- **AI coding tool** — at least one of: Claude Code (recommended), Codex, Cursor, OpenCode, GitHub Copilot, Kiro, Antigravity.
 - **Python 3.8+** — only required if you want to run the YAML validator manually. Otherwise optional.
 - **Git** — for managing the projects you'll be working on.
 
@@ -89,7 +89,7 @@ For your first install, **use per-project**.
 |---|---|---|
 | **Claude Code** | Default. Best UX for the platform (slash commands + hook + plugin manifests). | Tested end-to-end on real engagements |
 | **Codex** | You prefer Codex's plugin marketplace, skills, and subagent profiles. | Tested end-to-end on real engagements |
-| **Cursor / Gemini / OpenCode / Copilot / Kiro / Antigravity** | Per-tool docs in `docs/<tool>-setup.md`. | Adapter shipped, structurally validated — not yet exercised end-to-end on a real engagement |
+| **Cursor / OpenCode / Copilot / Kiro / Antigravity** | Per-tool docs in `docs/<tool>-setup.md`. | Adapter shipped, structurally validated — not yet exercised end-to-end on a real engagement |
 
 For your first install, **use Claude Code**.
 
@@ -374,7 +374,7 @@ If you can't get auto-firing to work, you can still paste the hook output manual
 
 ### Problem: Slash commands not recognized
 
-Claude Code reads commands from `.claude/commands/*.md` (Markdown with YAML frontmatter; the TOML variants live in `.gemini/commands/` for Gemini CLI).
+Claude Code reads commands from `.claude/commands/*.md` (Markdown with YAML frontmatter).
 
 **Diagnosis:**
 ```bash
@@ -504,7 +504,6 @@ Same library; different addressing:
 codex plugin marketplace add jeet129/praxis --sparse .agents/plugins --sparse plugins/praxis-codex
 # from a specific branch, add: --ref features/improvements
 ./install.sh --tool=cursor ~/dev/test-aidp
-./install.sh --tool=gemini ~/dev/test-aidp
 ./install.sh --tool=copilot ~/dev/test-aidp
 ./install.sh --tool=opencode ~/dev/test-aidp
 ./install.sh --tool=kiro ~/dev/test-aidp

@@ -1,0 +1,476 @@
+# Workflow: greenfield-saas
+# A new SaaS web product with frontend + backend (+ data + ML, conditionally).
+# Composed by delivery-planner; executed by using-praxis.
+
+name: greenfield-saas
+version: 1
+description: |
+  Build a new SaaS web product from scratch. Spans discovery, requirements
+  (including UX journey mapping), parallel architecture + UX design
+  (with adversarial review), implementation slice-by-slice with BE + FE
+  in parallel, code review, security review, QA, CI/CD, deploy.
+
+  Activates the UX Designer agent (UX phase) and Frontend Developer agent
+  (implementation slices) alongside the Backend Developer + supporting agents.
+  Optional: Data Engineer when has_data_plane; ML/AI Engineer when has_ml
+  or has_agentic_ai.
+
+entry_criteria:
+  - mode == greenfield
+  - has_ui == true
+  - target_repo_identified == true
+  - principal_intent_captured == true
+
+# ------------------------------------------------------------------
+# PHASE A — Discovery, Requirements, NFRs (with UX journey mapping)
+# ------------------------------------------------------------------
+steps:
+  - id: discovery
+    type: agent_invocation
+    agent: product-manager
+    skill: product-discovery
+    inputs:
+      from: principal_intent
+    outputs: [opportunity_brief, jtbd_statements, success_metrics, personas, mvp_scope_hypothesis, assumptions_log]
+    on_failure: escalate
+    notes: |
+      SaaS discovery surfaces personas explicitly — they are inputs to
+      UX journey mapping and inform the FE component model.
+
+  - id: ux_journey_mapping
+    type: agent_invocation
+    agent: ux-designer
+    skill: ux-journey-mapping
+    inputs:
+      personas: from(discovery.personas)
+      opportunity_brief: from(discovery.opportunity_brief)
+      mvp_scope_hypothesis: from(discovery.mvp_scope_hypothesis)
+    outputs: [journey_maps_per_persona, critical_moments, unhappy_paths, touchpoints, design_brief]
+    notes: |
+      Also produces .project/semantic/design-brief.md (brand adjectives,
+      reference products, density, tone — per frontend-design) at this first
+      UX engagement; every later FE/mobile task reads it.
+      Runs early — journeys inform requirements + NFRs (per-flow latency,
+      per-flow availability) before architecture decisions lock in.
+
+  - id: requirements_elicitation
+    type: agent_invocation
+    agent: product-manager
+    skill: requirements-elicitation
+    inputs:
+      opportunity_brief: from(discovery.opportunity_brief)
+      journey_maps: from(ux_journey_mapping.journey_maps_per_persona)
+      personas: from(discovery.personas)
+    outputs: [requirements_brief, user_stories, scope_boundary, assumptions_register, open_questions]
+
+  - id: nfr_definition
+    type: agent_invocation
+    agent: product-manager
+    skill: nfr-definition
+    inputs:
+      requirements_brief: from(requirements_elicitation.requirements_brief)
+      journey_maps: from(ux_journey_mapping.journey_maps_per_persona)
+    outputs: [nfr_register]
+    notes: |
+      SaaS NFRs include Core Web Vitals targets per `frontend-performance`,
+      accessibility conformance level per `accessibility`, and
+      multi-tenancy targets if is_multi_tenant.
+
+  - id: requirements_complete_check
+    type: decision_node
+    predicate: requirements_complete(requirements_brief, user_stories, nfr_register, journey_maps)
+    # Judgment call — "complete" means good enough to freeze, not just present.
+    # Phase A stays human-gated per references/phase-gates.md §1.
+    fallback_gate: requirements_freeze
+    branches:
+      true: [requirements_freeze_gate]
+      false: [requirements_elicitation, with_open_questions_resolved]
+
+  - id: requirements_freeze_gate
+    type: gate
+    name: requirements_freeze
+    approver: governance.requirements_freeze.approver
+    evidence:
+      - requirements_brief
+      - user_stories
+      - scope_boundary
+      - nfr_register
+      - journey_maps_per_persona
+      - assumptions_register
+
+# ------------------------------------------------------------------
+# PHASE B — Architecture + UX Design in parallel
+# ------------------------------------------------------------------
+  - id: architecture_and_ux_parallel
+    type: parallel
+    branches:
+      # Backend / system architecture
+      - id: backend_architecture
+        agent: solution-architect
+        skill: architecture-pattern-selection
+        inputs:
+          requirements_brief: from(requirements_elicitation.requirements_brief)
+          nfr_register: from(nfr_definition.nfr_register)
+          mode: greenfield
+          is_multi_tenant: from(planner.is_multi_tenant)
+        outputs: [architecture_decision, c4_diagrams, architecture_adr]
+
+      # Frontend architecture (macro decisions)
+      - id: fe_architecture
+        agent: solution-architect
+        skill: frontend-architecture
+        inputs:
+          requirements_brief: from(requirements_elicitation.requirements_brief)
+          nfr_register: from(nfr_definition.nfr_register)
+          journey_maps: from(ux_journey_mapping.journey_maps_per_persona)
+        outputs: [fe_component_model, state_strategy, data_fetching_strategy, rendering_strategy, fe_routing_model, fe_architecture_adr]
+
+      # UX design — wireframes + prototypes for risky flows
+      - id: ux_wireframing
+        agent: ux-designer
+        skill: wireframing-prototyping
+        inputs:
+          journey_maps: from(ux_journey_mapping.journey_maps_per_persona)
+          requirements_brief: from(requirements_elicitation.requirements_brief)
+        outputs: [wireframes_per_screen, prototypes_for_risky_flows, mobile_variants, fe_dev_feedback]
+
+      # Design system foundation
+      - id: design_system_foundation
+        agent: ux-designer
+        skill: design-system
+        inputs:
+          wireframes: from(ux_wireframing.wireframes_per_screen)
+          accessibility_target: from(nfr_definition.nfr_register.accessibility_target)
+        outputs: [design_tokens, component_specs, accessibility_per_component, storybook_setup]
+
+  - id: architecture_challenger_review
+    type: agent_invocation
+    agent: architecture-challenger
+    inputs:
+      architecture_decision: from(architecture_and_ux_parallel.backend_architecture.architecture_decision)
+      fe_architecture: from(architecture_and_ux_parallel.fe_architecture)
+      nfr_register: from(nfr_definition.nfr_register)
+      sub_personas: from(planner.selected_challenger_sub_personas)
+    outputs: [challenge_report]
+    notes: |
+      SaaS challenge covers BE + FE jointly: scale (CDN strategy, edge caching),
+      security (XSS, CSRF, CORS, frontend trust boundary), cost (CDN + LCP-budget
+      trade-offs), operations (multi-region content delivery), reliability
+      (graceful degradation in the FE).
+
+  - id: challenger_findings_resolved
+    type: decision_node
+    predicate: challenge_findings_addressed(challenge_report)
+    # Judgment call — did SA incorporate vs. reject each finding, and is any
+    # rejection's rationale sound? Rejections route through the dedicated
+    # governance gate rather than being self-certified here.
+    fallback_gate: challenger_objection_override
+    branches:
+      true: [nfr_check]
+      false: [architecture_and_ux_parallel, with_challenge_findings_as_input]
+
+  - id: nfr_check
+    type: decision_node
+    predicate:
+      name: nfr_satisfied
+      check: artifact_contains
+      args:
+        path: .project/working/architecture/nfr-verification.md
+        must_contain: "VERDICT: SATISFIED"
+      on_fail: route_back
+      fallback_gate: architecture_sign_off
+    branches:
+      true: [project_phasing]
+      false: [architecture_and_ux_parallel, with_nfr_violations_as_input]
+
+  - id: project_phasing
+    type: agent_invocation
+    agent: solution-architect
+    skill: project-phasing
+    inputs:
+      architecture_decision: from(architecture_and_ux_parallel.backend_architecture.architecture_decision)
+      fe_architecture: from(architecture_and_ux_parallel.fe_architecture)
+      user_stories: from(requirements_elicitation.user_stories)
+      journey_maps: from(ux_journey_mapping.journey_maps_per_persona)
+    outputs: [phased_roadmap, walking_skeleton_slice, dependency_graph]
+    notes: |
+      SaaS slicing is per-journey-step where possible — each slice delivers
+      one end-to-end user-visible behavior (UI + API + storage) rather than
+      shipping the BE then bolting on the FE.
+
+  - id: architecture_sign_off_gate
+    type: gate
+    name: architecture_sign_off
+    approver: governance.architecture_sign_off.approver
+    evidence:
+      - architecture_decision
+      - fe_architecture
+      - architecture_adr
+      - fe_architecture_adr
+      - c4_diagrams
+      - design_tokens
+      - component_specs
+      - wireframes_per_screen
+      - challenge_report
+      - phased_roadmap
+
+# ------------------------------------------------------------------
+# PHASE C — Implementation slices (BE + FE in parallel)
+# ------------------------------------------------------------------
+  - id: implementation_loop
+    type: per_slice
+    source: from(project_phasing.phased_roadmap)
+    sub_workflow: implementation-slice-saas
+    until: project_phasing.roadmap_complete == true
+
+# ------------------------------------------------------------------
+# Sub-workflow: implementation-slice-saas
+# Per-slice flow that runs BE + FE in parallel and synthesizes
+# acceptance + review + QA before slice close.
+# ------------------------------------------------------------------
+implementation_slice_saas_definition:
+  name: implementation-slice-saas
+  steps:
+    - id: open_slice
+      type: agent_invocation
+      agent: delivery-lead
+      action: open_slice
+      outputs: [slice_id, slice_working_dir]
+
+    - id: implementation_packet
+      type: agent_invocation
+      agent: solution-architect
+      action: build_implementation_packet
+      inputs:
+        slice: current
+        architecture_context: from(parent.architecture_decision)
+        fe_architecture_context: from(parent.fe_architecture)
+        design_tokens: from(parent.design_tokens)
+        component_specs: from(parent.component_specs)
+        nfr_register: from(parent.nfr_register)
+      outputs: [packet]
+
+    - id: lead_developer_planning
+      type: agent_invocation
+      agent: lead-developer
+      action: decompose_slice
+      inputs:
+        packet: from(implementation_packet.packet)
+      outputs: [task_dag, backend_tasks, frontend_tasks, integration_tasks, specialist_assignments]
+
+    - id: backend_frontend_parallel
+      type: parallel
+      branches:
+        # Backend implementation
+        - id: backend
+          agent: backend-developer
+          inputs:
+            tasks: from(lead_developer_planning.backend_tasks)
+            stack_pack: from(planner.backend_stack_pack)
+          consumes_skills:
+            - engineering-standards
+            - secure-coding
+            - testing-strategy
+            - source-grounded-coding
+            - observability
+            - api-design
+            - authn-authz
+            - multi-tenancy   # if is_multi_tenant
+          outputs: [be_pr_opened, be_tests_passing, be_observability_wired]
+
+        # Frontend implementation
+        - id: frontend
+          agent: frontend-developer
+          inputs:
+            tasks: from(lead_developer_planning.frontend_tasks)
+            design_tokens: from(parent.design_tokens)
+            component_specs: from(parent.component_specs)
+            wireframes: from(parent.wireframes_per_screen)
+            fe_architecture: from(parent.fe_architecture)
+          consumes_skills:
+            - engineering-standards
+            - source-grounded-coding
+            - stack-web-frontend
+            - design-system
+            - frontend-design
+            - accessibility
+            - frontend-performance
+            - i18n-l10n   # if i18n_target_locales > 1
+            - secure-coding   # XSS / CSRF / CSP for FE
+            - testing-strategy
+            - observability   # FE RUM + error tracking
+          outputs: [fe_pr_opened, fe_tests_passing, a11y_scan_pass, lighthouse_pass, bundle_within_budget, ui_screenshots]
+
+    - id: integration_validation
+      type: agent_invocation
+      agent: lead-developer
+      action: validate_slice_integration
+      inputs:
+        be_pr: from(backend_frontend_parallel.backend.be_pr_opened)
+        fe_pr: from(backend_frontend_parallel.frontend.fe_pr_opened)
+        slice_acceptance_criteria: from(implementation_packet.packet.acceptance_criteria)
+      outputs: [integration_passed, e2e_tests_passing]
+      notes: |
+        Integration validation is where BE + FE meet. Contract tests verify the
+        API surface matches the FE consumer expectations. E2E tests cover the
+        journey step end-to-end.
+
+    - id: code_review
+      type: parallel
+      branches:
+        - agent: code-reviewer
+          inputs: { pr: from(backend_frontend_parallel.backend.be_pr_opened) }
+          outputs: [be_review_verdict, be_findings]
+        - agent: code-reviewer
+          inputs: { pr: from(backend_frontend_parallel.frontend.fe_pr_opened) }
+          outputs: [fe_review_verdict, fe_findings]
+
+    - id: visual_review
+      type: agent_invocation
+      agent: ux-designer
+      condition: slice_has_ui_tasks
+      inputs:
+        screenshots: from(backend_frontend_parallel.frontend.ui_screenshots)
+        design_plan: from(parent.design_plan, if_exists)
+        design_tokens: from(parent.design_tokens, if_exists)
+      consumes_skills:
+        - frontend-design
+      outputs: [visual_review_verdict, visual_findings]
+      notes: |
+        Fires only on UI-bearing slices. Screenshots at 2-3 viewports incl.
+        empty/loading/error states, scored against the design plan, tokens,
+        and frontend-design's calibration. Blockers feed the same fix loop.
+
+    - id: security_review
+      type: agent_invocation
+      agent: security-reviewer
+      inputs:
+        be_pr: from(backend_frontend_parallel.backend.be_pr_opened)
+        fe_pr: from(backend_frontend_parallel.frontend.fe_pr_opened)
+      consumes_skills:
+        - secure-coding
+        - threat-modeling   # if slice introduces new trust boundary
+        - llm-safety   # if has_agentic_ai
+      outputs: [security_verdict, security_findings]
+
+    - id: qa_acceptance
+      type: agent_invocation
+      agent: qa-engineer
+      action: verify_acceptance
+      inputs:
+        slice_acceptance_criteria: from(implementation_packet.packet.acceptance_criteria)
+        integration_passed: from(integration_validation.integration_passed)
+        a11y_scan_pass: from(backend_frontend_parallel.frontend.a11y_scan_pass)
+      outputs: [qa_verdict]
+
+    - id: slice_dod_check
+      type: decision_node
+      predicate:
+        name: slice_dod_met
+        check: verdict_file
+        args:
+          files:
+            - path: .project/working/review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/security-review-*.md
+              clear_of: [FAIL, PASS_WITH_MAJORS]
+            - path: .project/working/qa-acceptance-*.md
+              clear_of: [REJECTED]
+        on_fail: route_back
+        # Phase C — squarely in slice-drive's autonomous span (phase-gates.md
+        # §1); no fallback_gate needed, this is the machine-checkable DoD.
+      branches:
+        true: [close_slice]
+        false: [open_slice, with_findings_as_input]
+
+    - id: close_slice
+      type: agent_invocation
+      agent: delivery-lead
+      action: close_slice
+      inputs:
+        slice_id: from(open_slice.slice_id)
+      outputs: [slice_closed]
+
+# ------------------------------------------------------------------
+# Exit & failure paths
+# ------------------------------------------------------------------
+exit_criteria:
+  - all_phases_complete
+  - implementation_loop.all_slices_closed == true
+  - all_pre_prod_gates_cleared == true
+
+failure_paths:
+  rollback:
+    - revert_repo_changes_for_current_slice
+    - close_slice_with_failure_status
+    - notify_principal_via_governance
+  escalate:
+    - pause_workflow
+    - request_principal_input
+    - resume_with_principal_decision
+
+# ------------------------------------------------------------------
+# Conditional augmentations (activated per delivery-planner flags)
+# ------------------------------------------------------------------
+conditional_augmentations:
+  has_data_plane:
+    additional_agent: data-engineer
+    phase_b_additions: [data-modeling, data-warehouse-modeling, data-pipeline]
+    phase_c_additions: [data_engineer_parallel_branch_in_implementation_loop]
+
+  has_ml:
+    additional_agent: ml-ai-engineer
+    phase_b_additions: [ml-problem-framing, ml-feature-engineering, ml-training-evaluation]
+    phase_c_additions: [ml_engineer_parallel_branch_in_implementation_loop]
+    gate_additions: [responsible_ai_review]
+
+  has_agentic_ai:
+    additional_agent: ml-ai-engineer
+    phase_b_additions: [agentic-architecture, rag-design, evaluation-engineering, llm-safety, llm-cost-optimization]
+    phase_c_additions: [agentic_branch_in_implementation_loop]
+    gate_additions: [responsible_ai_review]
+
+  is_multi_tenant:
+    phase_b_additions: [multi-tenancy]
+    gate_additions: [tenant_isolation_review]
+
+  compliance_regimes_includes_hipaa:
+    gate_additions: [hipaa_control_review]
+
+  compliance_regimes_includes_pci_dss:
+    gate_additions: [pci_scope_review]
+
+  scale_target_qps_above_10000_or_availability_above_9995:
+    gate_additions: [capacity_stress_test]
+
+notes: |
+  Differences from greenfield-api-service:
+
+  1. UX Designer activates in Phase A (ux-journey-mapping) and Phase B
+     (wireframing-prototyping + design-system). The personas + journeys
+     produced inform NFRs + architecture, not just FE design.
+
+  2. Phase B runs architecture + UX in parallel — backend-architecture,
+     frontend-architecture, ux-wireframing, design-system all in one
+     parallel step. The Challenger reviews the joint result.
+
+  3. Implementation slices run BE + FE in parallel per slice rather than
+     shipping BE first then bolting FE on. Per-slice deliverable is one
+     user-visible journey step, not "an endpoint."
+
+  4. Phase C consumes the frontend-specific skills (stack-web-frontend,
+     accessibility, frontend-performance, design-system, i18n-l10n).
+     Frontend Developer's PR has additional gates: a11y scan, Lighthouse
+     budgets, bundle-within-budget.
+
+  5. Integration validation is its own step — contract tests + E2E cover
+     the BE↔FE seam that doesn't exist in API-service workflows.
+
+  6. Conditional augmentations activate Data Engineer + ML/AI Engineer per
+     the planner's flags. The same parallel-branch pattern extends to those
+     specialists in the implementation slice.
+
+  Common gates with greenfield-api-service:
+  - requirements_freeze (Phase A end)
+  - architecture_sign_off (Phase B end)
+  - production_go_live (final, via production-release.yaml)

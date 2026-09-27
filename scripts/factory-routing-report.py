@@ -536,7 +536,12 @@ def build_report(project_dir: Path) -> dict:
                 v = e.get(k)
                 if isinstance(v, (int, float)):
                     b[k] += int(v)
-    routing_events = read_jsonl(telemetry_dir / "model-routing.jsonl")
+    # Harness-scoped: this report aggregates praxis tier-routing DECISIONS
+    # (claude-code/codex). Drop rows from other harnesses (e.g. antigravity
+    # model_invocation observations) so they never pollute the counts; they
+    # remain in the shared file, attributable by the canonical `harness` field.
+    routing_events = [r for r in read_jsonl(telemetry_dir / "model-routing.jsonl")
+                      if r.get("harness") in (None, "claude-code", "codex")]
     drive_events = read_jsonl(telemetry_dir / "drive.jsonl")
     prose = ingest_prose_routing(working_dir, known_slugs)
     fmetrics = ingest_factory_metrics(fm_dir)

@@ -2,7 +2,7 @@
 
 ## Supported status
 
-Praxis is **early-stage software** (`0.1.0`) — a prompt/skill/agent library, not a running service.
+Praxis is **early-stage software** (`0.2.0`) — a prompt/skill/agent library, not a running service.
 There is a single actively-maintained line (the `main` branch); there are no
 released version branches receiving backports. Security-relevant fixes land on
 `main` and are noted in [`CHANGELOG.md`](CHANGELOG.md).
@@ -24,8 +24,7 @@ consistent with the project's early-stage status.
 ## Scope
 
 Praxis is a library of prompts, SKILL definitions, agent personas, workflow
-specs, and governance gates that AI coding agents (Claude Code, Codex, Gemini
-CLI, and others) load and act on. It is not a hosted service and does not
+specs, and governance gates that AI coding agents (Claude Code, Codex, Antigravity, and others) load and act on. It is not a hosted service and does not
 process end-user data on its own. Given that shape, the realistic risk surface
 is:
 

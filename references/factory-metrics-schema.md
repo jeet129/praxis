@@ -1,6 +1,6 @@
 # Factory Metrics Schema
 
-This document specifies the on-disk format for praxis telemetry. Every entry in `.project/operational/factory-metrics/` follows this schema, regardless of which tool produced it (Claude Code, Codex, Cursor, Gemini, OpenCode, Copilot, Kiro, Antigravity) or which mechanism captured it (PostToolUse hook, workflow YAML step, slash command, manual entry).
+This document specifies the on-disk format for praxis telemetry. Every entry in `.project/operational/factory-metrics/` follows this schema, regardless of which tool produced it (Claude Code, Codex, Cursor, OpenCode, Copilot, Kiro, Antigravity) or which mechanism captured it (PostToolUse hook, workflow YAML step, slash command, manual entry).
 
 The schema's purpose is to let the System Steward synthesize across projects, tools, and capture mechanisms without per-source adapters.
 
@@ -284,12 +284,13 @@ This is the deterministic half of routing telemetry — it captures what actuall
 Written by the delivery-lead per `skills/adaptive-model-routing/SKILL.md`, before each agent spawn — the deliberate half of routing telemetry (the rubric decision, not just the outcome):
 
 ```jsonc
-{"ts": "2026-06-28T09:14:00Z", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
+{"ts": "2026-06-28T09:14:00Z", "harness": "claude-code", "agent": "solution-architect", "default_tier": "standard", "chosen_tier": "deep", "score": 8, "reason": "payment + compliance + cross-cutting = deep tier"}
 ```
 
 | Field | Type | Description |
 |---|---|---|
 | `ts` | ISO 8601 UTC | When the routing decision was made |
+| `harness` | enum | Which loop-runner produced the record — `claude-code` \| `codex` \| `antigravity` \| `cursor` \| `opencode` \| `copilot` \| `kiro`. Canonical envelope field on every telemetry row; equivalent to the checkpoint store's `tool`. Older records may omit it; reports tolerate absence. |
 | `agent` | string | Agent the decision applies to |
 | `default_tier` | enum | `deep` \| `standard` \| `light` — the agent's baseline tier per `capability_tier:` in `agents/<agent>.md` |
 | `chosen_tier` | enum | `deep` \| `standard` \| `light` — the tier actually selected after scoring |
@@ -342,7 +343,7 @@ Five additional fields, present on every record, `null` when the harness invocat
 | `cache_creation_input_tokens` | number \| null | From the harness result's `usage.cache_creation_input_tokens` |
 | `total_cost_usd` | number \| null | The harness result's own dollar-cost figure (e.g. Claude Code's `total_cost_usd`), when reported — this is a REAL dollar amount, unlike `cost_proxy` (a relative tier-weighted unit; see "Reading the cost proxy honestly" in `docs/telemetry.md`) |
 
-**How it's captured (claude-code, the default harness):** `scripts/praxis-drive.sh` appends `--output-format json` to the harness command for `harness == claude-code` whenever the configured `governance/autonomy.yaml` `harnesses.claude-code.command` doesn't already contain `--output-format`, and defaults `usage_parse` to `claude-json`. `claude -p ... --output-format json` emits a single result object with a top-level `usage` map and `total_cost_usd`; the runner captures the invocation's stdout to a tempfile and parses it with an embedded python3 helper, tolerant of shape variations (whole-object JSON, line-delimited JSON, missing fields) — any parse failure produces `null`s, never breaks the drive loop. Both the JSON-output flag and the parse strategy are overridable per harness via optional `governance/autonomy.yaml` keys `harnesses.<harness>.json_output_flag` and `harnesses.<harness>.usage_parse` (not required — absent for `codex`/`gemini-cli` today, which get `null` usage fields until/unless those keys are added). `--dry-run` never invokes the harness, so these fields stay `null` in dry-run records, unchanged from before this extension.
+**How it's captured (claude-code, the default harness):** `scripts/praxis-drive.sh` appends `--output-format json` to the harness command for `harness == claude-code` whenever the configured `governance/autonomy.yaml` `harnesses.claude-code.command` doesn't already contain `--output-format`, and defaults `usage_parse` to `claude-json`. `claude -p ... --output-format json` emits a single result object with a top-level `usage` map and `total_cost_usd`; the runner captures the invocation's stdout to a tempfile and parses it with an embedded python3 helper, tolerant of shape variations (whole-object JSON, line-delimited JSON, missing fields) — any parse failure produces `null`s, never breaks the drive loop. Both the JSON-output flag and the parse strategy are overridable per harness via optional `governance/autonomy.yaml` keys `harnesses.<harness>.json_output_flag` and `harnesses.<harness>.usage_parse` (not required — absent for `codex` today, which gets `null` usage fields until/unless those keys are added). `--dry-run` never invokes the harness, so these fields stay `null` in dry-run records, unchanged from before this extension.
 
 **Stop-summary reporting:** when at least one iteration in a run captured `total_cost_usd`, `praxis-drive.sh`'s human summary prints the sum (`real cost (sum of harness total_cost_usd): $X.XXXXXX`); otherwise it prints an honest "real cost: n/a" line.
 
