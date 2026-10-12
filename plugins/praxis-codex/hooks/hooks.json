@@ -19,6 +19,15 @@
             "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PreToolUse || true"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/io-delegate-read.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
