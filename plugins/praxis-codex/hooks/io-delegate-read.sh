@@ -37,7 +37,7 @@ command -v python3 >/dev/null 2>&1 || exit 0
 # Single Python process avoids repeated shell↔python round-trips and handles
 # JSON encoding of the deny payload safely. Fail-open on any exception.
 exec python3 -I - "$SHUNT_MIN_LINES" "$TIMEOUT_S" "$PLUGIN_ROOT" <<'PYEOF'
-import json, os, sys, subprocess, datetime, tempfile, signal
+import json, os, sys, subprocess, datetime, tempfile, signal, shlex
 
 SHUNT_MIN_LINES = int(sys.argv[1])
 TIMEOUT_S = int(sys.argv[2])
@@ -93,6 +93,12 @@ elif isinstance(payload.get("cwd"), str):
     workspace = payload["cwd"]
 
 if not file_path or not os.path.isfile(file_path):
+    allow()
+
+# ── partial read bypass ──────────────────────────────────────────────────
+# If the caller requests a specific offset or limit, they already know what
+# they want — let the read through without delegation.
+if tool_input.get("offset") or tool_input.get("limit"):
     allow()
 
 # ── line count gate ──────────────────────────────────────────────────────
@@ -163,10 +169,12 @@ try:
         tmp.write(prompt)
         tmp_path = tmp.name
 
-    # Use shell to read the prompt file and pipe it
+    # Read prompt from file and pass as argument (no shell=True)
+    with open(tmp_path, "r") as pf:
+        prompt_text = pf.read()
     summary = subprocess.check_output(
-        f'claude --model {model} -p "$(cat {tmp_path})"',
-        shell=True, stderr=subprocess.DEVNULL, timeout=TIMEOUT_S,
+        ["claude", "--model", model, "-p", prompt_text],
+        stderr=subprocess.DEVNULL, timeout=TIMEOUT_S,
     ).decode().strip()
 except (subprocess.TimeoutExpired, subprocess.CalledProcessError, Exception):
     summary = ""

@@ -100,6 +100,12 @@ def main():
     if not file_path or not os.path.isfile(file_path):
         allow()
 
+    # ── partial read bypass ──────────────────────────────────────────────
+    # If the caller requests a specific offset or limit, they already know
+    # what they want — let the read through without delegation.
+    if args.get("offset") or args.get("limit"):
+        allow()
+
     # ── line count gate ──────────────────────────────────────────────────
     try:
         with open(file_path, "r", errors="replace") as f:
