@@ -107,16 +107,18 @@ overlay_skills = src / "skills"
 if overlay_skills.exists():
     place_tree(overlay_skills, out / "skills")
 
-# Lifecycle hooks: the agy telemetry manifest ships at the package root. It is
-# self-contained (inline commands, no sibling script to copy), so it survives
-# `agy plugin install` regardless of which files agy propagates. agy exposes no
-# token/cost/cache or subagent-spawn data, so it logs only what is real:
-# model-per-step (routing), tool activity, and session stops, under the
-# workspace's .project/telemetry/.
+# Lifecycle hooks: the agy hook manifest ships at the package root, and any
+# sibling hook scripts (e.g. io-delegate-read-agy.py) ship alongside it in
+# hooks/. agy exposes no token/cost/cache or subagent-spawn data, so telemetry
+# logs only what is real: model-per-step (routing), tool activity, session stops,
+# and IO delegation decisions.
 hooks_manifest = src / "hooks.json"
 if hooks_manifest.exists():
     shutil.copy2(hooks_manifest, out / "hooks.json")
     record(out / "hooks.json")
+hooks_dir = src / "hooks"
+if hooks_dir.exists():
+    place_tree(hooks_dir, out / "hooks")
 
 # Minimal Antigravity manifest at package root.
 manifest = out / "plugin.json"
