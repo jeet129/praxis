@@ -1676,17 +1676,24 @@ while true; do
     break
   fi
 
+  DRAIN_MODE=0
   if [[ -z "$NEXT_TASK_ID" ]]; then
-    if [[ "$LEDGER_STATE" == "closed" || "$OPEN_COUNT" == "0" ]]; then
-      STOP_REASON="queue drained (no drive-eligible tasks remain in $LEDGER_PATH)"
-      [[ -n "$INTERACTIVE_ONLY_TASKS" ]] && STOP_REASON="$STOP_REASON; interactive-only tasks awaiting a human/session: $INTERACTIVE_ONLY_TASKS"
+    if [[ "$LEDGER_STATE" == "closed" ]]; then
+      STOP_REASON="queue drained (slice already closed)"
       EXIT_CODE=0
-    else
-      STOP_REASON="blocked: no drive-eligible task in $LEDGER_PATH (dependencies unmet, or all remaining tasks exhausted)"
-      [[ -n "$INTERACTIVE_ONLY_TASKS" ]] && STOP_REASON="$STOP_REASON; interactive-only (no verify): $INTERACTIVE_ONLY_TASKS"
-      EXIT_CODE=5
+      break
     fi
-    break
+    if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" && -z "$INTERACTIVE_ONLY_TASKS" ]]; then
+      DRAIN_MODE=1
+      NEXT_TASK_ID="slice-drain"
+      NEXT_TASK_AGENT="delivery-lead"
+      NEXT_TASK_TIER="standard"
+    else
+      STOP_REASON="blocked: slice is open but no drive-eligible task remains in $LEDGER_PATH"
+      [[ -n "$INTERACTIVE_ONLY_TASKS" ]] && STOP_REASON="$STOP_REASON; interactive-only tasks: $INTERACTIVE_ONLY_TASKS"
+      EXIT_CODE=5
+      break
+    fi
   fi
 
   HAD_ANY_ITERATION=1
@@ -1694,7 +1701,11 @@ while true; do
   PROCESSED_TASK_AGENT="$NEXT_TASK_AGENT"
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
-  PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its verify command, update the ledger status/attempts, set stop_flags honestly. Do not wait for user input."
+  if (( DRAIN_MODE == 1 )); then
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: run the required code, security and visual reviews and QA according to the ledger ceremony; resolve or record blockers through the declared fix loop; check acceptance; write the slice-close checkpoint and summary; set state: closed ONLY when all required verdicts and artifacts pass. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
+  else
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its verify command, update the ledger status/attempts, set stop_flags honestly. Do not wait for user input."
+  fi
 
   CMD="${HARNESS_COMMAND//\{prompt\}/$PROMPT}"
   if [[ "$MAX_BUDGET_USD" != "null" && "$HARNESS_BUDGET_FLAG" != "null" ]]; then

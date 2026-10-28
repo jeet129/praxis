@@ -34,9 +34,11 @@ the in-session orchestrator, which must continue.
 
 3. **State the budget and stops once.** Before iterating, tell the user (once): the `stop_after` dial, the `run_budget` caps, the three non-negotiable stops, and that slice-close summaries post to `.project/telemetry/summaries/` regardless of the dial.
 
-4. **Run it.** Offer both paths (a long-running / "run without me" request implies unattended):
-   - **Unattended (deterministic loop):** point the user at `scripts/praxis-drive.sh --project-dir . --harness codex`, which invokes the harness headlessly, loops iteration-to-iteration itself, and enforces `run_budget` caps + stall detection outside this session's context. Each `codex exec` it fires is exactly one delivery-lead iteration; the runner handles the looping. This is the reliable way to drive a whole slice/workflow.
+4. **Run it.** Choose the path from the user's request (a long-running / "run without me" request implies unattended):
+   - **Unattended (deterministic loop):** locate this plugin's `scripts/praxis-drive.sh`, then run `bash <plugin-root>/scripts/praxis-drive.sh --project-dir . --harness codex` yourself and supervise the process until it exits. Its Codex package version includes a slice-drain iteration after implementation tasks finish. Report its exit code and stop reason, and check the ledger's `state` plus review and QA evidence before claiming success. Use `--workflow` only when the user asked to drive the whole workflow. Do not merely hand the command to the user.
    - **In-session (you run the loop):** iterate the drive protocol yourself, **continuously**, within this session. Each pass is delivery-lead (`codex-agents/delivery-lead.toml`) executing exactly one `autonomous-drive` iteration — read ledger + named task context, dispatch/complete, run `verify`, update `status`/`attempts`, apply model routing — then report the outcome and **immediately begin the next pass**. Do NOT stop after one task and wait: keep going through the slice **drain** (full-ceremony code review, security review, QA, closure evidence) and on into the next slice's ledger. Per `skills/autonomous-drive` "stop_after semantics", per-slice review/QA are part of the drain, NOT governance gates — under `stop_after: gate` they do not end the run. Stop cleanly ONLY when a non-negotiable stop (decision point, governance gate, budget/stall/exhaustion) or the dial's `stop_after` boundary is actually reached.
+
+   The Codex-only Stop guard arms for an explicit `$praxis-drive` or `praxis drive` prompt. It can request another in-session pass when an active ledger remains open. It is a bounded fallback; the orchestrator still owns waiting, verification, and the full run budget.
 
 ## What you must not do
 

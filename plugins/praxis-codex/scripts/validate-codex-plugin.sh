@@ -156,12 +156,22 @@ ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f) }' "$PLUGIN"/workflow
 # Generated-package freshness (the stale-mirror class the reviewer hit):
 # key canonical files must be present in the mirror AND byte-identical.
 [[ -f "$PLUGIN/references/phase-gates.md" ]] || fail "mirror is stale: references/phase-gates.md missing from plugins/praxis-codex/ — run scripts/build-codex-plugin.sh"
-for _f in scripts/praxis-drive.sh skills/autonomous-drive/SKILL.md references/loop-contracts.md; do
+for _f in skills/autonomous-drive/SKILL.md references/loop-contracts.md; do
   if [[ -f "$ROOT/$_f" ]]; then
     diff -q "$ROOT/$_f" "$PLUGIN/$_f" >/dev/null 2>&1 \
       || fail "mirror is stale/diverged: $_f differs from canonical — run scripts/build-codex-plugin.sh and commit the result"
   fi
 done
+
+# The Codex runner is deliberately overlaid at build time; the canonical
+# runner remains byte-identical for Claude. Verify the generated drain path.
+grep -q 'DRAIN_MODE=1' "$PLUGIN/scripts/praxis-drive.sh" \
+  || fail "Codex runner is missing the slice-drain overlay"
+if grep -q 'DRAIN_MODE=1' "$ROOT/scripts/praxis-drive.sh"; then
+  fail "Codex slice-drain overlay leaked into the shared runner"
+fi
+[[ -f "$PLUGIN/hooks/codex-continuation.py" ]] \
+  || fail "Codex continuation hook is missing"
 
 [[ -f "$ROOT/.claude-plugin/plugin.json" ]] || fail "Claude plugin manifest was removed"
 [[ -d "$ROOT/.claude/commands" ]] || fail "Claude commands directory was removed"

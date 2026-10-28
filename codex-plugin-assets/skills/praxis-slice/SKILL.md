@@ -22,7 +22,7 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 
 ## Steps
 
-1. Identify the next slice from `.project/working/active-workflow.md` and the phased roadmap. If unclear, ask the user for the slice id.
+1. Identify the next slice from `.project/working/active-workflow.md` and the phased roadmap. If several slices remain possible, choose the next ready roadmap slice; ask only when the choice depends on a user decision.
 
 2. **Launch the delivery-lead subagent session** using `codex-agents/delivery-lead.toml`. Give it this prompt:
 
@@ -84,7 +84,9 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
    slice looks small or only one specialist appears needed.
    ```
 
-3. Do NOT launch a specialist session yourself. delivery-lead is the ONLY session $praxis-slice launches. delivery-lead launches everything else.
+3. Wait for delivery-lead to finish. A dispatched or still-running subagent is not a completed slice. Read its hand-off and inspect the task ledger, review verdicts, acceptance evidence, and slice-close summary on disk. If the ledger remains open or required evidence is absent, send the unfinished step back to the same delivery-lead session and wait again. Continue this supervision loop until the slice is closed with the Slice DoD below satisfied, or a recorded governance gate, decision, budget limit, or blocker requires a stop. Report the exact stop reason and next action; never report success from an agent's short reply alone.
+
+4. Do NOT launch a specialist session yourself. delivery-lead is the ONLY session $praxis-slice launches. delivery-lead launches everything else.
 
 ## What you must not do
 
