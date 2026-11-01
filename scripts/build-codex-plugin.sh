@@ -70,11 +70,24 @@ for name in ("skills", "agents", "workflows", "governance", "references", "patte
     if source.exists():
         place_tree(source, out / name)
 
+# Only the front door, drive/DoD contracts, and Codex command skills appear in
+# the plugin's advertised skill path. Keep the full canonical library under
+# skills/ for direct, on-demand reads by roles without loading 100+ skill
+# descriptions into every Codex session.
+for name in ("using-praxis", "autonomous-drive", "definition-of-done"):
+    place_tree(root / "skills" / name, out / "codex-skills" / name)
 command_skills = src / "skills"
 if command_skills.exists():
     for skill in command_skills.iterdir():
         if skill.is_dir():
+            # Preserve the established direct-reference path for existing
+            # agents and docs; only codex-skills is advertised to the loader.
             place_tree(skill, out / "skills" / skill.name)
+            place_tree(skill, out / "codex-skills" / skill.name)
+
+for doc in (out / "codex-skills").rglob("*.md"):
+    content = doc.read_text()
+    doc.write_text(content.rstrip("\n") + "\n")
 
 codex_agents = src / "codex-agents"
 if codex_agents.exists():
@@ -83,6 +96,10 @@ if codex_agents.exists():
 codex_hooks = src / "hooks"
 if codex_hooks.exists():
     place_tree(codex_hooks, out / "hooks")
+
+codex_scripts = src / "scripts"
+if codex_scripts.exists():
+    place_tree(codex_scripts, out / "scripts")
 
 # Codex's unattended runner must drain a completed task ledger through review,
 # QA and closeout. Keep this overlay in the generated Codex package only: the
@@ -112,7 +129,12 @@ if runner.exists():
 '''
     new = '''  DRAIN_MODE=0
   if [[ -z "$NEXT_TASK_ID" ]]; then
-    if [[ "$LEDGER_STATE" == "closed" ]]; then
+    if [[ "$LEDGER_STATE" == "closed" && "${PRAXIS_CODEX_CLOSEOUT_REPAIR:-0}" == "1" ]]; then
+      DRAIN_MODE=1
+      NEXT_TASK_ID="slice-closeout-repair"
+      NEXT_TASK_AGENT="delivery-lead"
+      NEXT_TASK_TIER="standard"
+    elif [[ "$LEDGER_STATE" == "closed" ]]; then
       STOP_REASON="queue drained (slice already closed)"
       EXIT_CODE=0
       break
@@ -135,15 +157,44 @@ if runner.exists():
   PROCESSED_TASK_AGENT="$NEXT_TASK_AGENT"
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
-  if (( DRAIN_MODE == 1 )); then
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance, write the slice-close checkpoint and summary, and set state: closed ONLY when all required verdicts and artifacts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
+  if [[ "${PRAXIS_CODEX_CLOSEOUT_REPAIR:-0}" == "1" ]]; then
+    PROMPT="You are the Praxis Delivery Lead repairing closeout evidence for ${LEDGER_PATH}. Read .project/working/codex-active-index.json and the ledger closeout_evidence mapping. The controller found a closed state with missing or unverified evidence. In exactly one pass, produce only the missing legitimate review, tests, acceptance, and summary records; never invent a pass or overwrite a failing verdict. If evidence cannot be produced, change state back to draining or set a precise stop flag. Do not re-implement the slice."
+  elif (( DRAIN_MODE == 1 )); then
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance and record evidence file paths under closeout_evidence for code_review, qa, tests, acceptance, summary and applicable security_review or visual_review. Set state: closed ONLY when the files exist and verdicts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
   else
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and only the named context needed for the task. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its focused verify command, update the ledger status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read .project/working/codex-active-index.json, the task ledger at ${LEDGER_PATH}, and only the named task context. Execute exactly ONE drive iteration: take the next eligible task, inspect any partial work if its status is in_progress, complete it, run its focused verify command, update status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
   fi
 '''
     if source.count(old) != 1:
         raise SystemExit("Codex runner overlay anchor changed; update the build patch")
     source = source.replace(old, new)
+
+    # An interrupted controller may resume the one in-progress task after it
+    # reacquires the project lock. The agent inspects partial artifacts first.
+    anchor = '    open_count = len(open_tasks)\n'
+    resume = '''    if next_task is None and os.environ.get("PRAXIS_CODEX_RESUME") == "1":
+        next_task = next((t for t in tasks if t.get("status") == "in_progress"), None)
+
+    open_count = len(open_tasks)
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner resume anchor changed")
+    source = source.replace(anchor, resume)
+
+    # A future governance review recorded as pending must not strand runnable
+    # work. Reached gates and every other stop flag still block that lane.
+    anchor = '  eval "$LEDGER_ENV"\n'
+    if source.count(anchor) != 2:
+        raise SystemExit("Codex runner ledger-stop anchors changed")
+    filter_pending = '''  eval "$LEDGER_ENV"
+  if [[ "${PRAXIS_CODEX_CONTROLLER:-0}" == "1" ]]; then
+    LEDGER_STOP_FLAGS=",${LEDGER_STOP_FLAGS},"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS//,governance_gate_pending,/,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS#,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS%,}"
+  fi
+'''
+    source = source.replace(anchor, filter_pending)
 
     # Resolve nested start directories before selecting governance or telemetry.
     anchor = 'export PRAXIS_HARNESS="$HARNESS"\n'
@@ -245,6 +296,30 @@ RUN_ID="drive-$(date -u +%Y%m%d-%H%M%S)"
     if source.count(anchor) != 1:
         raise SystemExit("Codex runner acceptance anchor changed")
     source = source.replace(anchor, accepted)
+    anchor = '  if [[ "$STOP_AFTER" == "task" ]]; then\n'
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner one-iteration anchor changed")
+    source = source.replace(anchor,
+        '  if [[ "${PRAXIS_CODEX_ONE_ITERATION:-0}" == "1" ]]; then\n'
+        '    STOP_REASON="controller iteration complete"\n'
+        '    EXIT_CODE=0\n'
+        '    break\n'
+        '  fi\n\n' + anchor)
+    # Workflow-drive's nested slice step uses the same Codex controller so
+    # closeout verification and heartbeat also apply end to end.
+    anchor = '''        bash "${BASH_SOURCE[0]}" "${NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested slice-drive run for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+'''
+    nested = '''        if [[ "$HARNESS" == "codex" ]]; then
+          CODEX_NESTED_ARGS=(--project-dir "$PROJECT_DIR" --slice "$SUB_ID")
+          (( DRY_RUN == 1 )) && CODEX_NESTED_ARGS+=(--dry-run)
+          python3 "$SCRIPT_DIR/codex_drive.py" "${CODEX_NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested Codex controller for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+        else
+          bash "${BASH_SOURCE[0]}" "${NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested slice-drive run for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+        fi
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex workflow nested-runner anchor changed")
+    source = source.replace(anchor, nested)
     runner.write_text(source)
 
 # Codex supports SessionEnd as well as turn-scoped Stop. Keep the canonical
@@ -284,9 +359,9 @@ if hooks_json.exists():
 manifest = out / ".codex-plugin" / "plugin.json"
 manifest.write_text(json.dumps({
     "name": "praxis-codex",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Praxis for Codex: agentic development platform for end-to-end software and product delivery.",
-    "skills": "./skills/",
+    "skills": "./codex-skills/",
     "hooks": "./hooks/hooks.json",
 }, indent=2) + "\n")
 record(manifest)

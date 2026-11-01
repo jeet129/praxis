@@ -16,6 +16,7 @@ fail() {
 [[ -d "$PLUGIN" ]] || fail "missing plugin directory: $PLUGIN"
 [[ -f "$PLUGIN/.codex-plugin/plugin.json" ]] || fail "missing Codex plugin manifest"
 [[ -d "$PLUGIN/skills" ]] || fail "missing plugin skills directory"
+[[ -d "$PLUGIN/codex-skills" ]] || fail "missing advertised Codex skills directory"
 [[ -d "$PLUGIN/workflows" ]] || fail "missing plugin workflows directory"
 [[ -d "$PLUGIN/codex-agents" ]] || fail "missing plugin codex-agents directory"
 [[ -f "$PLUGIN/hooks/hooks.json" ]] || fail "missing packaged hooks/hooks.json"
@@ -96,6 +97,8 @@ for field in ("name", "version", "description", "skills"):
         raise SystemExit(f"plugin manifest missing {field}")
 if manifest["name"] != "praxis-codex":
     raise SystemExit("plugin manifest name must be praxis-codex")
+if manifest["skills"] != "./codex-skills/":
+    raise SystemExit("plugin manifest must advertise the scoped Codex skill path")
 
 required_agents = {
     "product-manager",
@@ -139,8 +142,11 @@ for skill in \
   praxis-review \
   praxis-setup-subagents
 do
-  [[ -f "$PLUGIN/skills/$skill/SKILL.md" ]] || fail "missing Codex command skill: $skill"
+  [[ -f "$PLUGIN/codex-skills/$skill/SKILL.md" ]] || fail "missing Codex command skill: $skill"
 done
+
+visible_count=$(find "$PLUGIN/codex-skills" -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l | tr -d '[:space:]')
+[[ "$visible_count" -le 20 ]] || fail "too many advertised Codex skills ($visible_count > 20)"
 
 # Respect TMPDIR; fall back to /tmp only when it's writable, else a repo-local
 # scratch dir — hardcoding /tmp breaks on sandboxes where /tmp is locked.
@@ -148,6 +154,7 @@ SKILL_VAL_OUT="$(mktemp "${TMPDIR:-/tmp}/praxis-codex-skill-validation.XXXXXX" 2
   || mktemp "$ROOT/.praxis-codex-skill-validation.XXXXXX")"
 trap 'rm -f "$SKILL_VAL_OUT"' EXIT
 bash "$ROOT/scripts/validate-skills.sh" "$PLUGIN" >"$SKILL_VAL_OUT"
+bash "$ROOT/scripts/validate-skills.sh" "$ROOT/codex-plugin-assets" >/dev/null
 ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f) }' "$PLUGIN"/workflows/*.yaml "$PLUGIN"/governance/*.yaml
 
 # Generated-package freshness (the stale-mirror class the reviewer hit):
@@ -169,6 +176,10 @@ if grep -q 'DRAIN_MODE=1' "$ROOT/scripts/praxis-drive.sh"; then
 fi
 [[ -f "$PLUGIN/hooks/codex-continuation.py" ]] \
   || fail "Codex continuation hook is missing"
+[[ -f "$PLUGIN/scripts/codex_drive.py" ]] \
+  || fail "Codex lane controller is missing"
+[[ -f "$PLUGIN/scripts/codex_state.py" ]] \
+  || fail "Codex ledger state reader is missing"
 
 [[ -f "$ROOT/.claude-plugin/plugin.json" ]] || fail "Claude plugin manifest was removed"
 [[ -d "$ROOT/.claude/commands" ]] || fail "Claude commands directory was removed"

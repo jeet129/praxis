@@ -24,7 +24,7 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 
 1. Resolve the Praxis root before reading state or launching agents. Run `python3 <plugin-root>/hooks/project_root.py --project-dir "$PWD" --require-agents --check-write` and use the printed absolute path as the working directory for every agent and artifact. If it reports missing profiles, run `$praxis-setup-subagents` at that root and start a new Codex session before dispatch. If it reports a write failure, resolve the workspace/sandbox issue before dispatch. Do not create a second `.project` tree in a nested directory.
 
-2. Identify the next slice from `<project-root>/.project/working/active-workflow.md` and the phased roadmap. If several slices remain possible, choose the next ready roadmap slice; ask only when the choice depends on a user decision.
+2. Read `<project-root>/.project/working/codex-active-index.json` if present, then only the relevant sections of `active-workflow.md` and the phased roadmap. If several slices remain possible, choose the next ready roadmap slice; ask only when the choice depends on a user decision.
 
 3. **Launch the delivery-lead subagent session** using `codex-agents/delivery-lead.toml`. Give it this prompt:
 
@@ -40,6 +40,7 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
       output — the implementation packet at
       .project/working/slice-<slice-id>-packet.md AND the task ledger
       at .project/working/slice-<slice-id>-tasks.yaml, which include:
+        - schema_version: 2 and explicit depends_on_slices (empty when independent)
         - decomposed tasks per specialist
         - dependencies between tasks (on ARTIFACTS, not on agents
           finishing: FE depends on the API contract task, not on the
@@ -84,7 +85,10 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 
    6. Record task completion, local acceptance, integrated closure, and
       release readiness as distinct outcomes. Close the slice only when its
-      Definition of Done is met. If a later governance or release gate remains,
+      Definition of Done is met. Write closeout_evidence file paths for code
+      review, QA, tests, acceptance, summary, and applicable security/visual
+      reviews; verify the files exist and verdicts pass before state: closed.
+      If a later governance or release gate remains,
       record the exact gate and close any independently accepted local unit.
       Write the acceptance verdict and episodic entry.
 

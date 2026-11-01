@@ -455,6 +455,9 @@ def cmd_ledger(ledger_path, task_id_filter=None):
             next_task = t
             break
 
+    if next_task is None and os.environ.get("PRAXIS_CODEX_RESUME") == "1":
+        next_task = next((t for t in tasks if t.get("status") == "in_progress"), None)
+
     open_count = len(open_tasks)
 
     sh("LEDGER_STATE", state)
@@ -1451,7 +1454,13 @@ if (( WORKFLOW_MODE == 1 )); then
         echo "praxis-drive.sh: workflow step $STEP_ID delegates to slice-drive over sub_ledger $WF_NEXT_STEP_SUB_LEDGER (slice $SUB_ID)"
         NESTED_ARGS=(--project-dir "$PROJECT_DIR" --harness "$HARNESS" --slice "$SUB_ID")
         (( DRY_RUN == 1 )) && NESTED_ARGS+=(--dry-run)
-        bash "${BASH_SOURCE[0]}" "${NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested slice-drive run for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+        if [[ "$HARNESS" == "codex" ]]; then
+          CODEX_NESTED_ARGS=(--project-dir "$PROJECT_DIR" --slice "$SUB_ID")
+          (( DRY_RUN == 1 )) && CODEX_NESTED_ARGS+=(--dry-run)
+          python3 "$SCRIPT_DIR/codex_drive.py" "${CODEX_NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested Codex controller for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+        else
+          bash "${BASH_SOURCE[0]}" "${NESTED_ARGS[@]}" || echo "praxis-drive.sh: nested slice-drive run for step $STEP_ID exited non-zero (evaluating step exit anyway)" >&2
+        fi
         ITER_MODEL="null"; ITER_EFFORT="null"
         USAGE_INPUT_TOKENS="null"; USAGE_OUTPUT_TOKENS="null"
         USAGE_CACHE_READ_INPUT_TOKENS="null"; USAGE_CACHE_CREATION_INPUT_TOKENS="null"
@@ -1680,6 +1689,12 @@ while true; do
     break
   fi
   eval "$LEDGER_ENV"
+  if [[ "${PRAXIS_CODEX_CONTROLLER:-0}" == "1" ]]; then
+    LEDGER_STOP_FLAGS=",${LEDGER_STOP_FLAGS},"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS//,governance_gate_pending,/,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS#,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS%,}"
+  fi
   LAST_DONE_COUNT=$DONE_COUNT
   LAST_FAILED_COUNT=$FAILED_COUNT
   LAST_TOTAL_COUNT=$TOTAL_COUNT
@@ -1707,7 +1722,12 @@ while true; do
 
   DRAIN_MODE=0
   if [[ -z "$NEXT_TASK_ID" ]]; then
-    if [[ "$LEDGER_STATE" == "closed" ]]; then
+    if [[ "$LEDGER_STATE" == "closed" && "${PRAXIS_CODEX_CLOSEOUT_REPAIR:-0}" == "1" ]]; then
+      DRAIN_MODE=1
+      NEXT_TASK_ID="slice-closeout-repair"
+      NEXT_TASK_AGENT="delivery-lead"
+      NEXT_TASK_TIER="standard"
+    elif [[ "$LEDGER_STATE" == "closed" ]]; then
       STOP_REASON="queue drained (slice already closed)"
       EXIT_CODE=0
       break
@@ -1736,10 +1756,12 @@ while true; do
   PROCESSED_TASK_AGENT="$NEXT_TASK_AGENT"
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
-  if (( DRAIN_MODE == 1 )); then
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance, write the slice-close checkpoint and summary, and set state: closed ONLY when all required verdicts and artifacts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
+  if [[ "${PRAXIS_CODEX_CLOSEOUT_REPAIR:-0}" == "1" ]]; then
+    PROMPT="You are the Praxis Delivery Lead repairing closeout evidence for ${LEDGER_PATH}. Read .project/working/codex-active-index.json and the ledger closeout_evidence mapping. The controller found a closed state with missing or unverified evidence. In exactly one pass, produce only the missing legitimate review, tests, acceptance, and summary records; never invent a pass or overwrite a failing verdict. If evidence cannot be produced, change state back to draining or set a precise stop flag. Do not re-implement the slice."
+  elif (( DRAIN_MODE == 1 )); then
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance and record evidence file paths under closeout_evidence for code_review, qa, tests, acceptance, summary and applicable security_review or visual_review. Set state: closed ONLY when the files exist and verdicts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
   else
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and only the named context needed for the task. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its focused verify command, update the ledger status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read .project/working/codex-active-index.json, the task ledger at ${LEDGER_PATH}, and only the named task context. Execute exactly ONE drive iteration: take the next eligible task, inspect any partial work if its status is in_progress, complete it, run its focused verify command, update status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
   fi
 
   CMD="${HARNESS_COMMAND//\{prompt\}/$PROMPT}"
@@ -1837,6 +1859,12 @@ while true; do
     break
   fi
   eval "$LEDGER_ENV"
+  if [[ "${PRAXIS_CODEX_CONTROLLER:-0}" == "1" ]]; then
+    LEDGER_STOP_FLAGS=",${LEDGER_STOP_FLAGS},"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS//,governance_gate_pending,/,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS#,}"
+    LEDGER_STOP_FLAGS="${LEDGER_STOP_FLAGS%,}"
+  fi
   LAST_DONE_COUNT=$DONE_COUNT
   LAST_FAILED_COUNT=$FAILED_COUNT
   LAST_TOTAL_COUNT=$TOTAL_COUNT
@@ -1900,6 +1928,12 @@ while true; do
   if awk "BEGIN{exit !($COST_ACCUM > $COST_CEILING_PROXY)}"; then
     STOP_REASON="budget: cost_ceiling_proxy ($COST_CEILING_PROXY) exceeded (accrued $COST_ACCUM)"
     EXIT_CODE=4
+    break
+  fi
+
+  if [[ "${PRAXIS_CODEX_ONE_ITERATION:-0}" == "1" ]]; then
+    STOP_REASON="controller iteration complete"
+    EXIT_CODE=0
     break
   fi
 
