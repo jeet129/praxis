@@ -78,6 +78,13 @@ case "$HARNESS" in
   *) echo "praxis-drive.sh: unsupported --harness '$HARNESS' (want claude-code|codex)" >&2; exit 1 ;;
 esac
 export PRAXIS_HARNESS="$HARNESS"
+if [[ "$HARNESS" == "codex" ]]; then
+  if ! PROJECT_DIR="$(python3 "$SCRIPT_DIR/../hooks/project_root.py" --project-dir "$PROJECT_DIR" --require-agents --check-write)"; then
+    echo "praxis-drive.sh: Codex project preflight failed before dispatch" >&2
+    exit 2
+  fi
+  echo "praxis-drive: Codex project root $PROJECT_DIR"
+fi
 
 # Apply project-level overrides now that PROJECT_DIR is resolved.
 if [[ -f "$PROJECT_DIR/.project/governance/autonomy.yaml" ]]; then
@@ -1151,6 +1158,10 @@ if [[ -z "${HARNESS_COMMAND:-}" ]]; then
   exit 1
 fi
 
+if [[ "$HARNESS" == "codex" && "$HARNESS_COMMAND" != *"--sandbox"* ]]; then
+  HARNESS_COMMAND="$HARNESS_COMMAND --sandbox workspace-write"
+fi
+
 if [[ -n "$MAX_ITERATIONS_OVERRIDE" ]]; then
   MAX_ITERATIONS_PER_RUN="$MAX_ITERATIONS_OVERRIDE"
 fi
@@ -1290,10 +1301,9 @@ if (( WORKFLOW_MODE == 1 )); then
     else
       local iter_stdout
       iter_stdout="$(mktemp -t praxis-drive-wf-stdout.XXXXXX)"
-      if ! ( cd "$PROJECT_DIR" && eval "$cmd" > "$iter_stdout" ); then
+      if ! ( cd "$PROJECT_DIR" && eval "$cmd" | tee "$iter_stdout" | python3 "$SCRIPT_DIR/../hooks/codex_stream.py" ); then
         echo "praxis-drive.sh: harness invocation exited non-zero for workflow step $step_id" >&2
       fi
-      cat "$iter_stdout"
       local usage_env
       if usage_env="$(python3 "$PY_HELPER" parse_usage "$iter_stdout" "$USAGE_PARSE")"; then
         eval "$usage_env"
@@ -1605,6 +1615,25 @@ if (( WORKFLOW_MODE == 1 )); then
   exit $EXIT_CODE
 fi
 
+codex_checkpoint() {
+  python3 - "$PROJECT_DIR" "$RUN_ID" "$ITERATION" "$1" "$2" "$3" <<'PYCODEX'
+import json, os, sys, tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+root, run_id, iteration, slice_id, task_id, status = sys.argv[1:]
+target = Path(root) / ".project" / "telemetry" / "codex-drive-progress.json"
+record = {"run_id": run_id, "iteration": int(iteration), "slice": slice_id,
+          "task": task_id, "status": status,
+          "updated_at": datetime.now(timezone.utc).isoformat()}
+with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent,
+                                 prefix=".codex-progress-", delete=False) as out:
+    json.dump(record, out)
+    out.write("\n")
+    temporary = out.name
+os.replace(temporary, target)
+PYCODEX
+}
+
 RUN_ID="drive-$(date -u +%Y%m%d-%H%M%S)"
 ITERATION=0
 STALL_COUNT=0
@@ -1683,6 +1712,12 @@ while true; do
       EXIT_CODE=0
       break
     fi
+    if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" ]] &&
+       grep -Eq '^local_acceptance_met:[[:space:]]*true([[:space:]]|$)' "$LEDGER_PATH"; then
+      STOP_REASON="local acceptance met ($LEDGER_SLICE); integrated closeout remains: $LEDGER_STATE"
+      EXIT_CODE=0
+      break
+    fi
     if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" && -z "$INTERACTIVE_ONLY_TASKS" ]]; then
       DRAIN_MODE=1
       NEXT_TASK_ID="slice-drain"
@@ -1702,9 +1737,9 @@ while true; do
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
   if (( DRAIN_MODE == 1 )); then
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: run the required code, security and visual reviews and QA according to the ledger ceremony; resolve or record blockers through the declared fix loop; check acceptance; write the slice-close checkpoint and summary; set state: closed ONLY when all required verdicts and artifacts pass. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance, write the slice-close checkpoint and summary, and set state: closed ONLY when all required verdicts and artifacts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
   else
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its verify command, update the ledger status/attempts, set stop_flags honestly. Do not wait for user input."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and only the named context needed for the task. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its focused verify command, update the ledger status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
   fi
 
   CMD="${HARNESS_COMMAND//\{prompt\}/$PROMPT}"
@@ -1762,6 +1797,8 @@ while true; do
     CMD="$CMD $JSON_OUTPUT_FLAG"
   fi
 
+  codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "running"
+
   # Usage/cost fields default to null; only overwritten below when the
   # harness actually ran and produced parseable JSON (fail-soft: --dry-run,
   # a non-JSON harness, or a parse error all leave these null, never break
@@ -1777,10 +1814,9 @@ while true; do
     echo "[dry-run] iteration $ITERATION — would invoke: $CMD"
   else
     ITER_STDOUT="$(mktemp -t praxis-drive-iter-stdout.XXXXXX)"
-    if ! ( cd "$PROJECT_DIR" && eval "$CMD" > "$ITER_STDOUT" ); then
+    if ! ( cd "$PROJECT_DIR" && eval "$CMD" | tee "$ITER_STDOUT" | python3 "$SCRIPT_DIR/../hooks/codex_stream.py" ); then
       echo "praxis-drive.sh: harness invocation exited non-zero on iteration $ITERATION" >&2
     fi
-    cat "$ITER_STDOUT"
     if USAGE_ENV="$(python3 "$PY_HELPER" parse_usage "$ITER_STDOUT" "$USAGE_PARSE")"; then
       eval "$USAGE_ENV"
     else
@@ -1825,6 +1861,8 @@ while true; do
   TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   python3 "$PY_HELPER" append_record "$DRIVE_JSONL" "$TS" "$RUN_ID" "$ITERATION" "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$PROCESSED_TASK_AGENT" "$PROCESSED_TASK_TIER" "$OUTCOME" "$HASH_AFTER" "$LEDGER_STOP_FLAGS" "$WEIGHT" \
     "$USAGE_INPUT_TOKENS" "$USAGE_OUTPUT_TOKENS" "$USAGE_CACHE_READ_INPUT_TOKENS" "$USAGE_CACHE_CREATION_INPUT_TOKENS" "$USAGE_TOTAL_COST_USD" "${ITER_MODEL:-null}" "slice" "null" "null" "none" "${ITER_EFFORT:-null}" "${USAGE_REASONING_OUTPUT_TOKENS:-null}"
+
+  codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$OUTCOME"
 
   # ---- Always-on stop checks (fire regardless of stop_after) ----
   if [[ -n "$LEDGER_STOP_FLAGS" ]]; then
@@ -1873,6 +1911,8 @@ while true; do
 
   # stop_after in {phase, gate}: rely on stop_flags/budget/stall only — keep looping.
 done
+
+codex_checkpoint "$LAST_SLICE" "" "$STOP_REASON"
 
 # --------------------------------------------------------------------------
 # Human summary

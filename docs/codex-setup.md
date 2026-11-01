@@ -68,6 +68,8 @@ $praxis-start
 
 `$praxis-setup-subagents` copies the bundled Codex subagent profiles into the target repo's `.codex/agents/` directory. Restart Codex or start a new session after installing subagents.
 
+Start the Codex session at the repository root when possible. `$praxis-slice` and `$praxis-drive` resolve the nearest ancestor containing `.project/working`, check project write access, and require the coordinator and review profiles before dispatch. A nested start directory such as `infra/local-demo` uses the root `.project` state; a missing profile or unwritable root stops before an agent is launched. After a plugin update, run `$praxis-setup-subagents` again in the target repository and start a new session to load refreshed profiles.
+
 Then use:
 
 ```text
@@ -87,9 +89,9 @@ The `$praxis-*` commands run the same 9 workflows as Claude Code's slash command
 
 ## Telemetry hooks (token capture)
 
-The Codex package ships a hooks manifest wired to Codex's own event vocabulary — notably `Stop` (Codex's turn-scoped end event; Codex has no `SessionEnd`, which is Claude Code's event). On `Stop`, the tap writes a valid JSON acknowledgement and records this session's token totals to `.project/telemetry/tokens.jsonl` as an upsert (one line per session, refreshed — never double-counted, even though `Stop` can fire per turn). Run `/hooks` after install and confirm the Praxis hooks are trusted for the session, or capture won't run.
+The Codex package ships a hooks manifest wired to Codex's event vocabulary, including turn-scoped `Stop` and `SessionEnd`. On `Stop`, the tap writes a valid JSON acknowledgement and records this session's token totals to `.project/telemetry/tokens.jsonl` as an upsert (one line per session, refreshed — never double-counted, even though `Stop` can fire per turn). Run `/hooks` after install and confirm the Praxis hooks are trusted for the session, or capture won't run.
 
-An explicit `$praxis-drive` or `praxis drive` prompt also arms a Codex-only, session-scoped Stop guard. While an active slice ledger remains open, the guard can request another turn; it stops on ledger stop flags, a closed slice, the configured task/phase boundary, or its no-progress/iteration cap. The agent still owns the workflow budget and gate decisions. The packaged `scripts/praxis-drive.sh --harness codex` now performs a slice-drain iteration for reviews, QA, and closeout after implementation tasks finish; an open slice is not reported as a drained queue. These behaviors require trusted hooks for the interactive guard, but the unattended runner works independently of hook trust.
+An explicit `$praxis-drive` or `praxis drive` prompt also arms a Codex-only, session-scoped Stop guard. While an active slice ledger remains open, the guard can request another turn; it stops on ledger stop flags, a closed slice, the configured task/phase boundary, or its no-progress/iteration cap. The agent still owns the workflow budget and gate decisions. The packaged `scripts/praxis-drive.sh --harness codex` performs a slice-drain iteration for formal reviews, QA, and closeout after implementation tasks finish; an open slice is not reported as a drained queue. The runner requests `workspace-write` for `codex exec`, streams compact progress while retaining full JSONL for usage accounting, and writes `.project/telemetry/codex-drive-progress.json` after each iteration. A locally accepted unit awaiting commit or delivery is reported as locally accepted, not as a fully closed slice. The interactive guard requires trusted hooks; the unattended runner works independently of hook trust.
 
 Per-iteration model routing for `codex exec` (in the drive loop) is applied as `-c model_reasoning_effort=<level>` from the task's capability tier; `model` stays the harness default while `governance/model-routing.yaml`'s `codex.model_map` is `auto`. See `docs/model-routing.md`.
 

@@ -21,17 +21,14 @@ fail() {
 [[ -f "$PLUGIN/hooks/hooks.json" ]] || fail "missing packaged hooks/hooks.json"
 grep -q '"hooks"' "$PLUGIN/.codex-plugin/plugin.json" || fail "packaged plugin.json missing \"hooks\" key"
 
-# Codex hook-event vocabulary. Codex has NO `SessionEnd` (its turn-scoped
-# `Stop` is the analog); shipping an unsupported event name in the Codex
-# package is a silent no-op that would drop end-of-session token capture.
-# Allowlist per the Codex hooks reference; reject anything outside it, and
-# require `Stop` (so token capture is actually wired for Codex).
+# Allowlist per the Codex hooks reference. SessionEnd and turn-scoped Stop
+# are both supported; require Stop for the continuation guard.
 python3 - "$PLUGIN/hooks/hooks.json" <<'PY'
 import json, sys
 supported = {
     "SessionStart", "SubagentStart", "PreToolUse", "PermissionRequest",
     "PostToolUse", "PreCompact", "PostCompact", "UserPromptSubmit",
-    "SubagentStop", "Stop",
+    "SubagentStop", "Stop", "SessionEnd",
 }
 events = set(json.load(open(sys.argv[1])).get("hooks", {}))
 bad = sorted(events - supported)
@@ -39,7 +36,7 @@ if bad:
     raise SystemExit(
         "packaged hooks/hooks.json registers Codex-unsupported event(s): "
         + ", ".join(bad)
-        + " (Codex has no SessionEnd — use Stop). Rebuild via scripts/build-codex-plugin.sh."
+        + " (see the Codex hooks reference). Rebuild via scripts/build-codex-plugin.sh."
     )
 if "Stop" not in events:
     raise SystemExit(

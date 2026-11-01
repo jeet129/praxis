@@ -136,29 +136,124 @@ if runner.exists():
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
   if (( DRAIN_MODE == 1 )); then
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: run the required code, security and visual reviews and QA according to the ledger ceremony; resolve or record blockers through the declared fix loop; check acceptance; write the slice-close checkpoint and summary; set state: closed ONLY when all required verdicts and artifacts pass. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). The implementation tasks in ${LEDGER_PATH} are all done, but the slice is NOT closed. Execute exactly ONE slice-drain pass: launch one formal Code/UX/Security/QA review round for the integrated slice; on a blocker, return it to the owner and re-review only affected surfaces. Check acceptance, write the slice-close checkpoint and summary, and set state: closed ONLY when all required verdicts and artifacts pass. Record local acceptance separately from integrated closure and release readiness. If a governance gate or human decision is required, set stop_flags honestly and stop. Do not claim queue drained while state is open."
   else
-    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its verify command, update the ledger status/attempts, set stop_flags honestly. Do not wait for user input."
+    PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and only the named context needed for the task. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its focused verify command, update the ledger status/attempts, set stop_flags honestly. Do not launch formal Code/UX/Security/QA review while implementation tasks remain. Do not wait for user input."
   fi
 '''
     if source.count(old) != 1:
         raise SystemExit("Codex runner overlay anchor changed; update the build patch")
-    runner.write_text(source.replace(old, new))
+    source = source.replace(old, new)
 
-# Harness-correct the mirror's hook events. Codex's hook vocabulary has NO
-# `SessionEnd` (verified against the Codex hooks reference); its turn-scoped
-# `Stop` event is the analog. The canonical hooks.json is Claude-shaped
-# (SessionEnd fires once for Claude), so for the MIRROR only we: drop the
-# Codex-unsupported `SessionEnd`, and add `Stop` routed to the same tap.sh
-# handler. tap.sh's capture is an upsert keyed by session id (Stop is turn-
-# scoped and may fire per turn), so this cannot double-count. Every other event
-# kept here (SessionStart, PostToolUse, UserPromptSubmit, SubagentStart,
-# SubagentStop) is in Codex's supported set.
+    # Resolve nested start directories before selecting governance or telemetry.
+    anchor = 'export PRAXIS_HARNESS="$HARNESS"\n'
+    root_check = '''export PRAXIS_HARNESS="$HARNESS"
+if [[ "$HARNESS" == "codex" ]]; then
+  if ! PROJECT_DIR="$(python3 "$SCRIPT_DIR/../hooks/project_root.py" --project-dir "$PROJECT_DIR" --require-agents --check-write)"; then
+    echo "praxis-drive.sh: Codex project preflight failed before dispatch" >&2
+    exit 2
+  fi
+  echo "praxis-drive: Codex project root $PROJECT_DIR"
+fi
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner root-preflight anchor changed")
+    source = source.replace(anchor, root_check)
+
+    # codex exec defaults to a read-only sandbox; explicit workspace-write is
+    # required for the delivery lead to update the ledger and implementation.
+    anchor = 'if [[ -n "$MAX_ITERATIONS_OVERRIDE" ]]; then\n'
+    sandbox = '''if [[ "$HARNESS" == "codex" && "$HARNESS_COMMAND" != *"--sandbox"* ]]; then
+  HARNESS_COMMAND="$HARNESS_COMMAND --sandbox workspace-write"
+fi
+
+if [[ -n "$MAX_ITERATIONS_OVERRIDE" ]]; then
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner sandbox anchor changed")
+    source = source.replace(anchor, sandbox)
+
+    # Keep full JSONL for usage accounting, but show only concise live events
+    # to avoid feeding large tool payloads back into the supervising context.
+    for before, after in (
+        ('eval "$cmd" > "$iter_stdout"',
+         'eval "$cmd" | tee "$iter_stdout" | python3 "$SCRIPT_DIR/../hooks/codex_stream.py"'),
+        ('      cat "$iter_stdout"\n', ''),
+        ('eval "$CMD" > "$ITER_STDOUT"',
+         'eval "$CMD" | tee "$ITER_STDOUT" | python3 "$SCRIPT_DIR/../hooks/codex_stream.py"'),
+        ('    cat "$ITER_STDOUT"\n', ''),
+    ):
+        if source.count(before) != 1:
+            raise SystemExit(f"Codex runner stream anchor changed: {before}")
+        source = source.replace(before, after)
+
+    # A small durable status file lets a resumed Codex session see the current
+    # iteration without re-reading a large workflow document or raw JSONL.
+    anchor = 'RUN_ID="drive-$(date -u +%Y%m%d-%H%M%S)"\n'
+    checkpoint = '''codex_checkpoint() {
+  python3 - "$PROJECT_DIR" "$RUN_ID" "$ITERATION" "$1" "$2" "$3" <<'PYCODEX'
+import json, os, sys, tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+root, run_id, iteration, slice_id, task_id, status = sys.argv[1:]
+target = Path(root) / ".project" / "telemetry" / "codex-drive-progress.json"
+record = {"run_id": run_id, "iteration": int(iteration), "slice": slice_id,
+          "task": task_id, "status": status,
+          "updated_at": datetime.now(timezone.utc).isoformat()}
+with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=target.parent,
+                                 prefix=".codex-progress-", delete=False) as out:
+    json.dump(record, out)
+    out.write("\\n")
+    temporary = out.name
+os.replace(temporary, target)
+PYCODEX
+}
+
+RUN_ID="drive-$(date -u +%Y%m%d-%H%M%S)"
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner checkpoint anchor changed")
+    source = source.replace(anchor, checkpoint)
+
+    anchor = '  # Usage/cost fields default to null; only overwritten below when the\n'
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner iteration-start anchor changed")
+    source = source.replace(anchor,
+        '  codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "running"\n\n' + anchor)
+    anchor = '  # ---- Always-on stop checks (fire regardless of stop_after) ----\n'
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner iteration-end anchor changed")
+    source = source.replace(anchor,
+        '  codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$OUTCOME"\n\n' + anchor)
+    anchor = '# --------------------------------------------------------------------------\n# Human summary\n# --------------------------------------------------------------------------\nREMAINING='
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner final checkpoint anchor changed")
+    source = source.replace(anchor,
+        'codex_checkpoint "$LAST_SLICE" "" "$STOP_REASON"\n\n' + anchor)
+
+    # Local acceptance is a real milestone even when commit, joint QA or
+    # release authorization is deliberately deferred. Do not claim closure.
+    anchor = '    if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" && -z "$INTERACTIVE_ONLY_TASKS" ]]; then\n'
+    accepted = '''    if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" ]] &&
+       grep -Eq '^local_acceptance_met:[[:space:]]*true([[:space:]]|$)' "$LEDGER_PATH"; then
+      STOP_REASON="local acceptance met ($LEDGER_SLICE); integrated closeout remains: $LEDGER_STATE"
+      EXIT_CODE=0
+      break
+    fi
+    if [[ "$TOTAL_COUNT" -gt 0 && "$DONE_COUNT" == "$TOTAL_COUNT" && "$FAILED_COUNT" == "0" && -z "$INTERACTIVE_ONLY_TASKS" ]]; then
+'''
+    if source.count(anchor) != 1:
+        raise SystemExit("Codex runner acceptance anchor changed")
+    source = source.replace(anchor, accepted)
+    runner.write_text(source)
+
+# Codex supports SessionEnd as well as turn-scoped Stop. Keep the canonical
+# SessionEnd tap and add Stop for in-session continuation and turn telemetry.
+# tap.sh upserts by session id, so the two events cannot double-count.
 hooks_json = out / "hooks" / "hooks.json"
 if hooks_json.exists():
     data = json.loads(hooks_json.read_text())
     hooks = data.get("hooks", {})
-    hooks.pop("SessionEnd", None)   # Codex has no SessionEnd
     tap_cmd = 'TAP="${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh"; [ -f "$TAP" ] && bash "$TAP" Stop || true'
     guard_cmd = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/codex-continuation.py" Stop'
     arm_cmd = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/codex-continuation.py" UserPromptSubmit'

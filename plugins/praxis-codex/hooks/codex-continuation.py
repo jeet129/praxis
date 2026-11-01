@@ -7,6 +7,8 @@ import re
 import sys
 from pathlib import Path
 
+from project_root import find_project_root
+
 MAX_CONTINUATIONS = 40
 MAX_UNCHANGED = 2
 DRIVE_PROMPT = re.compile(r"^\s*(?:\$praxis-drive|praxis drive)\b", re.I)
@@ -45,7 +47,9 @@ def decide(input_data: dict, event: str) -> dict:
     cwd_value = input_data.get("cwd")
     if not isinstance(session_id, str) or not session_id or not isinstance(cwd_value, str):
         return {}
-    cwd = Path(cwd_value)
+    cwd = find_project_root(Path(cwd_value))
+    if cwd is None:
+        return {}
     marker = marker_path(cwd, session_id)
 
     if event == "UserPromptSubmit":
@@ -73,14 +77,13 @@ def decide(input_data: dict, event: str) -> dict:
             if first.is_file() and top_value(first.read_text(), "state") == "closed":
                 marker.unlink(missing_ok=True)
                 return {}
-        active = next((p for p in ledgers if top_value(p.read_text(), "state") != "closed"), None)
+        active = next((p for p in ledgers
+                       if top_value(p.read_text(), "state") != "closed"
+                       and not has_stop_flags(p.read_text())), None)
         if active is None:
             marker.unlink(missing_ok=True)
             return {}
         source = active.read_text()
-        if has_stop_flags(source):
-            marker.unlink(missing_ok=True)
-            return {}
         statuses = re.findall(r"^\s+status:\s*([\w-]+)", source, re.M)
         if not statuses or any(s in ("failed", "blocked") for s in statuses):
             marker.unlink(missing_ok=True)
