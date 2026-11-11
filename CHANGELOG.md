@@ -11,6 +11,33 @@ minor versions until it stabilizes.
 
 ## [Unreleased]
 
+### Added
+- **Shared guard hook (`hooks/praxis_guard.py`) for Claude Code, Codex and Antigravity.** One script enforces: kill switch (`.project/STOP`), operator steering (`.project/STEER.md`), read-only reviewer agents, and an evidence gate (a ledger task cannot move to `done` without `verify-<id>.log`; a `verify-<id>.exit` file must contain 0), with a stop-time re-check. `PRAXIS_EVIDENCE_GATE=enforce|warn|off`. Decisions log to `.project/telemetry/guard.jsonl`. 34 contract tests (`scripts/test-praxis-guard.sh`).
+- **Sandboxed Codex reviewers (`scripts/codex_review.py`).** Formal code, security and architecture reviews run as a separate `codex exec --sandbox read-only` process with a JSON verdict, because Codex ignores `sandbox_mode` in role files.
+- **Antigravity:** agents now get a model tier (`model: pro|flash`) and translated tool names at build time; a SessionStart hook injects the project summary; a Stop hook keeps an armed drive on the ledger (`scripts/praxis-goal.py --arm`).
+- **Evaluation suite (`evals/`)** for `claude plugin eval`: a trigger case for all 31 Tier A skills, 3 negative cases, 1 behaviour case; `scripts/validate-evals.py` in CI. `scripts/eval-harness-triggers.py` runs the same cases on Codex and Antigravity and grades from evidence (a `SKILL.md` read, or a logged tool call).
+- **Claude Code workflow scripts** in `claude-workflows/` (`/praxis:pre-merge-review`, `/praxis:evidence-audit`), wired through the manifest `workflows` field; checked offline by `scripts/validate-claude-workflows.js`.
+- **Parallel Codex lanes (`scripts/codex_lanes.py`)**: independent slices run in separate git worktrees and merge back one at a time; a conflict is aborted and the branch kept.
+- **Heartbeat (`scripts/praxis-heartbeat.sh`)**: install, remove or check a scheduled `praxis-drive.sh` run with overlap lock and kill-switch skip.
+- **Automatic goal arming:** `/drive` arms a Stop-hook continuation on Claude Code and Antigravity; `/praxis-drive` calls Codex `create_goal` when `features.goals` is on.
+- **`scripts/praxis-status.py`** (one status view from `.project/` files for any tool) and **`scripts/praxis-goal.py`** (file-checkable goal text for each tool's `/goal`).
+- **Operator notification:** `summaries.notify_command` in `governance/autonomy.yaml`; `run_budget.max_subagent_depth` / `max_concurrent_subagents` exported to Claude Code.
+- `docs/long-running.md`.
+
+### Changed
+- **Skill descriptions cut to fit the listing budgets.** Two tiers (`listing_tier: A` up to 160 chars, `B` up to 60); total listing about 9,600 chars, down from about 60,400, so Claude Code and Codex no longer drop or truncate skills. Enforced by `scripts/validate-skill-listing.py`.
+- **IO delegation rebuilt.** Hooks now only block a large unscoped read and point to `skills/io-delegation/scripts/bulk-read.sh`, which asks the light-tier model. Added a Bash hook for `cat`/`head`/`tail`. Uses `hookSpecificOutput.permissionDecision`. 23 contract tests.
+- `praxis-setup-subagents` writes `[skills] max_context_tokens` and `[agents] max_concurrent_threads_per_session` to the project Codex config.
+- Model names removed from `llm-cost-optimization` and the promptfoo reference (they were retired models); `io-delegation` added to the Claude plugin manifest (it was missing); skill count 91 to 92.
+
+### Fixed
+- **SessionStart banner never reached the model** (it was written to stderr; Claude Code only passes stdout). Now stdout, capped at 6,000 chars.
+- **The previous IO-delegation Read hook was a no-op:** its heredoc took over stdin, so it never received the hook payload and always allowed the read.
+- Codex spawn tracking now reads `tool_input.agent_type` and matches `spawn_agent`; Codex hook commands also resolve `PLUGIN_ROOT`.
+- Nested helper sessions (`PRAXIS_NESTED=1`) no longer write telemetry or trigger hooks recursively.
+- Unquoted colons in four Antigravity command-skill descriptions.
+- Removed the unused `strict` field from the Claude plugin manifest.
+
 ## [0.2.0] — 2026-09-26
 
 ### Added

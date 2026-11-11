@@ -229,3 +229,9 @@ $praxis-start
 ```
 
 You should see the delivery-planner bootstrap questions (mode, data plane, ML, compliance, scale, stack) — the same interview Claude Code's `/start` runs. If `$praxis-*` commands aren't recognized, re-run `$praxis-setup-subagents` and start a new Codex session (subagent profiles only load at session start).
+
+## Long-running controls (v0.3.0)
+
+Kill switch (`.project/STOP`), steering (`.project/STEER.md`), the evidence gate, read-only reviewers, goals and the status view work the same on every tool. See [long-running.md](long-running.md).
+
+Codex specifics: formal reviews run in a separate read-only process (`scripts/codex_review.py`), because Codex ignores `sandbox_mode` in role files. `praxis-setup-subagents` writes `[skills] max_context_tokens = 8000` and `[agents] max_concurrent_threads_per_session` to `.codex/config.toml`; without the first, Codex truncates the skill catalog. IO delegation is not available on Codex (file reads go through shell commands, which the hook cannot safely rewrite).

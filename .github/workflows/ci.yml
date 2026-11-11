@@ -186,6 +186,31 @@ jobs:
           done
           exit $fail
 
+      - name: Guard, IO-delegation and reviewer contract tests
+        run: |
+          set -e
+          bash scripts/test-praxis-guard.sh
+          bash scripts/test-io-delegation.sh
+          bash scripts/test-praxis-heartbeat.sh
+          python3 -m unittest discover -s codex-plugin-assets/tests -p 'test_*.py'
+
+      - name: Eval suite is well formed
+        run: python3 scripts/validate-evals.py
+
+      - name: Claude workflow scripts are well formed
+        run: node scripts/validate-claude-workflows.js
+
+      - name: Antigravity plugin package is fresh (rebuild must produce no diff)
+        run: |
+          set -e
+          bash scripts/build-antigravity-plugin.sh
+          if ! git diff --quiet plugins/praxis-antigravity/; then
+            echo "ERROR: plugins/praxis-antigravity/ is stale — run scripts/build-antigravity-plugin.sh and commit the result."
+            git diff --stat plugins/praxis-antigravity/ | tail -20
+            exit 1
+          fi
+          bash scripts/validate-antigravity-plugin.sh
+
       - name: Codex plugin package is fresh (rebuild must produce no diff)
         run: |
           set -e

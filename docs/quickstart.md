@@ -18,7 +18,7 @@ The Codex section follows. For the full install playbook
 ```
 
 `praxis@praxis` is `<plugin-name>@<marketplace-name>` (both are `praxis`). That
-is the whole install — all 12 slash commands, 18 agents, 91 SKILLs, 9 workflows,
+is the whole install — all 12 slash commands, 18 agents, 92 SKILLs, 9 workflows,
 and the SessionStart hook are now installed. **Restart Claude Code — start a new
 session — so they load.** `/reload-skills` and `/reload-plugins` hot-reload
 skills/agents mid-session, but a fresh session is the reliable way to fully activate
@@ -61,7 +61,7 @@ config (governance.yaml) to list the 6 core gates + 13 conditional.
 ```
 
 Expected: 12 slash commands (`/start /discover /architect /slice /release
-/audit /steward /review /refine-idea /factory-record /drive`), 91 SKILLs, 18 agents,
+/audit /steward /review /refine-idea /factory-record /drive`), 92 SKILLs, 18 agents,
 19 gates (6 core + 13 conditional). If any count is off: for a plugin install
 run `/plugin` and confirm `praxis` shows installed and enabled; for the copy
 install re-run it with `--dry-run` and compare against what it would create.

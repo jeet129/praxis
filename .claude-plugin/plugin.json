@@ -1,7 +1,7 @@
 {
   "name": "praxis",
   "version": "0.2.0",
-  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 91 SKILLs, 18 role agents, 9 workflows, governance gates, project memory taxonomy.",
+  "description": "Praxis — production-grade skill library + agents + workflows + governance for AI-augmented software delivery. 92 SKILLs, 18 role agents, 9 workflows, governance gates, project memory taxonomy.",
   "author": {
     "name": "Jitesh",
     "email": "jitesh921@gmail.com"
@@ -9,8 +9,8 @@
   "homepage": "https://github.com/jeet129/praxis",
   "repository": "https://github.com/jeet129/praxis",
   "license": "MIT",
-  "strict": false,
   "commands": "./commands",
+  "workflows": "./claude-workflows",
   "skills": [
     "./skills/accessibility",
     "./skills/adaptive-model-routing",
@@ -56,6 +56,7 @@
     "./skills/iac",
     "./skills/impact-analysis",
     "./skills/incident-runbook",
+    "./skills/io-delegation",
     "./skills/legacy-modernization",
     "./skills/llm-cost-optimization",
     "./skills/llm-safety",

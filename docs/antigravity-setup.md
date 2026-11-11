@@ -241,8 +241,8 @@ activity, not cost** — by platform limitation, not by choice.
 
 Format: the manifest is authored at `antigravity-plugin-assets/hooks.json`,
 copied verbatim into the package by `scripts/build-antigravity-plugin.sh`, and
-its shape (top-level named hooks; only `agy`'s five events —
-`PreToolUse`/`PostToolUse` grouped, `PreInvocation`/`PostInvocation`/`Stop`
+its shape (top-level named hooks; only `agy`'s six events —
+`PreToolUse`/`PostToolUse` grouped, `SessionStart`/`PreInvocation`/`PostInvocation`/`Stop`
 flat) is asserted by `scripts/validate-antigravity-plugin.sh`, which rejects a
 Claude-format `{"hooks": {…}}` leak (that shape makes `agy` report
 `hooks: 1 processed` but silently register no handlers).
@@ -259,7 +259,7 @@ input / output / cache-read / cache-write token counts, and `agy` exposes
 **none of them anywhere**. This was verified exhaustively (Sep 2026, `agy`
 1.1.24) so the next person does not have to re-investigate:
 
-- **Hook payloads** — no token fields on any of the five events (confirmed
+- **Hook payloads** — no token fields on any hook event (confirmed
   against a live `Stop` payload capture, not just the docs).
 - **Transcripts** — `transcript.jsonl` and `transcript_full.jsonl` (and their
   `chunks/`) carry no `UsageMetadata` / token keys on a deep scan.
@@ -297,4 +297,14 @@ would only add the token fields to those rows and turn on the break-even math.
 Until then, Claude Code / Codex remain the harnesses where cache economics are
 measured (`hooks/tap.sh`); routing itself is correctness-first on every harness, with the pre-flight advisory.
 
-**Agent definitions ship tier-only on agy.** Because agy applies no per-agent model, the packaged agents carry only `capability_tier:` (deep/standard/light) — the build strips the Claude `model:`/`effort:` frontmatter the canonical agents use, so the agy package never advertises a model it cannot select. Resolve a tier to a concrete agy model by hand via `/model` using the mapping above.
+**Agent definitions carry an agy model tier and agy tool names (v0.3.0).** Antigravity custom agents accept `model: inherit | flash | pro` and a `tools:` allowlist of Antigravity tool names ([Custom subagents](https://antigravity.google/docs/subagents)). The build therefore maps each agent's `capability_tier:` to the tier in `governance/model-routing.yaml` (`antigravity.map`: deep → `pro`, standard/light → `flash`), drops Claude's `effort:` (agy has no per-agent effort field), and translates Claude tool names (`Read` → `view_file`, `Grep` → `grep_search`, `Glob` → `find_by_name`/`list_dir`, `Bash` → `run_command`, `Write` → `write_to_file`, `Edit` → `replace_file_content`/`multi_replace_file_content`, `Task` → `invoke_subagent`). A Claude tool name in an agy agent can hang the subagent, so `scripts/validate-antigravity-plugin.sh` fails on any name outside agy's documented list. The main session's model and reasoning effort are still the operator's choice (`/model`). Earlier releases shipped tier-only agents because per-agent model selection was not available then.
+
+**Session context (v0.3.0).** A `SessionStart` hook (`hooks/session-start-agy.py`, its own `praxis-session-context` group) injects a short project summary — charter, active workflow, recent ADRs, front-door reminder — through `injectSteps`. `SessionStart` needs a recent `agy`; if `/hooks` shows no Praxis handlers after install, your `agy` predates it: remove the `praxis-session-context` group from `hooks.json` and reinstall.
+
+**IO delegation (v0.3.0).** The `praxis-io-delegation` group matches `view_file` only and blocks a whole-file view of a source file over 350 lines, pointing the agent at `skills/io-delegation/scripts/bulk-read.sh`. See `skills/io-delegation/SKILL.md`.
+
+## Long-running controls (v0.3.0)
+
+Kill switch (`.project/STOP`), steering (`.project/STEER.md`), the evidence gate, read-only reviewers, goals and the status view work the same on every tool. See [long-running.md](long-running.md).
+
+Antigravity specifics: hooks fail open (a hook error allows the action), so treat the guards as strong defaults, not a security boundary. Argument names for `write_to_file` are not documented; if the evidence gate never fires on your version, check `.project/telemetry/antigravity-activity.jsonl` for the real names and report them. To keep a drive going, arm it with `python3 scripts/praxis-goal.py --slice <id> --arm`.

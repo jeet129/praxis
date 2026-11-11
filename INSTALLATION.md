@@ -12,7 +12,7 @@ Maintainers publishing plugin packages should also read `docs/plugin-builds.md`.
 
 Before installing, calibrate expectations. The library ships with:
 
-✅ **91 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
+✅ **92 SKILLs** that an AI agent reads and follows, each with anti-rationalization + verification.
 ✅ **18 role agents** the AI can adopt, each declaring an abstract `capability_tier` (`deep | standard | light`) — 5 `deep`, 11 `standard`, 1 `light` — instead of a hardcoded model. See "Model routing & cost" in `README.md` and the full story in `docs/model-routing.md`.
 ✅ **9 workflows** orchestrating multi-step delivery.
 ✅ **12 slash commands** that map intent to skill sequences: `/start /intake /discover /architect /audit /slice /release /review /steward /refine-idea /factory-record /drive`.
@@ -137,7 +137,7 @@ Expected output:
 ==> Installing Claude Code layout → /home/you/dev/test-aidp/.claude
   [dry-run] would create /home/you/dev/test-aidp/.claude
   [dry-run] would copy agents/ (17 files)
-  [dry-run] would copy skills/ (91 skills; skipped 0 tombstones)
+  [dry-run] would copy skills/ (92 skills; skipped 0 tombstones)
   [dry-run] would copy workflows/ (9 files)
   ...
 ==> Creating project memory tree → /home/you/dev/test-aidp/.project
@@ -195,7 +195,7 @@ find .project -type d | wc -l
 **Check 2 — Validator passes:**
 ```bash
 bash .claude/scripts/validate-skills.sh ~/dev/test-aidp/.claude
-# Expected: a "Library health" line reporting 91 skills (a ⚠ review-zone note above ~90 is informational, not a failure)
+# Expected: a "Library health" line reporting 92 skills (a ⚠ review-zone note above ~90 is informational, not a failure)
 # Failures = 0
 ```
 
@@ -243,7 +243,7 @@ The bundled `try-as-plugin.sh` script:
 Flags: `--dry-run` (preview), `--init` (create `.project/` memory tree first), `--help`.
 
 **What you get with plugin-dir loading:**
-- All 91 SKILLs available.
+- All 92 SKILLs available.
 - All 18 agents available.
 - All 12 slash commands available (`/start`, `/discover`, etc.).
 - SessionStart hook fires.
@@ -274,11 +274,11 @@ Confirm you can see the Praxis. Specifically:
    13 conditional gates.
 4. Tell me how many SKILLs and agents you can see.
 
-Expected: 12 slash commands, 91 SKILLs, 18 agents, governance gates as listed.
+Expected: 12 slash commands, 92 SKILLs, 18 agents, governance gates as listed.
 If anything differs, report.
 ```
 
-Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 91 SKILLs, 18 agents.
+Expected response from Claude: lists 12 slash commands, the workflow routing tree, 6+11 gates (17 total), 92 SKILLs, 18 agents.
 
 If the response is incomplete or wrong, the install is partial — check Section 4 (Troubleshooting).
 
