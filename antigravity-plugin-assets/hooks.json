@@ -44,13 +44,51 @@
   "praxis-io-delegation": {
     "PreToolUse": [
       {
+        "matcher": "view_file",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "S=\"${PLUGIN_ROOT:-.}/hooks/io-delegate-read-agy.py\"; [ -f \"$S\" ] && python3 -I \"$S\" || printf '{\"decision\":\"allow\"}\\n'"
+          }
+        ]
+      }
+    ]
+  },
+  "praxis-session-context": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "timeout": 10,
+        "command": "S=\"${PLUGIN_ROOT:-.}/hooks/session-start-agy.py\"; [ -f \"$S\" ] && python3 -I \"$S\" || printf '{}\\n'"
+      }
+    ]
+  },
+  "praxis-guard": {
+    "PreToolUse": [
+      {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-${AGY_PLUGIN_ROOT:-${ANTIGRAVITY_PLUGIN_ROOT:-}}}/hooks/io-delegate-read-agy.py\"; [ -f \"$SCRIPT\" ] && python3 -I \"$SCRIPT\" || printf '{\"decision\":\"allow\"}\\n'"
+            "timeout": 10,
+            "command": "S=\"${PLUGIN_ROOT:-.}/hooks/praxis_guard.py\"; [ -f \"$S\" ] && python3 -I \"$S\" pretool --harness antigravity || printf '{\"decision\":\"allow\"}\\n'"
           }
         ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "timeout": 15,
+        "command": "S=\"${PLUGIN_ROOT:-.}/hooks/praxis_guard.py\"; [ -f \"$S\" ] && python3 -I \"$S\" stop --harness antigravity || printf '{}\\n'"
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "timeout": 10,
+        "command": "S=\"${PLUGIN_ROOT:-.}/hooks/praxis_guard.py\"; [ -f \"$S\" ] && python3 -I \"$S\" steer --harness antigravity || printf '{}\\n'"
       }
     ]
   }

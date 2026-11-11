@@ -66,19 +66,16 @@ harnesses:
       standard: auto
       light: auto
 
-  # ADVISORY ONLY — agy applies NOTHING from this block. Antigravity honors no
-  # per-agent model selection: subagents inherit the session model, hooks cannot
-  # set a model, and the SDK config exposes no model field (see
-  # docs/antigravity-setup.md, "Cache-aware routing on Antigravity"). This is the
-  # documented tier -> model+effort recommendation the operator/agent applies BY
-  # HAND via `/model` and `--effort`. Values are model FAMILY + effort, NOT pinned
-  # version slugs (which drift every Gemini release) — resolve to your account's
-  # current slug, e.g. deep -> gemini-<ver>-pro-high,
-  # standard -> gemini-<ver>-flash-medium, light -> gemini-<ver>-flash-low.
-  # Nothing in the build/apply/report pipeline reads this block;
-  # apply-model-routing.py parses and ignores it (it writes only claude-code and codex).
+  # Antigravity custom agents accept a per-agent MODEL TIER
+  # (`model: inherit | flash | pro`; antigravity.google/docs/subagents).
+  # scripts/build-antigravity-plugin.sh reads `map` below and writes that tier
+  # into each packaged agent's frontmatter from its capability_tier, so tier
+  # routing is APPLIED on agy for subagents. Values are tiers, not version slugs.
+  # `effort_map` stays advisory: agy has no per-agent effort field, so reasoning
+  # depth is still chosen by hand (`/model`). The main session's own model is
+  # also the operator's choice. apply-model-routing.py does not write agy files.
   antigravity:
-    field: model            # advisory label only; NO file is written for agy
+    field: model            # written into plugins/praxis-antigravity/agents/*.md by the agy build
     map:
       deep: pro
       standard: flash
