@@ -1,6 +1,6 @@
 ---
 name: praxis-intake
-description: Use when a new requirement arrives in steady state (story, epic, ticket, stakeholder ask, or change request) after the initial discover/architect rounds are done. The single front door — triage, right-size, and route it via requirements-intake so the user never picks a workflow by hand. Triggers on "new story", "new requirement", "intake this", "we got a ticket", "add this feature".
+description: "Use when a new story, epic, ticket or change request arrives in steady state; triages size, impact and owner, then routes it. Triggers: praxis intake."
 ---
 
 <!-- praxis:metadata:begin -->

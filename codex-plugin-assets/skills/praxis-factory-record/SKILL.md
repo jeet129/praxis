@@ -1,6 +1,6 @@
 ---
 name: praxis-factory-record
-description: Use when the user wants to record a rich factory-metrics observation for steward review — "record what we learned", "capture an observation", "factory record", "log this for the steward". Codex analogue of Claude Code's /factory-record.
+description: "Use when recording a factory-metrics observation about a Praxis skill, agent or workflow for steward review. Triggers: record what we learned."
 ---
 
 <!-- praxis:metadata:begin -->

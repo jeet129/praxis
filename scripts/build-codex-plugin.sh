@@ -329,11 +329,34 @@ hooks_json = out / "hooks" / "hooks.json"
 if hooks_json.exists():
     data = json.loads(hooks_json.read_text())
     hooks = data.get("hooks", {})
+    # IO delegation is not supported on Codex (reads go through shell commands,
+    # there is no Read tool to intercept), so drop the Claude Code io-delegate
+    # PreToolUse entries instead of shipping dead matchers.
+    if "PreToolUse" in hooks:
+        hooks["PreToolUse"] = [e for e in hooks["PreToolUse"]
+                               if "io-delegate" not in json.dumps(e)]
     tap_cmd = 'TAP="${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh"; [ -f "$TAP" ] && bash "$TAP" Stop || true'
     guard_cmd = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/codex-continuation.py" Stop'
     arm_cmd = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/codex-continuation.py" UserPromptSubmit'
+    # Shared Praxis guard (kill switch, read-only reviewers, evidence gate):
+    # same script as Claude Code, Codex payload/tool names. Codex edits files
+    # with apply_patch and spawns agents with spawn_agent.
+    for entries in hooks.values():
+        for e in entries:
+            m = e.get("matcher")
+            if m == "Write|Edit|MultiEdit|NotebookEdit":
+                e["matcher"] = "apply_patch|Edit|Write"
+            elif m == "Task|Agent":
+                e["matcher"] = "Task|Agent|spawn_agent|collaborationspawn_agent"
+            elif m and "Task|Agent" in m:
+                e["matcher"] = m + "|spawn_agent|collaborationspawn_agent|apply_patch"
+            for hk in e.get("hooks", []):
+                if "praxis_guard.py" in hk.get("command", ""):
+                    hk["command"] = hk["command"].replace("--harness claude-code", "--harness codex")
+    evidence_cmd = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py" stop --harness codex || true'
     hooks["Stop"] = [{"hooks": [
         {"type": "command", "command": tap_cmd},
+        {"type": "command", "command": evidence_cmd},
         {"type": "command", "command": guard_cmd},
     ]}]
     hooks.setdefault("UserPromptSubmit", []).append({"hooks": [{"type": "command", "command": arm_cmd}]})
@@ -341,7 +364,7 @@ if hooks_json.exists():
     # ${CLAUDE_PLUGIN_ROOT}; if the Codex runtime exposes a different var the
     # [ -f "$TAP" ] guard silently no-ops every hook. Rewrite all commands to a
     # fallback chain so either var works.
-    chain = "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}"
+    chain = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}"
     def _rewrite(node):
         if isinstance(node, dict):
             if isinstance(node.get("command"), str):

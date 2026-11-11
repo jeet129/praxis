@@ -51,6 +51,8 @@ def decide(input_data: dict, event: str) -> dict:
     if cwd is None:
         return {}
     marker = marker_path(cwd, session_id)
+    if event == "Stop" and (cwd / ".project" / "STOP").exists():
+        return {}  # operator kill switch: never continue a stopped drive
 
     if event == "UserPromptSubmit":
         prompt = input_data.get("prompt", "")
