@@ -57,17 +57,26 @@ done
 n_agents=$(ls "$PLUGIN"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
 [[ "$n_agents" == "18" ]] || fail "expected 18 markdown agents, found $n_agents"
 
-# Antigravity honors no per-agent model (subagents inherit the session model;
-# hooks cannot set one; the SDK config has no model field). The build strips the
-# Claude `model:`/`effort:` frontmatter from the agy agents, leaving the
-# harness-agnostic `capability_tier:`. Assert that held: every agy agent must
-# declare a tier and must NOT re-introduce a model/effort line (which would
-# advertise a model agy cannot use). See docs/antigravity-setup.md.
+# Antigravity agents take a model TIER (`model: inherit|flash|flash_lite|pro`) and
+# a `tools:` allowlist of agy tool names (antigravity.google/docs/subagents). The
+# build maps capability_tier -> model and translates Claude tool names. Assert it
+# held: a Claude model/effort or a Claude tool name here would be ignored or,
+# for tools, can hang the subagent.
+AGY_TOOLS="view_file write_to_file replace_file_content multi_replace_file_content list_dir find_by_name grep_search search_web read_url_content run_command manage_task schedule list_permissions ask_permission invoke_subagent define_subagent send_message manage_subagents ask_question generate_image"
 for af in "$PLUGIN"/agents/*.md; do
   grep -qE '^capability_tier:' "$af" || fail "agy agent $(basename "$af") missing capability_tier"
-  if grep -qE '^(model|effort):' "$af"; then
-    fail "agy agent $(basename "$af") carries model:/effort: frontmatter — agy honors no per-agent model; rebuild (scripts/build-antigravity-plugin.sh) to strip it"
+  grep -qE '^model: (inherit|flash|flash_lite|pro)$' "$af" \
+    || fail "agy agent $(basename "$af") needs 'model: inherit|flash|flash_lite|pro' — rebuild (scripts/build-antigravity-plugin.sh)"
+  if grep -qE '^effort:' "$af"; then
+    fail "agy agent $(basename "$af") carries effort: frontmatter — agy has no per-agent effort; rebuild to strip it"
   fi
+  tools_line=$(grep -m1 -E '^tools:' "$af" | sed -E 's/^tools:[[:space:]]*//; s/[][,]/ /g')
+  for tool in $tools_line; do
+    case " $AGY_TOOLS " in
+      *" $tool "*) ;;
+      *) fail "agy agent $(basename "$af") lists non-Antigravity tool '$tool' — rebuild to translate it" ;;
+    esac
+  done
 done
 
 # Freshness: canonical files copied as-is must be byte-identical in the mirror.
@@ -118,7 +127,7 @@ if grep -rEn 'Task\(\{|CLAUDE_PLUGIN_ROOT|--tool[[:space:]]+claude-code|~/\.clau
 fi
 
 # Lifecycle hooks: the telemetry manifest must exist AND be in agy's real format
-# (top-level named hooks; only the five agy events). This guards against the
+# (top-level named hooks; only the six agy events). This guards against the
 # Claude-format leak ({"hooks": {SessionStart|UserPromptSubmit|Subagent*...}})
 # that agy counts as "1 processed" but silently drops every handler.
 [[ -f "$PLUGIN/hooks.json" ]] || fail "missing hooks.json (agy telemetry manifest) at package root"
@@ -127,16 +136,16 @@ diff -q "$OVERLAY/hooks.json" "$PLUGIN/hooks.json" >/dev/null 2>&1 \
   || fail "mirror stale: plugins/praxis-antigravity/hooks.json differs from antigravity-plugin-assets/hooks.json — rebuild"
 python3 - "$PLUGIN/hooks.json" <<'PYHOOK'
 import json, sys
-ALLOWED = {"PreToolUse", "PostToolUse", "PreInvocation", "PostInvocation", "Stop"}
+ALLOWED = {"SessionStart", "PreToolUse", "PostToolUse", "PreInvocation", "PostInvocation", "Stop"}
 GROUPED = {"PreToolUse", "PostToolUse"}
 # Claude Code events that agy does NOT support; their presence is the exact bug
 # that makes agy count the hook but register no handlers.
-CLAUDE = {"SessionStart", "SessionEnd", "UserPromptSubmit", "SubagentStart",
+CLAUDE = {"SessionEnd", "UserPromptSubmit", "SubagentStart",
           "SubagentStop", "Notification", "PreCompact", "Stop"} - ALLOWED
 d = json.load(open(sys.argv[1]))
 if not isinstance(d, dict) or not d:
     raise SystemExit("hooks.json must be a non-empty object of named hooks")
-if "hooks" in d and isinstance(d["hooks"], dict) and set(d["hooks"]) & (ALLOWED | {"SessionStart"}):
+if "hooks" in d and isinstance(d["hooks"], dict) and set(d["hooks"]) & ALLOWED:
     raise SystemExit('hooks.json uses the Claude {"hooks": {events}} wrapper; agy '
                      'expects TOP-LEVEL NAMED hooks (e.g. {"praxis-telemetry": {...}})')
 seen_events = set()

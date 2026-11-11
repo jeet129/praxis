@@ -4,8 +4,11 @@
 # Surfaces the project context at session start. Fires when Claude Code
 # opens a session in a directory where this hook is installed.
 #
-# Output is written to stderr (per Claude Code hook contract); appears in
-# the user's session prelude.
+# Output is written to STDOUT. For SessionStart hooks that exit 0, Claude Code
+# and Codex add plain stdout to the model's context; stderr is never shown to
+# the model (code.claude.com/docs/en/hooks). Keep the banner short: Claude Code
+# caps hook context at 10,000 characters and Codex at ~2,500 tokens by default,
+# so hooks/tap.sh truncates it to 6,000 characters.
 
 set -u
 
@@ -60,7 +63,7 @@ fi
   echo "================================================================"
   echo "  Praxis — session start"
   echo "================================================================"
-} >&2
+}
 
 # Charter
 if [[ -f "$PROJECT_DIR/semantic/project-charter.md" ]]; then
@@ -68,12 +71,12 @@ if [[ -f "$PROJECT_DIR/semantic/project-charter.md" ]]; then
     echo ""
     echo "Project charter (from .project/semantic/project-charter.md):"
     head -40 "$PROJECT_DIR/semantic/project-charter.md" | sed 's/^/  /'
-  } >&2
+  }
 else
   {
     echo ""
     echo "⚠️  No project charter found. Run /start to bootstrap."
-  } >&2
+  }
 fi
 
 # Active workflow
@@ -82,7 +85,7 @@ if [[ -f "$PROJECT_DIR/working/active-workflow.md" ]]; then
     echo ""
     echo "Active workflow:"
     head -10 "$PROJECT_DIR/working/active-workflow.md" | sed 's/^/  /'
-  } >&2
+  }
 fi
 
 # Library counts (only if library is installed)
@@ -94,7 +97,7 @@ if [[ -n "$LIBRARY_ROOT" ]]; then
     echo ""
     echo "Library loaded: $N_SKILLS skills · $N_AGENTS agents · $N_WORKFLOWS workflows"
     echo "  (target health band: 70-90 skills; review at 91+; consolidate at 101+)"
-  } >&2
+  }
 fi
 
 # Recent ADRs (last 5)
@@ -105,7 +108,7 @@ if [[ -d "$PROJECT_DIR/decision" ]]; then
       echo ""
       echo "Recent decisions (ADRs):"
       echo "$RECENT" | xargs -I{} basename {} | sed 's/^/  · /'
-    } >&2
+    }
   fi
 fi
 
@@ -116,7 +119,7 @@ if [[ -f "$PROJECT_DIR/operational/debt-register.md" ]]; then
     {
       echo ""
       echo "Debt register: $N_DEBT items (per tech-debt-management)"
-    } >&2
+    }
   fi
 fi
 
@@ -129,7 +132,7 @@ if [[ -d "$PROJECT_DIR/operational/factory-metrics" ]]; then
       {
         echo ""
         echo "⚠️  Quarterly steward cadence overdue ($AGE_DAYS days since last factory report). Run /steward."
-      } >&2
+      }
     fi
   fi
 fi
@@ -142,7 +145,7 @@ if [[ -n "$GOV_DRIFT" ]]; then
     echo "    plugin default aren't in your .project/governance/ copy — e.g. codex"
     echo "    effort-routing). Your tuning is safe. To merge the new keys in:"
     echo "      bash \"$PLUGIN_ROOT/scripts/refresh-governance-overrides.sh\" --apply \"$PROJ\""
-  } >&2
+  }
 fi
 
 # Slash command reminder
@@ -152,6 +155,6 @@ fi
   echo "Front-door SKILL: using-praxis"
   echo "================================================================"
   echo ""
-} >&2
+}
 
 exit 0

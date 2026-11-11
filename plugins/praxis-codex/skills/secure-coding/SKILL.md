@@ -1,6 +1,6 @@
 ---
 name: secure-coding
-description: "OWASP-aligned secure coding practice. Input validation at boundaries, output encoding, parameterized queries, safe deserialization, authn/authz checks at the right layer, crypto usage, SSRF/XXE defenses, secrets-in-code prevention, PII handling at log boundaries. Applied during code writing (developer agents) and at code review (Security Reviewer agent) as a merge gate. Use whenever code is being written that handles input from any external boundary, persists or transmits sensitive data, or makes authorization decisions. Pushy trigger because security findings are the most expensive failure mode to discover post-deployment."
+description: "OWASP-aligned secure coding: input validation, output encoding, parameterised queries, authz checks, secrets handling. Use when writing or reviewing code."
 ---
 
 # Secure Coding
@@ -10,6 +10,7 @@ description: "OWASP-aligned secure coding practice. Input validation at boundari
 capability: quality-and-security
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
  - engineering-standards
 triggers:

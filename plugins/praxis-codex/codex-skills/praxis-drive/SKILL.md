@@ -1,6 +1,6 @@
 ---
 name: praxis-drive
-description: Use when starting or resuming an autonomous drive run in Codex — iterating the active task ledger unattended or in-session. Triggers on "praxis drive", "keep going autonomously", "run this without me", or resuming a paused drive session.
+description: "Use when starting or resuming an autonomous Praxis drive run in Codex, unattended or in-session. Triggers: praxis drive, keep going, run this without me."
 ---
 
 <!-- praxis:metadata:begin -->
@@ -52,3 +52,12 @@ the in-session orchestrator, which must continue.
 
 Full per-iteration protocol: `skills/autonomous-drive` (canonical). Loop contract and task ledger schema: `../../references/loop-contracts.md`. Autonomy dial: `../../governance/autonomy.yaml`.
 Codex controller extensions and recovery: `references/controller-contract.md`.
+
+## Operator controls and guards
+
+- **Reviews:** the formal review round uses `scripts/codex_review.py` (see `praxis-slice`), a separate read-only process.
+- **Stop now:** `touch .project/STOP` makes every tool call fail until the file is removed.
+- **Steer:** write a note to `.project/STEER.md`; it is injected at the next prompt and archived.
+- **Evidence gate:** a ledger task cannot move to `done` without its `verify-<id>.log` (and `verify-<id>.exit` containing 0 when present). Set `PRAXIS_EVIDENCE_GATE=warn` to log instead of block.
+- **Goal (automatic):** when the `create_goal` tool is available (Codex `features.goals`), call it once before the first in-session iteration with the objective printed by `python3 "$PLUGIN_ROOT/scripts/praxis-goal.py" --slice <id> --project-dir "$TARGET"`. The user asking you to drive is the explicit request that tool requires. Call `update_goal` with the completed status when the slice closes. If the tool is not available, carry on: the Praxis continuation hook keeps an armed drive going on its own.
+- **Parallel lanes:** to run several independent slices at once, each in its own git worktree, use `python3 "$PLUGIN_ROOT/scripts/codex_lanes.py" --project-dir "$TARGET" --max-parallel 2` (try `--dry-run` first). Only lanes whose ledger declares `depends_on_slices` (use `[]` for "independent") are eligible. Lanes merge back one at a time; a conflict is aborted and the branch is kept for a manual merge. Never resolve such a conflict by overwriting another lane's work.

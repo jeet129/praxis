@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: "Visual design craft for UI that reads as designed, not generated: deliberate aesthetic direction grounded in the product's subject, a token system chosen for THIS brief, one justified signature element, typography that carries personality, and interface copy written as design material. Use when implementing or reviewing any user-facing surface — new screens, redesigns, marketing/landing pages, dashboards — and whenever generated UI looks templated or generic. Distinct from `design-system` (maintains the token/component system; this skill decides what the system should express), `stack-web-frontend` (framework engineering idioms), and `wireframing-prototyping` (interaction structure; this skill owns the visual treatment of that structure). Works on every harness — no tool dependency; pairs with design tools when available per references/design-tooling.md."
+description: "Visual design craft for UI that reads as designed, not generated: direction, tokens, critique pass, interface copy. Use when building or reviewing UI."
 ---
 
 # Frontend Design
@@ -10,6 +10,7 @@ description: "Visual design craft for UI that reads as designed, not generated: 
 capability: design
 domain: frontend
 state: experimental
+listing_tier: A
 dependencies:
   - design-system
   - stack-web-frontend

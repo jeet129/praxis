@@ -1,6 +1,6 @@
 ---
 name: deploy-release
-description: "Release workflow and deployment strategies. Rolling / blue-green / canary / progressive delivery, feature flags, semantic versioning + changelog discipline, rollback discipline, image-signature verification before pull, post-deploy verification, and the production_go_live gate evidence package. Platform/SRE owns deployments; Backend + Frontend Developers consume the deploy pipeline as the path their artifacts take to production. Use whenever a release is being designed, when a new deployment strategy is being chosen, or when a rollback is being planned."
+description: "Release workflow and deployment strategy: rolling, blue-green, canary, flags, versioning, rollback. Use when planning or running a release."
 ---
 
 # Deploy & Release
@@ -10,6 +10,7 @@ description: "Release workflow and deployment strategies. Rolling / blue-green /
 capability: build-and-deploy
 domain: infra
 state: active
+listing_tier: A
 dependencies:
  - cicd-pipeline
  - containerization

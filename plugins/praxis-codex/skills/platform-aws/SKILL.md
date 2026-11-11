@@ -1,6 +1,6 @@
 ---
 name: platform-aws
-description: "AWS cloud-specific reference pack. Managed-service catalog (EKS / RDS / S3 / Aurora / DynamoDB / EventBridge / SQS / SNS / Step Functions / Lambda / API Gateway), networking (VPC / Transit Gateway / PrivateLink / ALB / NLB / CloudFront), identity (IAM / IRSA / SSO / KMS), observability (CloudWatch / X-Ray), DR topology (multi-AZ default; multi-region patterns), cost levers (Savings Plans / Reserved Instances / Spot), Well-Architected Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for AWS-specific implementation. Selected when AWS is the project's cloud per governance.yaml."
+description: "AWS reference pack: services, IAM, networking, patterns."
 ---
 
 # Platform — AWS
@@ -10,6 +10,7 @@ description: "AWS cloud-specific reference pack. Managed-service catalog (EKS / 
 capability: platform
 domain: infra
 state: active
+listing_tier: B
 dependencies:
   - iac
   - platform-k8s

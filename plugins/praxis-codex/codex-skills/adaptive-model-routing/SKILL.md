@@ -1,6 +1,6 @@
 ---
 name: adaptive-model-routing
-description: "Routes tasks to the right reasoning-effort tier (high / medium / low — the Codex resolution of Praxis capability tiers deep / standard / light per governance/model-routing.yaml) based on task complexity, novelty, stakes, and interdependency. Prevents wasteful high-reasoning consumption on tasks medium handles equally well, and prevents quality failures from routing complex tasks to low reasoning. The Delivery Lead runs this SKILL every time it opens a new specialist session. Use whenever an agent session is about to be launched, when selecting a model_reasoning_effort for the current session, or when a prior attempt failed and escalation is being considered."
+description: "Routes each task to the right reasoning-effort tier (high, medium, low) by complexity, novelty and stakes. Use when spawning agents or tuning cost."
 ---
 
 # Adaptive Model Routing (Codex variant)

@@ -1,6 +1,6 @@
 ---
 name: requirements-elicitation
-description: "Convert validated product-discovery outputs into structured, testable requirements with explicit acceptance criteria, assumptions, open questions, and scope boundaries. Runs a clarifying-question loop before any design work begins — the discipline that prevents architecture and implementation from running on ambiguous foundations. Use whenever discovery has produced an opportunity brief + MVP scope hypothesis and the project is ready to enter design. Distinct from `requirements-interrogation` (which is the per-agent phase-entry KUACQ procedure) — this is the structured front-end discovery-to-requirements activity owned by the PM."
+description: "Turns discovery output into testable requirements with acceptance criteria, assumptions and open questions. Use when defining what to build."
 ---
 
 # Requirements Elicitation
@@ -10,6 +10,7 @@ description: "Convert validated product-discovery outputs into structured, testa
 capability: discovery
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - product-discovery
 triggers:

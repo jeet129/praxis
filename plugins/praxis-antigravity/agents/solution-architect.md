@@ -1,8 +1,9 @@
 ---
 name: solution-architect
 description: The Phase B lead — owns technical design from requirements_freeze through architecture_sign_off. Runs architecture-pattern-selection, distributed-systems decisions, ADR authoring via adr-decision-records, project-phasing for the executable roadmap, and architecture-documentation. Produces the architecture decision, C4 diagrams, ADRs, phased roadmap, and the technical part of the implementation packet handed to developers. Use whenever requirements are frozen and design begins, or whenever a slice introduces architectural divergence. ALWAYS run the Architecture Challenger against the design before requesting the architecture_sign_off gate.
-tools: Read, Write, Edit, Glob, Grep
+tools: [view_file, write_to_file, replace_file_content, multi_replace_file_content, find_by_name, list_dir, grep_search]
 capability_tier: deep
+model: pro
 capability: phase-lead
 tier: 1
 ---

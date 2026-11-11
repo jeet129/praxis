@@ -85,6 +85,9 @@ if [[ "$HARNESS" == "codex" ]]; then
   fi
   echo "praxis-drive: Codex project root $PROJECT_DIR"
 fi
+# Tells hooks this session belongs to the unattended runner, which owns the
+# loop itself (the in-session goal continuation must not also continue it).
+export PRAXIS_DRIVE_RUNNER=1
 
 # Apply project-level overrides now that PROJECT_DIR is resolved.
 if [[ -f "$PROJECT_DIR/.project/governance/autonomy.yaml" ]]; then
@@ -255,6 +258,16 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     sh("COST_WEIGHT_LIGHT", gov["cost_weights"].get("light", 0.25))
     sh("SUMMARIES_SLICE_CLOSE_DIR", summaries.get("slice_close", ".project/telemetry/summaries/"))
     sh("SUMMARIES_NOTIFY", summaries.get("notify", "terminal"))
+    # Operator notification: a shell command run when the drive stops (it gets
+    # PRAXIS_NOTIFY_* env vars). Empty/null = off.
+    _nc = str(summaries.get("notify_command") or "null").strip()
+    if len(_nc) >= 2 and _nc[0] == _nc[-1] and _nc[0] in "'\"":
+        _nc = _nc[1:-1]   # the tolerant parser keeps YAML quotes; a `#` in the command is not supported
+    sh("SUMMARIES_NOTIFY_COMMAND", _nc or "null")
+    # Subagent fan-out bounds, exported to the harness (Claude Code reads
+    # CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH / CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS).
+    sh("MAX_SUBAGENT_DEPTH", run_budget.get("max_subagent_depth") or "null")
+    sh("MAX_CONCURRENT_SUBAGENTS", run_budget.get("max_concurrent_subagents") or "null")
     # Optional per-harness real-usage-capture keys. Not required in
     # governance/autonomy.yaml — when absent, claude-code gets a documented
     # default (see below in the bash driver); other harnesses stay opt-in.
@@ -1155,6 +1168,13 @@ if ! AUTONOMY_ENV="$(python3 "$PY_HELPER" autonomy "$AUTONOMY_YAML" "$MODEL_ROUT
   exit 1
 fi
 eval "$AUTONOMY_ENV"
+# Bound subagent fan-out for the whole run (unset keys leave the harness default).
+if [[ "${MAX_SUBAGENT_DEPTH:-null}" != "null" ]]; then
+  export CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH="$MAX_SUBAGENT_DEPTH"
+fi
+if [[ "${MAX_CONCURRENT_SUBAGENTS:-null}" != "null" ]]; then
+  export CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS="$MAX_CONCURRENT_SUBAGENTS"
+fi
 
 if [[ -z "${HARNESS_COMMAND:-}" ]]; then
   echo "praxis-drive.sh: no harnesses.$HARNESS.command found in $AUTONOMY_YAML" >&2
@@ -1336,6 +1356,13 @@ if (( WORKFLOW_MODE == 1 )); then
 
   while true; do
     ITERATION=$((ITERATION + 1))
+
+    if [[ -e "$PROJECT_DIR/.project/STOP" ]]; then
+      ITERATION=$((ITERATION - 1))
+      STOP_REASON="operator kill switch: .project/STOP exists (remove it to resume)"
+      EXIT_CODE=0
+      break
+    fi
 
     if (( ITERATION > MAX_ITERATIONS_PER_RUN )); then
       ITERATION=$((ITERATION - 1))
@@ -1661,6 +1688,13 @@ HAD_ANY_ITERATION=0
 while true; do
   ITERATION=$((ITERATION + 1))
 
+  if [[ -e "$PROJECT_DIR/.project/STOP" ]]; then
+    ITERATION=$((ITERATION - 1))
+    STOP_REASON="operator kill switch: .project/STOP exists (remove it to resume)"
+    EXIT_CODE=0
+    break
+  fi
+
   if (( ITERATION > MAX_ITERATIONS_PER_RUN )); then
     ITERATION=$((ITERATION - 1))   # this iteration never ran; report only completed ones
     STOP_REASON="budget: max_iterations_per_run ($MAX_ITERATIONS_PER_RUN) reached"
@@ -1971,5 +2005,14 @@ fi
 echo "  slice-close summaries: $PROJECT_DIR/$SUMMARIES_SLICE_CLOSE_DIR"
 echo "  telemetry:          $DRIVE_JSONL"
 echo "  exit code:          $EXIT_CODE"
+
+# Operator notification (governance/autonomy.yaml summaries.notify_command).
+# Best-effort: a failing notifier never changes the drive's exit code.
+if [[ -n "${SUMMARIES_NOTIFY_COMMAND:-}" && "$SUMMARIES_NOTIFY_COMMAND" != "null" ]]; then
+  PRAXIS_NOTIFY_RUN_ID="$RUN_ID" PRAXIS_NOTIFY_REASON="$STOP_REASON" \
+  PRAXIS_NOTIFY_EXIT_CODE="$EXIT_CODE" PRAXIS_NOTIFY_SLICE="$LAST_SLICE" \
+  PRAXIS_NOTIFY_MESSAGE="praxis-drive $RUN_ID stopped: $STOP_REASON (slice $LAST_SLICE, done $LAST_DONE_COUNT, failed $LAST_FAILED_COUNT, remaining $REMAINING)" \
+    bash -c "$SUMMARIES_NOTIFY_COMMAND" >/dev/null 2>&1 || echo "praxis-drive: notify_command failed (ignored)" >&2
+fi
 
 exit $EXIT_CODE

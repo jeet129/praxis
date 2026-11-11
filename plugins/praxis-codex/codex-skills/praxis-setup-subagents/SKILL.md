@@ -30,7 +30,21 @@ Install Praxis Codex subagent profiles into the current repository.
    ```
 
    This resolves each agent's tier → `model` + `model_reasoning_effort` from `TARGET/.project/governance/model-routing.yaml` when it exists (project override wins), else the plugin default. With the default (`model_map: auto`), no `model` line is written and each subagent inherits the Codex session's model; set concrete model IDs in the project override's `model_map` to pin them. It rewrites only the routing lines in `TARGET/.codex/agents/*.toml` and never touches the plugin's own files.
-5. Tell the user to restart Codex or start a new session so the profiles are loaded.
+5. **Set the two project limits Praxis needs** in `TARGET/.codex/config.toml` (create it if missing; merge, never overwrite other keys; skip a key the user already set):
+
+   ```toml
+   [skills]
+   max_context_tokens = 8000   # Praxis ships ~105 skills; the default 2% budget (about 5,400 tokens on a 272k model) truncates the catalog
+
+   [agents]
+   max_concurrent_threads_per_session = 6   # bound parallel specialists; raise deliberately
+
+   [features]
+   goals = true   # lets /praxis-drive set a file-checkable goal with create_goal; optional
+   ```
+
+   Then run `codex debug prompt-input | grep -c "praxis:"` once and confirm the skill catalog is complete (no "skills omitted" warning).
+6. Tell the user to restart Codex or start a new session so the profiles are loaded.
 
 These files are Codex-specific. They do not affect Claude Code.
 

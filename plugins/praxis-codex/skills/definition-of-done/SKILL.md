@@ -1,6 +1,6 @@
 ---
 name: definition-of-done
-description: "The per-slice Definition of Done contract — the explicit set of gates a slice must clear before it counts as merged and shippable: code review verdict, security verdict (when triggered), visual review verdict (when the slice has UI tasks), tests at the layers the test plan names, acceptance criteria demonstrably met, docs updated, telemetry/observability hooks present, no unresolved blocker findings, and tech-debt entries filed for any accepted shortcuts. Use whenever a slice is nearing completion and needs to be checked against the merge bar, when the Lead Developer assembles the implementation packet's closure criteria, or when a reviewer/QA needs the authoritative checklist for what 'done' means on this slice. Distinct from `testing-strategy` (which defines the test plan) and `code-review` (which produces one of the verdicts this skill checks for) — this skill is the aggregation contract that ties every gate together."
+description: "The per-slice Definition of Done: the gates a slice must clear before it counts as shippable. Use when opening or closing a slice."
 ---
 
 # Definition of Done
@@ -10,6 +10,7 @@ description: "The per-slice Definition of Done contract — the explicit set of 
 capability: delivery
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - code-review
   - testing-strategy

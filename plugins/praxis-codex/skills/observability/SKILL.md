@@ -1,6 +1,6 @@
 ---
 name: observability
-description: "The three pillars + correlation, instrumented per service. Structured logging, RED/USE metrics, distributed tracing (OpenTelemetry-first), SLI/SLO/error-budget definition, dashboards, and alerting that pages on symptoms not causes. Developers add the instrumentation hooks as they write the code; SRE wires the collectors and dashboards. Use whenever new services or endpoints are being implemented, when defining SLOs from NFRs, or when troubleshooting requires the instrumentation that isn't there yet. Pushy trigger because retrofitting observability is dramatically more expensive than adding it upfront."
+description: "Logs, metrics, traces, SLIs/SLOs and alerting per service."
 ---
 
 # Observability
@@ -10,6 +10,7 @@ description: "The three pillars + correlation, instrumented per service. Structu
 capability: operations
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
  - nfr-definition

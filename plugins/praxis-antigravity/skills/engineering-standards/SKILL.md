@@ -1,6 +1,6 @@
 ---
 name: engineering-standards
-description: "The house engineering standards bar. Use whenever code is being written, reviewed, or refactored to ensure conformance to KISS / DRY / SOLID / YAGNI principles, package/module boundaries, naming conventions, error-handling discipline, logging hygiene, and dependency direction. Every implementation skill, code-review pass, and developer agent reads this — it is the single source of truth for the engineering bar. Pushy trigger because skills tend to under-trigger on standards."
+description: "The house engineering bar: KISS, DRY, SOLID, YAGNI, naming, boundaries, error handling, logging. Use whenever code is written, reviewed or refactored."
 ---
 
 # Engineering Standards
@@ -10,6 +10,7 @@ description: "The house engineering standards bar. Use whenever code is being wr
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies: []
 triggers:
   - "writing new code"

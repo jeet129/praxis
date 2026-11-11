@@ -1,8 +1,9 @@
 ---
 name: lead-developer
 description: The implementation phase lead. Owns slice-level planning, task decomposition across FE/BE/Data/ML-AI specialists, dependency management between their work, and slice-level hand-off coordination. NOT responsible for architecture (Solution Architect), product (PM), platform (Platform/SRE), or individual code quality (specialists + Code Reviewer + Security Reviewer + QA own that). Deliberately narrow routing-with-planning role. Use whenever a slice opens for implementation — Lead Developer breaks it down, coordinates the specialists, and reports completion.
-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+tools: [view_file, write_to_file, replace_file_content, multi_replace_file_content, find_by_name, list_dir, grep_search, run_command, invoke_subagent]
 capability_tier: standard
+model: flash
 capability: phase-lead
 tier: 1
 ---

@@ -1,6 +1,6 @@
 ---
 name: accessibility
-description: "WCAG/ARIA conformance as a cross-cutting practice spanning design and code. Semantic structure, focus management, color contrast, keyboard navigation, screen-reader expectations, automated checks (axe), manual testing protocol, CI gate on regressions. Applied at design time (UX Designer), at code time (FE Developer), and at review time (a11y aspect of code-review + dedicated audits). Use whenever new UI is being designed or implemented, when auditing existing surfaces, or when establishing the project's WCAG conformance target."
+description: "WCAG/ARIA conformance across design and code."
 ---
 
 # Accessibility
@@ -10,6 +10,7 @@ description: "WCAG/ARIA conformance as a cross-cutting practice spanning design 
 capability: quality-and-security
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
   - engineering-standards
   - design-system

@@ -1,6 +1,6 @@
 ---
 name: technical-documentation
-description: "Operational and developer documentation — distinct from `architecture-documentation` (which is about the system shape). Runbooks per service / per incident class; README discipline at every level (repo / service / library / module); API reference (auto-generated + curated); developer onboarding; release notes; documentation-as-code with CI checks. Tech Writer drives; every role contributes (operators write runbooks, developers write READMEs and API ref, PM contributes release notes). Discoverability matters as much as content — docs that exist but can't be found don't exist. Use when establishing initial doc structure, when writing an incident runbook, when shipping a release (release notes), when onboarding a new joiner, when discovering documentation that no longer matches reality, or in the quarterly doc audit."
+description: "Runbooks, READMEs, API and operational documentation."
 ---
 
 # Technical Documentation
@@ -10,6 +10,7 @@ description: "Operational and developer documentation — distinct from `archite
 capability: maintenance
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - engineering-standards
   - architecture-documentation

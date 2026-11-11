@@ -1,6 +1,6 @@
 ---
 name: stack-flutter
-description: "Idiomatic Flutter/Dart mobile implementation pack — project layout (feature-first + clean architecture), state management (Riverpod / Bloc), strict analyzer + null-safety, navigation (go_router), networking (dio + retrofit + generated OpenAPI clients), local persistence (Drift / Isar / secure storage), streaming-audio + WebSocket/SSE patterns for a voice-first UI, accessibility via the Semantics API, senior-first UI constraints (large type, high contrast, low tap-count), performance budgets for low-end Android, and test idioms (unit + widget + golden + integration). Complements `engineering-standards` (the bar) with mobile implementation idioms (the playbook). Use whenever a developer is implementing a Flutter mobile slice, scaffolding the app, wiring a streaming voice surface, or choosing between mobile state-management patterns."
+description: "Idiomatic Flutter/Dart mobile implementation pack."
 ---
 
 # Stack — Flutter (Dart)
@@ -10,6 +10,7 @@ description: "Idiomatic Flutter/Dart mobile implementation pack — project layo
 capability: stack
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
 triggers:

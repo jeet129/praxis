@@ -1,6 +1,6 @@
 ---
 name: incident-runbook
-description: "Operational readiness discipline. Per-service runbooks, on-call rotation, severity taxonomy, incident response workflow, blameless postmortems with action-item tracking, status-page communication. Platform/SRE owns this; consumes reliability-dr (for severity classification), observability (for incident detection), and feeds tech-debt-management (for action items) and factory-evaluation (for MTTR metrics). Use whenever a new service is being made production-ready, when an incident occurs, when running a postmortem, or when reviewing operational readiness."
+description: "Operational readiness: per-service runbooks, severity levels, incident response, blameless postmortems. Use before go-live and during incidents."
 ---
 
 # Incident Runbook & Operational Readiness
@@ -10,6 +10,7 @@ description: "Operational readiness discipline. Per-service runbooks, on-call ro
 capability: operations
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
  - reliability-dr
  - observability

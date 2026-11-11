@@ -184,7 +184,10 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
 
     # 7. Description quality: should contain "Use when" trigger phrase
     declared_desc=$(echo "$frontmatter" | grep "^description:" | head -1)
-    if ! echo "$declared_desc" | grep -qi "use when\|use whenever"; then
+    # Only front-door (listing_tier: A) skills need a trigger phrase; reference
+    # skills (tier B) keep a one-line description so the listing fits the
+    # harness budgets — see scripts/validate-skill-listing.py.
+    if echo "$metadata" | grep -q "^listing_tier: A" && ! echo "$declared_desc" | grep -qi "\buse\b"; then
       WARNINGS+=("$skill_name: description lacks 'Use when' trigger phrase")
       skill_warned=1
     fi
@@ -247,6 +250,12 @@ elif [[ $N_ACTIVE -lt 70 ]]; then
   echo "ℹ️  Library health: $N_ACTIVE active skills below the 70-90 target band."
 else
   echo "✓ Library health: $N_ACTIVE active skills in target 70-90 band."
+fi
+
+# Skill-listing budget (description lengths per tier + per-harness totals).
+if command -v python3 >/dev/null 2>&1 && [[ -f "$SCRIPT_DIR/validate-skill-listing.py" ]]; then
+  echo ""
+  python3 "$SCRIPT_DIR/validate-skill-listing.py" "$LIBRARY_ROOT" || N_FAIL=$((N_FAIL + 1))
 fi
 
 if [[ $N_FAIL -gt 0 ]]; then

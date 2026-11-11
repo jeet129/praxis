@@ -1,6 +1,6 @@
 ---
 name: stack-python
-description: "Idiomatic Python backend implementation pack — project layout, framework idioms (FastAPI / Django / Flask), strict typing with mypy or pyright, pydantic v2 at boundaries, persistence (SQLAlchemy 2.0 / Django ORM), structured logging with structlog, async discipline, dependency management with uv or poetry, packaging (multi-stage Docker), and test idioms (pytest + pytest-asyncio + Testcontainers). Complements `engineering-standards/references/python.md` (the bar) with the implementation-side idioms (the playbook). Use whenever a developer is implementing a Python backend slice, scaffolding a new service, or choosing between framework patterns."
+description: "Idiomatic Python backend implementation pack."
 ---
 
 # Stack — Python
@@ -10,6 +10,7 @@ description: "Idiomatic Python backend implementation pack — project layout, f
 capability: stack
 domain: backend
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
 triggers:

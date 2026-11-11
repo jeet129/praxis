@@ -1,6 +1,6 @@
 ---
 name: data-modeling
-description: "Logical and physical data design — entity modeling, schema design, normalization vs denormalization decisions, indexing strategy, partitioning strategy, migration discipline (expand-contract for zero-downtime), and polyglot persistence choices. The Solution Architect runs this whenever a slice introduces or changes persistence; the Backend Developer consumes the schema + migration plan as part of the implementation packet. Use whenever new entities are added, existing schemas need changes, performance requires reshaping, or a new persistence store is being introduced."
+description: "Logical and physical data design: entities, schemas, normalisation, indexing, partitioning. Use when designing or changing a data model."
 ---
 
 # Data Modeling
@@ -10,6 +10,7 @@ description: "Logical and physical data design — entity modeling, schema desig
 capability: architecture
 domain: backend
 state: active
+listing_tier: A
 dependencies:
  - engineering-standards
  - nfr-definition

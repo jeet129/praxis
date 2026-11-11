@@ -1,6 +1,6 @@
 ---
 name: threat-modeling
-description: "STRIDE-based attack-surface analysis applied at design time (architecture phase). Trust boundaries, data-flow diagrams, threats enumerated and prioritized, mitigations mapped to NFRs. Distinct from `secure-coding` (applied during writing/review) and from `architecture-challenger`'s `security-challenger` sub-persona (which uses this skill's outputs to attack a design). Solution Architect runs this once per substantial design + per slice that introduces new trust boundaries. Use whenever a system is being designed, new public surface is being added, integrations are being introduced, or compliance requires documented threat models."
+description: "STRIDE threat model at design time: trust boundaries, data flows, ranked threats and mitigations. Use when adding a public surface or sensitive data flow."
 ---
 
 # Threat Modeling
@@ -10,6 +10,7 @@ description: "STRIDE-based attack-surface analysis applied at design time (archi
 capability: quality-and-security
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - architecture-pattern-selection
   - nfr-definition

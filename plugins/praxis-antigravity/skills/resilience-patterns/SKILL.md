@@ -1,6 +1,6 @@
 ---
 name: resilience-patterns
-description: "In-process / service-level fault-handling patterns — timeouts, retries with exponential backoff + jitter, circuit breakers, bulkheads, rate limiting, per-call idempotency (idempotency keys). Applied during architecture (where) and implementation (how) to make one service tolerant of one dependency's failure. Distinct from `distributed-systems-patterns` (cross-service coordination and correctness — saga, outbox, consensus, replication, consistency), `reliability-dr` (system-level availability architecture — redundancy, failover, RTO/RPO), and `chaos-engineering` (verifies these patterns work). Use whenever a service calls a dependency, when designing failure-mode behavior, or when investigating fragility."
+description: "Timeouts, retries, circuit breakers, bulkheads, limits."
 ---
 
 # Resilience Patterns
@@ -10,6 +10,7 @@ description: "In-process / service-level fault-handling patterns — timeouts, r
 capability: architecture
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - architecture-pattern-selection
   - nfr-definition

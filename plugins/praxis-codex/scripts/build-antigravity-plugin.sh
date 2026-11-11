@@ -79,25 +79,77 @@ for name in ("skills", "agents", "workflows", "governance", "references", "patte
     if source.exists():
         place_tree(source, out / name)
 
-# Antigravity honors NO per-agent model selection: subagents inherit the session
-# model, hooks cannot set a model, and the SDK config exposes no model field
-# (see docs/antigravity-setup.md, "Cache-aware routing on Antigravity"). The
-# canonical agents carry Claude `model:`/`effort:` frontmatter as Claude Code's
-# static default; shipping those verbatim in the agy package advertises models
-# agy can never use. Strip them from the agy agents, keeping the harness-agnostic
-# `capability_tier:` — the real routing signal, resolved by hand via `/model` per
-# the advisory tier map. Canonical agents/ are untouched (Claude Code needs them).
+# Antigravity custom agents (antigravity.google/docs/subagents, /docs/build-plugins)
+# accept a per-agent MODEL TIER — `model: inherit | flash | pro` — and a `tools:`
+# allowlist of ANTIGRAVITY tool names. The canonical agents carry Claude Code
+# frontmatter (`model: opus`, `effort: high`, `tools: Read, Grep, ...`), which
+# agy cannot use: an unmapped tool name can hang the subagent. So for the agy
+# package this build:
+#   • replaces `model:` with the tier's agy model from governance/model-routing.yaml
+#     (antigravity.map), and drops `effort:` (agy has no per-agent effort field);
+#   • translates `tools:` to agy tool names.
+# Canonical agents/ are untouched (Claude Code needs them).
 import re as _re
+
+AGY_TOOL_MAP = {
+    "Read": ["view_file"],
+    "Glob": ["find_by_name", "list_dir"],
+    "Grep": ["grep_search"],
+    "Bash": ["run_command"],
+    "Write": ["write_to_file"],
+    "Edit": ["replace_file_content", "multi_replace_file_content"],
+    "Task": ["invoke_subagent"],
+    "Agent": ["invoke_subagent"],
+    "WebSearch": ["search_web"],
+    "WebFetch": ["read_url_content"],
+}
+
+
+def _agy_tier_models():
+    text = (root / "governance" / "model-routing.yaml").read_text()
+    block = _re.search(r"^  antigravity:\n(.*?)(?=^\S|\Z)", text, _re.S | _re.M)
+    models = {"deep": "pro", "standard": "flash", "light": "flash"}
+    if block:
+        mm = _re.search(r"^    map:\n((?:      .*\n)+)", block.group(1), _re.M)
+        if mm:
+            for tier, val in _re.findall(r"^\s+(deep|standard|light):\s*([^\s#]+)", mm.group(1), _re.M):
+                models[tier] = val
+    return models
+
+
+_tier_models = _agy_tier_models()
 for _ap in sorted((out / "agents").glob("*.md")):
     _txt = _ap.read_text()
     _m = _re.match(r"^(---\n)(.*?)(\n---\n)(.*)$", _txt, _re.S)
     if not _m:
         continue
-    _fm = _m.group(2)
-    _fm2 = "\n".join(l for l in _fm.split("\n")
-                      if not _re.match(r"\s*(model|effort)\s*:", l))
-    if _fm2 != _fm:
-        _ap.write_text(_m.group(1) + _fm2 + _m.group(3) + _m.group(4))
+    _lines, _tier = [], None
+    for l in _m.group(2).split("\n"):
+        if _re.match(r"\s*(model|effort)\s*:", l):
+            continue
+        _tm = _re.match(r"capability_tier:\s*(\S+)", l)
+        if _tm:
+            _tier = _tm.group(1)
+        _tl = _re.match(r"tools:\s*(.*)$", l)
+        if _tl:
+            _agy = []
+            for name in [x.strip() for x in _tl.group(1).strip("[]").split(",") if x.strip()]:
+                if name not in AGY_TOOL_MAP:
+                    raise SystemExit(f"{_ap.name}: no Antigravity mapping for tool {name!r} "
+                                     "(add it to AGY_TOOL_MAP in build-antigravity-plugin.sh)")
+                for a in AGY_TOOL_MAP[name]:
+                    if a not in _agy:
+                        _agy.append(a)
+            l = "tools: [" + ", ".join(_agy) + "]"
+        _lines.append(l)
+    if _tier not in _tier_models:
+        raise SystemExit(f"{_ap.name}: missing or unknown capability_tier")
+    _out = []
+    for l in _lines:
+        _out.append(l)
+        if l.startswith("capability_tier:"):
+            _out.append(f"model: {_tier_models[_tier]}")
+    _ap.write_text(_m.group(1) + "\n".join(_out) + _m.group(3) + _m.group(4))
 
 # Antigravity command-skills come from the hand-authored overlay
 # (antigravity-plugin-assets/skills/) — harness-correct <name>/SKILL.md with `name:`
@@ -109,9 +161,9 @@ if overlay_skills.exists():
 
 # Lifecycle hooks: the agy hook manifest ships at the package root, and any
 # sibling hook scripts (e.g. io-delegate-read-agy.py) ship alongside it in
-# hooks/. agy exposes no token/cost/cache or subagent-spawn data, so telemetry
-# logs only what is real: model-per-step (routing), tool activity, session stops,
-# and IO delegation decisions.
+# hooks/. agy exposes no token/cost/cache data, so telemetry logs only what is
+# real: model-per-step (routing), tool activity, session stops, and IO delegation
+# decisions. A SessionStart hook injects the project summary.
 hooks_manifest = src / "hooks.json"
 if hooks_manifest.exists():
     shutil.copy2(hooks_manifest, out / "hooks.json")
@@ -119,6 +171,20 @@ if hooks_manifest.exists():
 hooks_dir = src / "hooks"
 if hooks_dir.exists():
     place_tree(hooks_dir, out / "hooks")
+# The shared guard (kill switch, read-only reviewers, evidence gate, steering,
+# goal continuation) is one script for every harness; ship the canonical copy.
+guard = root / "hooks" / "praxis_guard.py"
+if guard.exists():
+    (out / "hooks").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(guard, out / "hooks" / "praxis_guard.py")
+    record(out / "hooks" / "praxis_guard.py")
+# Cross-tool helper scripts the agy skills call (goal arming, status view).
+for name in ("praxis-goal.py", "praxis-status.py"):
+    helper = root / "scripts" / name
+    if helper.exists():
+        (out / "scripts").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(helper, out / "scripts" / name)
+        record(out / "scripts" / name)
 
 # Minimal Antigravity manifest at package root.
 manifest = out / "plugin.json"
@@ -128,7 +194,7 @@ manifest.write_text(json.dumps({
     "version": "0.2.0",
     "description": (
         "Praxis — production-grade skill library + agents + workflows + "
-        "governance for AI-augmented software delivery. 91 skills, 18 agents, "
+        "governance for AI-augmented software delivery. 92 skills, 18 agents, "
         "9 workflows, 19 governance gates."
     ),
 }, indent=2) + "\n")

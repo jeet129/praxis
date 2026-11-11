@@ -1,6 +1,6 @@
 ---
 name: reliability-dr
-description: "Reliability engineering and disaster recovery discipline. SLO design from NFRs, error budgets and burn-rate alerts, backup/restore patterns, RTO/RPO targets and verification, multi-AZ/region topology, runbook/restore drill cadence, DR readiness attestation for production_go_live evidence. Platform/SRE owns this; consumes observability's SLI definitions and feeds the production_go_live gate. Use whenever a project defines reliability targets, when designing backup or failover, when running DR drills, or when reliability is being audited."
+description: "SLOs, error budgets, backup/restore, RTO/RPO, DR drills."
 ---
 
 # Reliability & Disaster Recovery
@@ -10,6 +10,7 @@ description: "Reliability engineering and disaster recovery discipline. SLO desi
 capability: operations
 domain: infra
 state: active
+listing_tier: B
 dependencies:
   - nfr-definition
   - observability

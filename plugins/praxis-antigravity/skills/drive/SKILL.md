@@ -1,6 +1,6 @@
 ---
 name: drive
-description: Start or resume autonomous drive — iterate the drive protocol (skills/autonomous-drive) against the active task ledger, unattended or in-session, honoring the non-negotiable stops.
+description: "Start or resume autonomous drive against the active task ledger, unattended or in-session, honouring the non-negotiable stops."
 ---
 
 > **Antigravity note:** unattended *drive mode* is not supported on Antigravity yet
@@ -40,6 +40,14 @@ Offer both paths; let the user pick (or infer from context — a long-running/ba
 - **In-session:** iterate the drive protocol yourself, continuously, within this session — each iteration is `delivery-lead` executing exactly one `autonomous-drive` pass (see `agents/delivery-lead.md`'s Drive mode section) and reporting the outcome. **After a pass returns, immediately begin the next one — do NOT report a completed task and wait for me.** Nothing re-invokes delivery-lead in this path; you are the loop. Keep going through the slice drain (code review, security review, QA, closure) and into the next ledger, honoring the same stops as the unattended path. Stop cleanly ONLY when a non-negotiable stop or the dial's boundary is actually reached — a finished task under `stop_after: gate` is not one.
 
 `--workflow` (or "drive the whole workflow") runs the top-level loop over workflow steps, each on its phase-tier model, stopping at governance gates and non-machine-verifiable boundaries (see `skills/autonomous-drive`'s "Workflow-drive" section and `references/phase-gates.md`).
+
+## Keeping an in-session drive going (Antigravity)
+
+Before the first iteration, arm the drive so the Praxis Stop hook keeps you on the ledger while tasks are open:
+
+`python3 <plugin root>/scripts/praxis-goal.py --slice <id> --project-dir . --arm`
+
+When the slice closes or you stop for a gate or decision, run it with `--disarm`. The operator can stop you at any time with `touch .project/STOP`, and can redirect you with a note in `.project/STEER.md`. A task cannot be marked `done` without its verify evidence.
 
 ## What you do NOT do
 

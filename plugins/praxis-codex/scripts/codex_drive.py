@@ -244,6 +244,8 @@ class Controller:
                         if self.config["stop_after"] == "slice":
                             return self.finish(f"stop_after=slice: {lane.slice_id} closed", 0)
         while self.iterations < self.config["max_iterations_per_run"]:
+            if (self.root / ".project" / "STOP").exists():
+                return self.finish("operator kill switch: .project/STOP exists (remove it to resume)", 0)
             ledgers = read_ledgers(self.root, migrate=not self.dry_run)
             if not self.dry_run:
                 write_index(self.root, ledgers)

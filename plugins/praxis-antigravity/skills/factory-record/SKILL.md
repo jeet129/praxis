@@ -1,6 +1,6 @@
 ---
 name: factory-record
-description: Record a rich factory-metrics observation for a praxis artifact (skill, agent, workflow, command). Use when you've just finished using an experimental skill and want to capture what worked, what didn't, and what should change before steward review.
+description: "Record a factory-metrics observation about a Praxis skill, agent, workflow or command for steward review."
 ---
 
 You are recording a factory-metrics observation. This is the rich, human-authored complement to the auto-stub entries that the PostToolUse hook writes — those tell us *something happened*; this tells us *what happened and what we learned*.

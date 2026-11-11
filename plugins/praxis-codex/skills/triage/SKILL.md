@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "On-demand discovery scan that surfaces what needs attention in a project and writes a classified triage inbox. Use when you want a scan of outstanding work — 'run triage', 'what needs attention', 'scan for work', 'what's the state of this repo', resuming a project after time away, or before planning the next slice. Reads git activity since the last triage, failing tests/CI, the tech-debt register, TODO/FIXME drift, dependency alerts, and doc-vs-code drift; classifies each finding as auto-fixable-and-machine-verifiable vs needs-human and writes .project/operational/triage/<date>.md. This is the ON-DEMAND, zero-standing-cost building block of a loop heartbeat — it runs only when invoked, never on a schedule (a scheduled version would burn tokens every cadence whether or not it finds anything; see ROADMAP). Distinct from `factory-usage-report`/`factory-routing-report` (those aggregate telemetry about the FACTORY; triage scans the PROJECT for outstanding work), from `impact-analysis` (blast radius of one proposed change), and from `tech-debt-management` (owns the debt register; triage reads it and surfaces stale items)."
+description: "On-demand scan of a project (failing tests, debt, TODOs, dependency alerts, doc drift) that writes a classified inbox. Use to find what needs attention."
 ---
 
 # Triage
@@ -10,6 +10,7 @@ description: "On-demand discovery scan that surfaces what needs attention in a p
 capability: maintenance
 domain: cross-cutting
 state: experimental
+listing_tier: A
 dependencies:
   - project-memory
   - tech-debt-management

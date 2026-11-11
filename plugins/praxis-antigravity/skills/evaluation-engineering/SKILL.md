@@ -1,6 +1,6 @@
 ---
 name: evaluation-engineering
-description: 'The QA discipline for AI / agent systems. Golden datasets, LLM-judge methodology (with calibration), regression eval in CI, slice-based metrics, hallucination detection, faithfulness / groundedness scoring, human-in-the-loop review process. Without this, agentic systems regress silently — a "small prompt change" or model upgrade can degrade quality dramatically without anyone noticing. Distinct from `testing-strategy` (application code) and `ml-training-evaluation` (traditional ML model eval). ML/AI Engineer owns the eval design; QA Engineer integrates with the broader testing strategy; reviewers consume eval reports.'
+description: "Evals for AI systems: golden sets, LLM judges, CI gates."
 ---
 
 # Evaluation Engineering
@@ -10,6 +10,7 @@ description: 'The QA discipline for AI / agent systems. Golden datasets, LLM-jud
 capability: agentic-ai
 domain: ml
 state: active
+listing_tier: B
 dependencies:
   - agentic-architecture
   - testing-strategy

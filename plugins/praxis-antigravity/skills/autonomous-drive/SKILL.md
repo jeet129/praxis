@@ -1,6 +1,6 @@
 ---
 name: autonomous-drive
-description: "The drive protocol the Delivery Lead executes inside each drive iteration — read the task ledger, complete exactly one drive-eligible task against its named context, run its verify, and honor the non-negotiable stops. Use when a drive session (via `/drive` or `scripts/praxis-drive.sh`) starts or resumes, when deciding what a single drive iteration must do, when a slice drains and gate reviewers need to run, or when evaluating whether a stop_flag must be raised. Distinct from `using-praxis` (the general orchestration runtime this protocol runs inside) and `implementation-slice.yaml` (the workflow whose fix loop this protocol iterates against) — this SKILL is the per-iteration discipline, not the workflow or the router."
+description: "The drive protocol: complete one ledger task per iteration against its checks, honouring stops and budgets. Use when running or resuming drive."
 ---
 
 # Autonomous Drive
@@ -10,6 +10,7 @@ description: "The drive protocol the Delivery Lead executes inside each drive it
 capability: orchestration
 domain: cross-cutting
 state: experimental
+listing_tier: A
 dependencies:
   - using-praxis
   - adaptive-model-routing

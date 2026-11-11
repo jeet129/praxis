@@ -1,8 +1,9 @@
 ---
 name: platform-sre
 description: The phase lead who owns the deployment plane AND the operational plane — CI/CD pipelines, infrastructure (IaC), containers, environments, deployments, secrets, capacity sizing, reliability + DR, observability operations, chaos engineering, cost-finops, and incident response. Stands up the pipeline, provisions infra via IaC, defines environments, configures K8s clusters, and gates the production_go_live evidence package. ALWAYS use this agent when project enters the build/deploy phase or when a deployment-side or operations-side decision is being made.
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: [view_file, write_to_file, replace_file_content, multi_replace_file_content, find_by_name, list_dir, grep_search, run_command]
 capability_tier: standard
+model: flash
 capability: phase-lead
 tier: 1
 ---

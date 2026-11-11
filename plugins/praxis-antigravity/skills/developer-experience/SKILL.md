@@ -1,6 +1,6 @@
 ---
 name: developer-experience
-description: "Local development environment and onboarding discipline: one-command setup, dev/prod parity (containers, seeded data), fast feedback loops (test-speed budgets, hot reload), an onboarding doc that's actually tested by onboarding someone with it, and pre-commit hooks that mirror CI so checks are never discovered for the first time in a pipeline. Use whenever a project's local setup is being scaffolded, a new developer's onboarding is taking longer than a day, the local/CI toolchain has drifted apart, or the local feedback loop (test/build/reload time) has become a visible drag on delivery speed. Distinct from `environments` (deployed dev/staging/prod environments) and `cicd-pipeline` (the pipeline itself; this skill is about the laptop and the inner loop that feeds it)."
+description: "Local dev setup, dev/prod parity, fast feedback loops."
 ---
 
 # Developer Experience
@@ -10,6 +10,7 @@ description: "Local development environment and onboarding discipline: one-comma
 capability: foundation
 domain: cross-cutting
 state: experimental
+listing_tier: B
 dependencies:
   - environments
   - engineering-standards

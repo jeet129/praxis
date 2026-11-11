@@ -1,6 +1,6 @@
 ---
 name: steward
-description: Quarterly library review: factory-evaluation + System Steward + steward_promotion gate.
+description: "Quarterly library review - factory-evaluation, System Steward and the steward_promotion gate."
 ---
 
 Quarterly steward cadence. Run as a single 1-2 day block.

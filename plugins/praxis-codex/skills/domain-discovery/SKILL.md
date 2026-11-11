@@ -1,6 +1,6 @@
 ---
 name: domain-discovery
-description: "Lightweight domain modeling using event-storming-style techniques to find bounded contexts, the ubiquitous language, and the candidate aggregates BEFORE choosing an architecture or designing data. Establishes the shared semantic foundation that every downstream skill consumes. The Solution Architect runs this once for a new product and lightly per slice that introduces new domain concepts. Output lives in `.project/semantic/` and becomes the project's persistent semantic memory."
+description: "Event-storming to find bounded contexts and aggregates."
 ---
 
 # Domain Discovery
@@ -10,6 +10,7 @@ description: "Lightweight domain modeling using event-storming-style techniques 
 capability: architecture
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - product-discovery
   - requirements-elicitation

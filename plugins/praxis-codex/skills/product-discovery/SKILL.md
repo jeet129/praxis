@@ -1,6 +1,6 @@
 ---
 name: product-discovery
-description: "Turn business intent into validated product opportunities *before* requirements get written. Vision framing, jobs-to-be-done (JTBD) articulation, opportunity sizing, hypothesis-driven solution candidates, problem/solution fit, MVP scope hypothesis. Without product discovery, teams build the wrong thing efficiently — every other phase that follows is wasted effort if the underlying opportunity is misjudged. Use whenever a new project begins or a substantial new feature is being considered. Pushy trigger because skipping discovery is the most expensive form of waste."
+description: "Turns business intent into validated product opportunities (vision, jobs-to-be-done, hypotheses). Use before requirements are written."
 ---
 
 # Product Discovery
@@ -10,6 +10,7 @@ description: "Turn business intent into validated product opportunities *before*
 capability: discovery
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies: []
 triggers:
  - "new project starting"

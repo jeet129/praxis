@@ -1,6 +1,6 @@
 ---
 name: adaptive-model-routing
-description: "Routes tasks to the right abstract capability tier (deep vs standard vs light) based on task complexity, novelty, stakes, and interdependency; tiers resolve to concrete harness-native models via `governance/model-routing.yaml`. Prevents wasteful deep-tier consumption on tasks the standard tier handles equally well, and prevents quality failures from routing complex tasks to cheaper tiers. The Delivery Lead runs this SKILL every time it spawns a sub-agent. Use whenever an agent is about to be spawned, when selecting a tier for a session, or when a prior attempt failed and escalation is being considered."
+description: "Routes each task to the right capability tier (deep, standard, light) by complexity, novelty and stakes. Use when spawning agents or tuning cost."
 ---
 
 # Adaptive Model Routing
@@ -10,6 +10,7 @@ description: "Routes tasks to the right abstract capability tier (deep vs standa
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - using-praxis
   - llm-cost-optimization

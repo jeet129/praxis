@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: "Contract-first API design. Produces the API specification (OpenAPI 3.1 for REST, .proto for gRPC, AsyncAPI for events) BEFORE implementation begins, with explicit versioning, pagination, idempotency, error model, and deprecation policy. The Solution Architect runs this for any slice that introduces or changes an API surface; the Backend Developer consumes the spec as part of the implementation packet. Use whenever a new endpoint, RPC, event topic, or webhook is being introduced. Pushy trigger because skipping contract-first design produces APIs that have to be redesigned a quarter later."
+description: "Contract-first API design (OpenAPI, gRPC, AsyncAPI) before implementation. Use when adding or changing an API, event contract or versioning policy."
 ---
 
 # API Design
@@ -10,6 +10,7 @@ description: "Contract-first API design. Produces the API specification (OpenAPI
 capability: architecture
 domain: backend
 state: active
+listing_tier: A
 dependencies:
   - engineering-standards
   - requirements-elicitation

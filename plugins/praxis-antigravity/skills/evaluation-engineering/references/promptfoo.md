@@ -1,5 +1,7 @@
 # Reference — Promptfoo
 
+> Model IDs in these examples are placeholders (`<general-model-id>`, `<small-model-id>`). Replace them with current IDs from the vendor's models page; names are retired regularly.
+
 Loaded by `evaluation-engineering` when Promptfoo is the chosen LLM evaluation framework.
 
 ## When to use
@@ -34,9 +36,9 @@ prompts:
   - "You are a helpful support assistant.\n\nUser: {{question}}\nAssistant:"
 
 providers:
-  - openai:gpt-4o
-  - anthropic:claude-sonnet-4-6
-  - openai:gpt-4o-mini
+  - openai:<general-model-id>
+  - anthropic:<general-model-id>
+  - openai:<small-model-id>
 
 tests:
   - vars:
@@ -141,8 +143,8 @@ prompts:
   - file://prompts/support_v2.txt
 
 providers:
-  - openai:gpt-4o
-  - anthropic:claude-sonnet-4-6
+  - openai:<general-model-id>
+  - anthropic:<general-model-id>
 
 tests:
   - file://tests/customer_support_tests.yaml
@@ -271,10 +273,10 @@ The killer feature — same tests run against multiple providers; UI shows side-
 
 ```yaml
 providers:
-  - openai:gpt-4o
-  - openai:gpt-4o-mini
-  - anthropic:claude-sonnet-4-6
-  - anthropic:claude-haiku-4-5
+  - openai:<general-model-id>
+  - openai:<small-model-id>
+  - anthropic:<general-model-id>
+  - anthropic:<small-model-id>
   - id: vllm-llama-3-70b
     config:
       apiBaseUrl: "http://vllm:8000/v1"
@@ -292,7 +294,7 @@ Useful for:
 
 ```yaml
 providers:
-  - id: openai:gpt-4o
+  - id: openai:<general-model-id>
     config:
       temperature: 0.1
       max_tokens: 500
@@ -301,7 +303,7 @@ providers:
         Tone: helpful and concise.
         If you don't know, say so.
   
-  - id: anthropic:claude-sonnet-4-6
+  - id: anthropic:<general-model-id>
     config:
       temperature: 0.1
       max_tokens: 500
@@ -352,7 +354,7 @@ Per `evaluation-engineering` — LLM-as-judge is powerful but biased. Calibrate:
 ```yaml
 assert:
   - type: llm-rubric
-    provider: openai:gpt-4o  # use a strong model AS judge
+    provider: openai:<general-model-id>  # use a strong model AS judge
     value: |
       Evaluate this customer support response on:
       1. Accuracy: Are claims correct?

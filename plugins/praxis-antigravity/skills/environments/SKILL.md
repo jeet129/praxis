@@ -1,6 +1,6 @@
 ---
 name: environments
-description: "Define and stand up the environment ladder (dev → test → staging → prod, plus ephemeral preview/PR envs), parity discipline (so what passes staging works in prod), data seeding strategy, access control per environment, and promotion rules between them. Platform/SRE owns the environment definitions; all other agents respect the parity and promotion contracts. Use whenever a new project's environment ladder is being designed, when adding a new environment (e.g., a load-testing env), or when staging behavior diverges from production behavior and parity is being restored."
+description: "Environment ladder, parity and ephemeral preview envs."
 ---
 
 # Environments
@@ -10,6 +10,7 @@ description: "Define and stand up the environment ladder (dev → test → stagi
 capability: build-and-deploy
 domain: infra
 state: active
+listing_tier: B
 dependencies:
   - iac
   - secrets-config

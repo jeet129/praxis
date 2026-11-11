@@ -1,6 +1,6 @@
 ---
 name: requirements-interrogation
-description: 'The AOP Clarify-step skill that every agent invokes at every phase boundary. Produces a standardized Knowns / Unknowns / Assumptions / Conflicts / Questions (KUACQ) block from whatever inputs the agent has, surfacing ambiguity *before* execution begins. The single most leveraged defense against "starts coding too early." Distinct from `requirements-elicitation` (broader product-discovery-to-requirements activity owned by PM) — this is the focused, per-agent, per-phase interrogation that every developer/reviewer/architect agent runs. Pushy trigger because clarification is the failure mode most agents skip.'
+description: "Produces a Knowns, Unknowns, Assumptions, Conflicts and Questions list. Use at every phase boundary or whenever a request is ambiguous."
 ---
 
 # Requirements Interrogation
@@ -10,6 +10,7 @@ description: 'The AOP Clarify-step skill that every agent invokes at every phase
 capability: discovery
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - project-memory
   - memory-management

@@ -1,8 +1,9 @@
 ---
 name: delivery-lead
 description: The orchestrator persona that runs the Praxis's lifecycle. Loads workflows, evaluates Decision Nodes, routes work to phase-lead and specialist agents, enforces gates per the governance matrix, manages slice transitions, and serializes writes to project memory. Use as the entry-point agent for any project work — every other agent is spawned by the Delivery Lead. ALWAYS use this agent when starting a project, opening a slice, or resuming a paused workflow.
-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+tools: [view_file, write_to_file, replace_file_content, multi_replace_file_content, find_by_name, list_dir, grep_search, run_command, invoke_subagent]
 capability_tier: standard
+model: flash
 capability: orchestrator
 tier: 1
 ---

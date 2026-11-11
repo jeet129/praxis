@@ -5,38 +5,49 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionStart || { SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true; }"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionStart || { SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true; }"
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Task|Agent",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PreToolUse || true"
+            "timeout": 10,
+            "command": "[ -e \"${CLAUDE_PROJECT_DIR:-$PWD}/.project/STOP\" ] && python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/praxis_guard.py\" pretool --harness codex || true"
           }
         ]
       },
       {
-        "matcher": "Read",
+        "matcher": "apply_patch|Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/io-delegate-read.sh\""
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/praxis_guard.py\" pretool --harness codex || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Agent|spawn_agent|collaborationspawn_agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PreToolUse || true"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Read|Task|Agent|Write|Edit|NotebookEdit",
+        "matcher": "Read|Task|Agent|Write|Edit|NotebookEdit|spawn_agent|collaborationspawn_agent|apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PostToolUse || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" PostToolUse || true"
           }
         ]
       }
@@ -46,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
           }
         ]
       },
@@ -54,7 +65,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/codex-continuation.py\" UserPromptSubmit"
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/praxis_guard.py\" steer --harness codex || true"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/codex-continuation.py\" UserPromptSubmit"
           }
         ]
       }
@@ -64,7 +84,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStart || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStart || true"
           }
         ]
       }
@@ -74,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SubagentStop || true"
           }
         ]
       }
@@ -84,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
           }
         ]
       }
@@ -94,11 +114,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" Stop || true"
+            "command": "TAP=\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" Stop || true"
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}/hooks/codex-continuation.py\" Stop"
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/praxis_guard.py\" stop --harness codex || true"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/codex-continuation.py\" Stop"
           }
         ]
       }

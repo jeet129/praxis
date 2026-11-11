@@ -36,6 +36,9 @@ stop_after: gate
 summaries:
   slice_close: .project/telemetry/summaries/   # slice-<id>-summary.md per close
   notify: terminal                             # terminal | file-only
+  notify_command: null                         # shell command run when a drive stops, e.g.
+                                               #   'curl -s -d "$PRAXIS_NOTIFY_MESSAGE" https://ntfy.sh/<topic>'
+                                               # env: PRAXIS_NOTIFY_MESSAGE, _REASON, _EXIT_CODE, _RUN_ID, _SLICE
 
 # Run budget — a drive session stops cleanly when any of these is hit.
 run_budget:
@@ -44,6 +47,9 @@ run_budget:
   max_task_attempts: 3            # per task: attempt, fix, tier-promoted retry
   cost_ceiling_proxy: 120         # tier-weighted units per governance/model-routing.yaml cost_weights
   max_budget_usd: null            # passed to the harness natively where supported (e.g. claude -p --max-budget-usd)
+  max_subagent_depth: null        # Claude Code: exported as CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH (null = harness default)
+  max_concurrent_subagents: null  # Claude Code: exported as CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS.
+                                  # Codex: set [agents] max_concurrent_threads_per_session in .codex/config.toml
   # max_steps_per_run: 12         # workflow-drive only (--workflow): steps processed per run.
                                    # Defaults to max_slices_per_run above when unset.
 
@@ -77,3 +83,13 @@ harnesses:
     effort_arg_prefix: "model_reasoning_effort="   # rendered as: -c model_reasoning_effort=high  (level from model-routing.yaml codex.map)
     json_output_flag: --json
     usage_parse: codex-json
+
+# Operator controls and guards — enforced by hooks/praxis_guard.py on every
+# harness, and by praxis-drive.sh between iterations. Nothing to configure here;
+# listed so the controls are discoverable next to the autonomy dial.
+#   Kill switch     touch .project/STOP        every tool call is denied; the drive stops
+#                                              at the next iteration. Remove the file to resume.
+#   Steer           write .project/STEER.md    injected into the next prompt once, then
+#                                              archived as .project/STEER.delivered-<time>.md
+#   Evidence gate   PRAXIS_EVIDENCE_GATE       enforce (default) | warn | off. A ledger task
+#                                              cannot become `done` without verify evidence.

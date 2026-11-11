@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Brownfield kickoff: comprehension + architecture reconciliation + debt audit + impact analysis.
+description: "Brownfield kickoff - comprehension, architecture reconciliation, debt audit and impact analysis."
 ---
 
 Brownfield engagement first-week sequence. Run in order:

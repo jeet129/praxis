@@ -1,6 +1,6 @@
 ---
 name: praxis-slice
-description: Use when running one Praxis implementation slice in Codex. ALWAYS launches delivery-lead as the orchestrator session; never launches specialists directly. Follows implementation-slice.yaml with subagents, review gates, QA, and closeout.
+description: "Use when running one Praxis implementation slice in Codex; launches delivery-lead to orchestrate packet, tasks, reviews and close. Triggers: build slice."
 ---
 
 <!-- praxis:metadata:begin -->
@@ -119,3 +119,9 @@ Run one implementation slice end-to-end. You do NOT execute the slice yourself. 
 ## Reference workflow
 
 `workflows/implementation-slice.yaml` (canonical). delivery-lead reads and follows it. If the path can't be resolved from the current session, delivery-lead falls back to the workflow's step semantics documented above.
+
+## Sandboxed reviewers (Codex)
+
+Run the formal Code, Security and Architecture-challenge reviews through the sandboxed runner, not as spawned subagents: `python3 "$PLUGIN_ROOT/scripts/codex_review.py" --role <code-reviewer|security-reviewer|architecture-challenger> --project-dir "$TARGET" --prompt "<what to review: branch/PR, task ids, files>"`. It starts a separate `codex exec --sandbox read-only` process (Codex ignores `sandbox_mode` in role files, so a spawned reviewer could otherwise write), writes a JSON verdict under `.project/working/reviews/`, and exits 0 on pass, 1 on changes requested, 2 if it could not run. Run the reviewers in parallel as background shell jobs; treat exit 2 as "review not done", never as a pass.
+
+UX and QA reviewers need to run the app and write artefacts, so they stay ordinary subagents.

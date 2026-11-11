@@ -1,6 +1,6 @@
 ---
 name: feature-flags-progressive-delivery
-description: "Feature flag lifecycle and progressive delivery discipline: flag types (release/ops/experiment/permission), creation with a mandatory expiry date, percentage/cohort/ring rollout, kill switches, and scheduled cleanup — every flag is tech debt with a TTL, not a permanent conditional. Use whenever a new flag is being introduced, a rollout percentage is being planned or advanced, a flag is nearing (or past) its expiry, or a kill switch is needed for a risky change. Distinct from `deploy-release` (ships the artifact to an environment; this skill governs who is exposed to it once shipped — deployment is not release) and `chaos-engineering` (injects failure to test resilience; a kill switch here disables a known-bad code path, it doesn't simulate failure)."
+description: "Feature-flag lifecycle and progressive rollout."
 ---
 
 # Feature Flags & Progressive Delivery
@@ -10,6 +10,7 @@ description: "Feature flag lifecycle and progressive delivery discipline: flag t
 capability: build-and-deploy
 domain: cross-cutting
 state: experimental
+listing_tier: B
 dependencies:
   - deploy-release
   - observability

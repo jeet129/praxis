@@ -1,6 +1,6 @@
 ---
 name: project-memory
-description: "Owns the write side of `.project/` — the persistent project memory directory structured by the six memory types (semantic / episodic / procedural / decision / operational / working). Every agent reads `.project/` on entry and writes to it via the AOP Document step. Use this skill whenever the orchestrator initializes a project, an agent completes a phase and needs to record decisions or context, an ADR is created or superseded, an incident closes and needs operational memory recorded, or a slice opens and `working/` needs to be primed. Project memory is what makes the platform portable across coding assistants — any tool that can read files can reconstruct project state."
+description: "Owns writes to the .project/ memory tree (semantic, episodic, procedural, decision, working, operational). Use when recording project state."
 ---
 
 # Project Memory
@@ -10,6 +10,7 @@ description: "Owns the write side of `.project/` — the persistent project memo
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies: []
 triggers:
   - "initializing a new project"

@@ -1,6 +1,6 @@
 ---
 name: i18n-l10n
-description: "Internationalization and localization done right. Locale-aware formatting (numbers, dates, currencies), ICU MessageFormat for variable + plural-aware strings, RTL layout support, locale-routing strategy, translation pipelines, fallback handling, locale switching UX. Build it in early — retrofitting is painful and bug-prone. Frontend Developer applies during implementation; UX Designer establishes the i18n requirements at design time. Use whenever new user-facing strings are introduced, when adding a new locale, when designing locale-switching UX, or when investigating locale-specific rendering bugs."
+description: "Internationalization and localization: formats, plurals."
 ---
 
 # i18n & L10n
@@ -10,6 +10,7 @@ description: "Internationalization and localization done right. Locale-aware for
 capability: quality-and-security
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
   - stack-web-frontend
   - design-system

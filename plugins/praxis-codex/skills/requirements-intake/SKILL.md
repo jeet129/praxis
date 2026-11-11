@@ -1,6 +1,6 @@
 ---
 name: requirements-intake
-description: "The steady-state intake discipline for brownfield projects — how the team handles the continuous arrival of new requirements after the initial /audit + /discover + /architect rounds are complete. Captures each incoming ask into `.project/working/inbox.md`, runs lightweight triage (size + impact + owner), sequences by dependency + risk score, groups related items into mini-phases, and routes whole groups (not individual items) into `/discover`. Prevents two common failure modes: FIFO churn (every small ask gets full ceremony, team burns out) and impulse coding (small asks skip impact-analysis and detonate load-bearing modules). Use whenever a new requirement arrives at a brownfield project past initial discovery. Distinct from `requirements-elicitation` and `product-discovery`."
+description: "Triages a new story, epic, ticket or change request by size, impact and owner, then routes it. Use whenever new work arrives after initial discovery."
 ---
 
 # Requirements Intake
@@ -10,6 +10,7 @@ description: "The steady-state intake discipline for brownfield projects — how
 capability: discovery
 domain: cross-cutting
 state: experimental
+listing_tier: A
 dependencies:
   - product-discovery
   - requirements-elicitation

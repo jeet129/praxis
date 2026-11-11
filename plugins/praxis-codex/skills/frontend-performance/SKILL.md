@@ -1,6 +1,6 @@
 ---
 name: frontend-performance
-description: "Frontend perf discipline. Core Web Vitals (LCP / INP / CLS) target setting, bundle-size budgets per route, code splitting, image and font optimization, prefetch/preload strategy, Lighthouse CI as release gate, RUM-based regression detection. Frontend Developer applies during implementation; Platform/SRE wires Lighthouse CI; performance regressions fail the merge gate. Use whenever new FE features are being implemented, when Lighthouse score degrades, when investigating user-reported slowness, or when establishing the perf-budget per route."
+description: "Core Web Vitals, bundle budgets, code splitting."
 ---
 
 # Frontend Performance
@@ -10,6 +10,7 @@ description: "Frontend perf discipline. Core Web Vitals (LCP / INP / CLS) target
 capability: quality-and-security
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
  - nfr-definition
  - stack-web-frontend

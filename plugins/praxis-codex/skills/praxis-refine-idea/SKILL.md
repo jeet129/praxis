@@ -1,6 +1,6 @@
 ---
 name: praxis-refine-idea
-description: Use when refining an ideation artifact (concept note, PRD draft, proposal, roadmap sketch) in Codex through the bounded creator/reviewer/enhancer/arbiter loop before it enters formal discovery.
+description: "Use when refining a concept note, PRD draft or proposal in Codex through the bounded creator/reviewer/enhancer loop. Triggers: refine this idea."
 ---
 
 <!-- praxis:metadata:begin -->

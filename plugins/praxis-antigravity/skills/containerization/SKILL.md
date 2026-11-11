@@ -1,6 +1,6 @@
 ---
 name: containerization
-description: "Production-grade container image discipline. Minimal/distroless base, multi-stage builds, non-root user, layer caching for build speed, image vulnerability scanning, reproducibility (pinned base + locked deps + provenance attestation), signing. Platform/SRE owns the project's container patterns; developers consume the Dockerfile patterns from the stack packs. Use whenever a Dockerfile is being written, when image base choices are being made, or when supply-chain attestation is being wired into the build."
+description: "Production container images: minimal, non-root, scanned."
 ---
 
 # Containerization
@@ -10,6 +10,7 @@ description: "Production-grade container image discipline. Minimal/distroless ba
 capability: build-and-deploy
 domain: infra
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
  - cicd-pipeline

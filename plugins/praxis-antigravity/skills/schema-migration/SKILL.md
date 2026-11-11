@@ -1,6 +1,6 @@
 ---
 name: schema-migration
-description: "Safe database schema evolution using expand/contract (parallel change): add before removing, backfill as a separate step, never ship a destructive change in the same release that stops writing to the old shape. Covers migration tooling discipline (versioned, forward-only preferred, rollback tested) and zero-downtime rules. Use whenever a schema change is being planned (new column, renamed field, changed type, dropped table, split/merged table) or an existing migration needs a rollback plan. Distinct from `data-modeling` (designs the schema shape; this skill evolves an existing shape safely) and `api-design`'s expand/contract (that's the API contract layer; this is the storage layer underneath it — they often run in parallel but are separate contracts)."
+description: "Safe schema evolution with expand/contract, separate backfills and no destructive change in one step. Use for any migration on a live table."
 ---
 
 # Schema Migration
@@ -10,6 +10,7 @@ description: "Safe database schema evolution using expand/contract (parallel cha
 capability: architecture
 domain: backend
 state: experimental
+listing_tier: A
 dependencies:
   - data-modeling
   - deploy-release

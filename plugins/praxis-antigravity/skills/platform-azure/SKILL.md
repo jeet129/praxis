@@ -1,6 +1,6 @@
 ---
 name: platform-azure
-description: "Azure cloud-specific reference pack. Managed-service catalog (AKS / Azure SQL / Cosmos DB / Service Bus / Event Grid / App Service / Functions / Container Apps / API Management), networking (VNet / Application Gateway / Front Door / Private Link / VPN), identity (Entra ID / Managed Identity / Key Vault), observability (Azure Monitor / Application Insights / Log Analytics), DR patterns (Availability Zones default; paired regions for DR), cost levers (Reservations / Spot VMs / Hybrid Benefit), Azure Well-Architected Framework alignment. The deep reference library that iac, deploy-release, reliability-dr, capacity-resource-estimation, cost-finops, and observability consult for Azure-specific implementation. Selected when Azure is the project's cloud per governance.yaml."
+description: "Azure reference pack: services, identity, networking."
 ---
 
 # Platform — Azure
@@ -10,6 +10,7 @@ description: "Azure cloud-specific reference pack. Managed-service catalog (AKS 
 capability: platform
 domain: infra
 state: active
+listing_tier: B
 dependencies:
   - iac
   - platform-k8s

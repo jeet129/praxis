@@ -1,6 +1,6 @@
 ---
 name: multi-tenancy
-description: "SaaS tenancy model design — silo / pool / bridge — with tenant isolation, per-tenant data, noisy-neighbor controls, tenant-aware observability, tenant-context propagation, and tenant-aware billing. Solution Architect runs this once for any multi-tenant project; Backend Developer applies the tenant context across every layer. Use whenever a project is multi-tenant SaaS, when designing isolation strategy, when investigating tenant cross-talk, or when adding per-tenant features (limits, billing, observability)."
+description: "SaaS tenancy models, isolation and noisy-neighbour control."
 ---
 
 # Multi-Tenancy
@@ -10,6 +10,7 @@ description: "SaaS tenancy model design — silo / pool / bridge — with tenant
 capability: architecture
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - architecture-pattern-selection
   - authn-authz

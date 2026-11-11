@@ -1,6 +1,6 @@
 ---
 name: using-praxis
-description: "The front-door SKILL AND the workflow execution engine. Two layers in one SKILL because they're inseparable in practice. LAYER 1 (routing) — maps incoming user intent to the right workflow → agent → skill sequence; THE FIRST SKILL TO READ on a session start. LAYER 2 (orchestration runtime) — loads a workflow from `workflows/`, evaluates entry criteria, sequences steps, evaluates Decision Nodes, routes to agents, enforces gates per `governance.yaml`, applies failure paths. The Delivery Lead persona runs this SKILL — the persona is the WHO, this SKILL is the HOW. Use when starting any session, when uncertain which workflow / agent / skill to invoke, when advancing a workflow, when evaluating a Decision Node, when enforcing a gate, or when handling a step failure."
+description: "Front door and workflow engine for Praxis. Use at session start, when unsure which workflow, agent or skill applies, or when advancing a workflow or gate."
 ---
 
 # Using the Praxis
@@ -10,6 +10,7 @@ description: "The front-door SKILL AND the workflow execution engine. Two layers
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - delivery-planner
   - project-memory

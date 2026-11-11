@@ -56,7 +56,7 @@ budgets:
 - Total: $32,450 (budget: $50,000) — on track.
 - Top feature: Customer Support Chat — $18,200.
 - Top tenant: Acme Corp — $4,500.
-- Top model: Claude Sonnet 4.6 — $19,800.
+- Top model: the mid-size general model — $19,800.
 
 ## Trends
 - Day-over-day cost: +12% (investigate spike on 2026-11-14).
@@ -83,7 +83,7 @@ For predictable load + sensitive data + cost predictability:
 # Cost-vs-Quality — Customer Support Chat
 
 ## Current configuration
-- Model: Claude Sonnet 4.6 for all requests.
+- Model: the mid-size general model for all requests.
 - Cost: $0.025 per request.
 - Quality eval: 0.89.
 

@@ -1,6 +1,6 @@
 ---
 name: skill-registry
-description: "The library's orchestration backbone. Aggregates every SKILL.md's frontmatter metadata (dependencies, triggers, outputs, consumers, capability, domain, state) into a single `skill-registry.yaml` that the orchestrator consults to resolve which skills to load for a given task, what their dependencies are, and which agents consume their outputs. Validation runs at promotion — broken dependencies, orphaned consumers, duplicate outputs, cycle detection, and state-transition rules all fail the build. Use whenever a new skill is added or modified, when the orchestrator needs to plan a workflow run, or when the library is being audited for overlap and health."
+description: "Index of every skill's metadata and dependencies."
 ---
 
 # Skill Registry
@@ -10,6 +10,7 @@ description: "The library's orchestration backbone. Aggregates every SKILL.md's 
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies: []
 triggers:
  - "adding a new skill to the library"
@@ -33,7 +34,7 @@ references: []
 ```
 <!-- praxis:metadata:end -->
 
-At ~91 skills (with the library targeting 70–90 — see blueprint Section 7), naïve orchestration becomes fragile. The skill-registry is the structured representation of *what the library contains*, *what depends on what*, *who consumes what*, and *what state each skill is in*. The orchestrator never scans `skills/*/SKILL.md` directly at runtime; it consults the registry.
+At ~92 skills (with the library targeting 70–90 — see blueprint Section 7), naïve orchestration becomes fragile. The skill-registry is the structured representation of *what the library contains*, *what depends on what*, *who consumes what*, and *what state each skill is in*. The orchestrator never scans `skills/*/SKILL.md` directly at runtime; it consults the registry.
 
 ## When this skill fires
 
@@ -51,7 +52,7 @@ At ~91 skills (with the library targeting 70–90 — see blueprint Section 7), 
 version: 1
 generated_at: 2026-06-15T10:30:00Z
 library_target: 70-90
-current_count: 91
+current_count: 92
 capabilities:
  foundation:
  skills: [engineering-standards, project-memory, memory-management, skill-registry, adr-decision-records]
@@ -169,7 +170,7 @@ A side artifact useful for the Curator. The build also emits `skill-registry.dot
 You are done when:
 
 - [ ] `skill-registry.yaml` regenerated successfully.
-- [ ] All 91 active SKILLs validated; zero failures.
+- [ ] All 92 active SKILLs validated; zero failures.
 - [ ] No broken dependencies (every dependency name exists).
 - [ ] No cycles in the dependency graph.
 - [ ] No `active` skill depends on a `deprecated` or `removed` skill.

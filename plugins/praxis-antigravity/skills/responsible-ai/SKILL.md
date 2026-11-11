@@ -1,6 +1,6 @@
 ---
 name: responsible-ai
-description: "Fairness, robustness, transparency, and safety practices for ML and AI systems. Bias audits per protected slice, robustness checks (adversarial / distribution shift), explainability (SHAP / LIME / feature attribution), model cards and datasheets, human-in-the-loop policy, escalation on harm signals. HARD GATE — not optional for models that affect people, decisions, or regulated surfaces. Fires for both traditional ML and agentic AI / LLMs . ML/AI Engineer co-runs with Security Reviewer; PM contributes the harm-scenario definitions; compliance-privacy consumes outputs for regulated regimes."
+description: "Fairness, robustness, transparency and safety for ML/AI."
 ---
 
 # Responsible AI
@@ -10,6 +10,7 @@ description: "Fairness, robustness, transparency, and safety practices for ML an
 capability: quality-and-security
 domain: ml
 state: active
+listing_tier: B
 dependencies:
  - ml-problem-framing
  - ml-training-evaluation

@@ -1,6 +1,6 @@
 ---
 name: impact-analysis
-description: 'Predict the ripple effects of a proposed change BEFORE making it. Combines static analysis (dependency graph, reverse callers, schema references), runtime telemetry (which services / consumers actually hit this surface), contract knowledge (API consumers, event subscribers, downstream batch jobs), data lineage (warehouse models depending on a source), and historical incident data (what broke last time we touched this). Read at slice planning time on brownfield, at refactor proposal time, before schema migrations, before API contract changes, and before deprecations. Lead Developer runs it; Architecture Challenger consumes for the scale / operations sub-personas. Distinct from `codebase-comprehension` (which maps the system) — this skill asks "if I change THIS, what is affected?".'
+description: "Predicts the ripple effects of a proposed change across code, data and consumers. Use before modifying existing behaviour or shared contracts."
 ---
 
 # Impact Analysis
@@ -10,6 +10,7 @@ description: 'Predict the ripple effects of a proposed change BEFORE making it. 
 capability: maintenance
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - codebase-comprehension
   - data-warehouse-modeling

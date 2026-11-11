@@ -1,6 +1,6 @@
 ---
 name: ml-problem-framing
-description: "Frame the ML problem honestly BEFORE any modeling. Is ML actually the right tool here? Supervised vs unsupervised vs RL choice. Target definition. Label-source plan. Baseline (heuristic / rules / simple model) to beat. Success metric tied to business outcome. Fairness and safety considerations stated upfront. The single most-leveraged step in an ML project — get this wrong, the rest is theatre. Activated only on engagements with ML or LLM workloads. ML/AI Engineer co-runs with PM and SA at the start of every ML feature."
+description: "Is ML the right tool; target, labels, baseline, metric."
 ---
 
 # ML Problem Framing
@@ -10,6 +10,7 @@ description: "Frame the ML problem honestly BEFORE any modeling. Is ML actually 
 capability: ml
 domain: ml
 state: active
+listing_tier: B
 dependencies:
  - product-discovery
  - nfr-definition

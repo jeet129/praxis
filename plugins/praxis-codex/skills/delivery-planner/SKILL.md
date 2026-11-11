@@ -1,7 +1,6 @@
 ---
 name: delivery-planner
-description: |-
-  Adaptive planning — instantiate a workflow template for *this* project using its characteristics. Consumes a workflow template (from `workflows/`), the PM's product-discovery output, the SA's architecture, the NFR register, scale targets, regulatory exposure, team composition, distributed-systems complexity, and ML/agentic content. Produces an *executable workflow instance* with the right phases activated, Decision Node thresholds calibrated, gate intensity scaled to risk, parallelism strategy selected, and optional skills toggled. Without this, "build Uber" and "build internal CRUD tool" would run the same workflow — different problems demand different execution graphs. Use whenever a project transitions from discovery to architecture-and-planning, or whenever the project's characterization changes materially.
+description: "Bootstraps a project: sets the charter and instantiates the right workflow for its characteristics. Use when starting a project or re-planning."
 ---
 
 # Delivery Planner
@@ -11,6 +10,7 @@ description: |-
 capability: lifecycle
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - skill-registry
   - project-memory
