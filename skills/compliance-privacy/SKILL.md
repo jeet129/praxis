@@ -1,6 +1,6 @@
 ---
 name: compliance-privacy
-description: "Map regulatory regimes (SOC2 / GDPR / HIPAA / PCI-DSS / ISO 27001 / CCPA-CPRA / NIST CSF / FedRAMP) to concrete controls. Data classification, retention, audit logging, PII handling, data residency. Per the Resolved Decision (Section 14 of blueprint), eight regimes are encoded with shared workflow body and per-regime references. Solution Architect and Security Reviewer co-own this; Platform/SRE provisions the controls; tech-writer maintains the compliance evidence. Use whenever a project enters a regulated regime, when designing data handling, or when assembling compliance evidence for the production_go_live gate."
+description: "Maps SOC2, GDPR, HIPAA, PCI and similar to controls."
 ---
 
 # Compliance & Privacy
@@ -10,6 +10,7 @@ description: "Map regulatory regimes (SOC2 / GDPR / HIPAA / PCI-DSS / ISO 27001 
 capability: quality-and-security
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - secure-coding
   - threat-modeling

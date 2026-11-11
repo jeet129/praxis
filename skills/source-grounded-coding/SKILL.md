@@ -1,7 +1,6 @@
 ---
 name: source-grounded-coding
-description: |-
-  Verify every non-trivial framework/library/tool decision against official documentation BEFORE implementing. Cite sources inline. Flag what's unverified. Reject hallucinated API surfaces. Pairs with `engineering-standards` (this skill is the active discipline; engineering-standards is the broad reference). The agent's natural failure mode is plausible-sounding API code that doesn't exist; this skill is the counter. Use when implementing against any external library/framework/tool, when answering "does X support Y?", when writing example code for unfamiliar APIs, or when adopting a new dependency.
+description: "Verifies framework, library and tool decisions against official documentation before implementing, with citations. Use for any unfamiliar API."
 ---
 
 # Source-Grounded Coding
@@ -11,6 +10,7 @@ description: |-
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - engineering-standards
   - codebase-comprehension

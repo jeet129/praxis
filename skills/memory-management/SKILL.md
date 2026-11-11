@@ -1,6 +1,6 @@
 ---
 name: memory-management
-description: "Sister to `project-memory` — owns the read side of `.project/` at scale. Maintains an index across all memory-type subtrees (semantic/episodic/procedural/decision/operational/working), exposes retrieval queries the orchestrator and agents use to find relevant memory entries among many, and runs compaction when episodic/working entries age out so the directory stays usable past 500+ entries. Without this skill, project memory becomes search-by-grep at scale. Use whenever an agent needs to find prior decisions, related ADRs, recent incidents, or any subset of memory by topic/domain/time. Pushy trigger because retrieval gets skipped easily."
+description: "Reads and indexes the .project/ memory tree at scale."
 ---
 
 # Memory Management
@@ -10,6 +10,7 @@ description: "Sister to `project-memory` — owns the read side of `.project/` a
 capability: foundation
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - project-memory
 triggers:

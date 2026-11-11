@@ -1,6 +1,6 @@
 ---
 name: distributed-systems-patterns
-description: "Cross-service data and coordination patterns for distributed systems. Consistency models (strong / eventual / causal / linearizable), partitioning and sharding, replication topology, consensus and leader election (Raft / Paxos), the outbox and saga patterns, system-level idempotency and exactly-once semantics, time and ordering (logical clocks, hybrid logical clocks), partial-failure design, CAP and PACELC trade-offs stated explicitly. Distinct from `resilience-patterns` (in-process, single-dependency failure-handling — timeouts, retries, circuit breakers, bulkheads) and `reliability-dr` (system-level availability architecture — redundancy, failover, RTO/RPO). Used by SA during architecture design for any system with multiple stateful components, and by BE Dev during implementation for state coordination. Pushy trigger because distributed-systems edge cases are catastrophic when missed."
+description: "Consistency, sagas, outbox, idempotency, ordering."
 ---
 
 # Distributed Systems Patterns
@@ -10,6 +10,7 @@ description: "Cross-service data and coordination patterns for distributed syste
 capability: architecture
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - architecture-pattern-selection
   - data-modeling

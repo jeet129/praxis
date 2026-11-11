@@ -1,6 +1,6 @@
 ---
 name: caching-strategy
-description: "Deliberate caching decisions: when to cache (and when caching is masking a query or design problem that should be fixed instead), which layer to cache at (client/CDN/app/distributed/DB), invalidation strategy (TTL, event-driven, write-through/behind, cache-aside), stampede protection, key design, and staleness budgets tied to NFRs. Use whenever a slow read path is being addressed, a cache is being introduced or its invalidation is being designed, or a cache-related bug (stale data, stampede, unbounded growth) is being diagnosed. Distinct from `frontend-performance` (browser/CDN-specific asset caching and rendering) and `data-modeling` (designs the source-of-truth schema; this skill layers a derived, invalidatable copy on top of it)."
+description: "When, where and how to cache, and how to invalidate."
 ---
 
 # Caching Strategy
@@ -10,6 +10,7 @@ description: "Deliberate caching decisions: when to cache (and when caching is m
 capability: architecture
 domain: cross-cutting
 state: experimental
+listing_tier: B
 dependencies:
   - nfr-definition
   - observability

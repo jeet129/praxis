@@ -1,6 +1,6 @@
 ---
 name: ux-journey-mapping
-description: "Map end-to-end user journeys per persona BEFORE any screen design. Actors, goals, touchpoints, emotional states, friction inventory, opportunity hotspots. Ground design decisions in actual flows rather than isolated screens. The UX Designer runs this for any product with non-trivial user flows, in close collaboration with the PM whose discovery output feeds it. Use whenever a new product is being designed, when a new significant user flow is being added, or when the team is debating screens before agreeing on the underlying journey."
+description: "End-to-end user journey maps per persona."
 ---
 
 # UX Journey Mapping
@@ -10,6 +10,7 @@ description: "Map end-to-end user journeys per persona BEFORE any screen design.
 capability: ux-and-design
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
   - product-discovery
   - requirements-elicitation

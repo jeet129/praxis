@@ -1,6 +1,6 @@
 ---
 name: review
-description: On-demand, closed-loop review of an architecture-significant artifact (contracts, roadmap, ADRs, or a path) produced outside a gate. Runs Challenger + Code Reviewer + Security Reviewer, then routes findings back to the owning agent to fix and re-reviews until clear.
+description: "On-demand closed-loop review of an architecture-significant artifact (contracts, roadmap, ADRs or a path)."
 ---
 
 Review the artifact named in $ARGUMENTS (e.g. `contracts`, `roadmap`, `adrs`, or a file/dir path).

@@ -1,6 +1,6 @@
 ---
 name: refine-idea
-description: Run a configurable creator/reviewer/enhancer loop over an ideation artifact. Harnesses are runtime bindings, so creator/reviewer can be Claude, Codex, Cursor, OpenCode, or custom adapters.
+description: "Run the bounded creator/reviewer/enhancer loop over a concept note, PRD draft or proposal."
 ---
 
 Run the `ideation-refinement-loop` workflow for the artifact or topic named in $ARGUMENTS.

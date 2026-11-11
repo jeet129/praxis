@@ -1,6 +1,6 @@
 ---
 name: project-phasing
-description: 'Convert validated requirements + chosen architecture into a phased, dependency-ordered roadmap of vertical slices. MVP/walking-skeleton first, then prioritized increments. Each slice is the *thinnest* user-visible value that flows through every layer (DB → service → API → UI if applicable). Phasing is the spine that turns "build the thing" into "build it slice by slice with discipline." Use whenever a project transitions from architecture to execution, or when re-planning mid-project.'
+description: "Converts requirements and architecture into a dependency-ordered roadmap of vertical slices. Use when planning an MVP or sequencing an epic."
 ---
 
 # Project Phasing
@@ -10,6 +10,7 @@ description: 'Convert validated requirements + chosen architecture into a phased
 capability: lifecycle
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - requirements-elicitation
   - architecture-pattern-selection

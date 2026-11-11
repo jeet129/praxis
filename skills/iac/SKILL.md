@@ -1,6 +1,6 @@
 ---
 name: iac
-description: "Infrastructure as Code discipline. Module structure, state management, drift detection, environment composition, policy-as-code guardrails, plan/apply discipline. Per the agnostic-everywhere decision, ships with refs for Terraform (the default for multi-cloud) and Pulumi (when programming-language IaC is preferred). Platform/SRE owns the IaC; this is what provisions clouds, K8s clusters, secret stores, registries, and the build infrastructure the rest depends on. Use whenever a new project's infrastructure is being designed, when new resources are being added, when migrating cloud accounts, or when establishing the state-management strategy."
+description: "Infrastructure as Code: modules, state, drift, plan review."
 ---
 
 # Infrastructure as Code
@@ -10,6 +10,7 @@ description: "Infrastructure as Code discipline. Module structure, state managem
 capability: build-and-deploy
 domain: infra
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
  - secrets-config

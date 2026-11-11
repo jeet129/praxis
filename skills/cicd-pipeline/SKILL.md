@@ -1,6 +1,6 @@
 ---
 name: cicd-pipeline
-description: "Pipeline-as-code design. The full build → test → scan → package → sign → publish → deploy chain with quality gates, caching, parallelism, branch strategy, and environment promotion. Per the agnostic-everywhere decision, ships with refs for GitHub Actions, GitLab CI, Azure DevOps Pipelines, and Jenkins — same workflow body, per-CI implementation in the references. Platform/SRE runs this; Backend Developer + Frontend Developer consume the pipeline's gates. Use whenever a new project's pipeline is being designed, when adding gates (security scans, perf tests, chaos), or when migrating between CI systems."
+description: "Pipeline-as-code: build, test, scan, sign, publish, deploy."
 ---
 
 # CI/CD Pipeline
@@ -10,6 +10,7 @@ description: "Pipeline-as-code design. The full build → test → scan → pack
 capability: build-and-deploy
 domain: infra
 state: active
+listing_tier: B
 dependencies:
  - engineering-standards
  - testing-strategy

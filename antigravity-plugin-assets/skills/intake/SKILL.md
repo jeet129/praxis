@@ -1,6 +1,6 @@
 ---
 name: intake
-description: Single entry point for any new requirement in steady state (story, epic, ticket, change request). Delegates to delivery-lead, which runs requirements-intake to triage, right-size, and route — so you never pick a workflow by hand.
+description: "Single entry point for a new story, epic, ticket or change request in steady state; triages and routes it."
 ---
 
 The ONE command to run when a new requirement arrives after the initial discovery + architecture rounds are done — a story, epic, ticket, stakeholder ask, bug-disguised-as-feature, or change request. You do NOT decide which workflow it needs; the `requirements-intake` discipline does the right-sizing for you. Just drop the ask.

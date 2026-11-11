@@ -1,6 +1,6 @@
 ---
 name: llm-cost-optimization
-description: "Production economics for LLM features. Model selection per task (capability-vs-cost tiering), prompt-cache + KV-cache utilization, semantic caching, batching, smaller-model routing for the common case, token budgets per request, observability of cost as a first-class signal. LLM cost is the silent project killer — features that work in development can be unaffordable at scale. ML/AI Engineer owns the design; Platform/SRE wires the cost monitoring; `cost-finops` treats LLM cost as a category. Use whenever a new LLM feature is being designed, when investigating cost growth, when setting token budgets, or when designing model-routing policy."
+description: "LLM economics: model tiering, caching, batching, budgets."
 ---
 
 # LLM Cost Optimization
@@ -10,6 +10,7 @@ description: "Production economics for LLM features. Model selection per task (c
 capability: agentic-ai
 domain: ml
 state: active
+listing_tier: B
 dependencies:
   - agentic-architecture
   - cost-finops
@@ -71,12 +72,14 @@ Per request, sum all rounds (agent loop, tool calls, classifier calls). At scale
 
 Different models have different cost / capability trade-offs:
 
-| Tier | Examples (2026) | Cost | Use for |
+| Tier | What it is | Cost | Use for |
 |---|---|---|---|
-| **Frontier** | Claude Opus 4.6, GPT-4.x successors, Gemini 2.x | Highest | Hard tasks; complex reasoning; final answer. |
-| **General** | Claude Sonnet 4.6, GPT-4o-class | Medium | Default for most LLM features. Strong; affordable. |
-| **Fast / cheap** | Claude Haiku 4.5, GPT-4o-mini, Gemini Flash | Low | Classification, extraction, simple routing, summarization. |
-| **Self-hosted** | Llama 3.x, Mistral, Qwen | Compute-cost only | Predictable load; sensitive data; cost predictability. |
+| **Frontier** | Each vendor's largest current model | Highest | Hard tasks; complex reasoning; final answer. |
+| **General** | Each vendor's mid-size current model | Medium | Default for most LLM features. Strong; affordable. |
+| **Fast / cheap** | Each vendor's small current model | Low | Classification, extraction, simple routing, summarization. |
+| **Self-hosted** | Open-weight models you run yourself | Compute-cost only | Predictable load; sensitive data; cost predictability. |
+
+Model names change every few months and old ones are retired. Look up the current model IDs and prices on each vendor's models page when you apply this table; do not copy a model name from memory.
 
 The decision tree:
 

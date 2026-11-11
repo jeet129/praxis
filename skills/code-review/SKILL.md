@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Structured pull-request review against engineering-standards, the active stack pack, security, NFR impact, and test sufficiency. Produces a severity-tagged review report (blocker / major / minor / nit) with diff-anchored locations and concrete fix suggestions. Used by the Code Reviewer agent and as a pre-merge gate. Distinct from Security Reviewer (different remit, different tool scope). Use on every PR; pushy trigger because skipping reviews is the single most common cause of accumulated tech debt."
+description: "Reviews a pull request against engineering standards, security, NFRs and test coverage; returns severity-tagged findings and a verdict. Use before any merge."
 ---
 
 # Code Review
@@ -10,6 +10,7 @@ description: "Structured pull-request review against engineering-standards, the 
 capability: quality-and-security
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
  - engineering-standards
  - secure-coding

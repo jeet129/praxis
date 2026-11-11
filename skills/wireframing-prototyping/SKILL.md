@@ -1,6 +1,6 @@
 ---
 name: wireframing-prototyping
-description: "Translate user journeys into low/mid-fidelity wireframes and interactive prototypes. Validate the interaction model BEFORE pixel polish — the wireframe is the design's contract; the prototype is its validation. Lives downstream of `ux-journey-mapping` (which provides the friction inventory and opportunity hotspots to wireframe first) and upstream of `design-system` (which provides the tokens and components the wireframes resolve to). The UX Designer runs this. Use whenever a slice's UI is being designed before implementation begins."
+description: "Low/mid-fidelity wireframes and prototypes."
 ---
 
 # Wireframing & Prototyping
@@ -10,6 +10,7 @@ description: "Translate user journeys into low/mid-fidelity wireframes and inter
 capability: ux-and-design
 domain: frontend
 state: active
+listing_tier: B
 dependencies:
  - ux-journey-mapping
  - design-system

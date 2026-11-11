@@ -1,6 +1,6 @@
 ---
 name: agentic-harness-orchestration
-description: "Design and run swappable agentic-harness workflows where roles such as creator, reviewer, enhancer, and arbiter are bound at runtime to Claude, Codex, Cursor, OpenCode, or custom harnesses. Use for iterative artifact refinement, cross-harness critique loops, convergence checks, and harness adapter contracts."
+description: "Workflows with roles bound to different AI harnesses."
 ---
 
 # Agentic Harness Orchestration
@@ -10,6 +10,7 @@ description: "Design and run swappable agentic-harness workflows where roles suc
 capability: agentic-ai
 domain: cross-cutting
 state: active
+listing_tier: B
 dependencies:
   - agentic-architecture
   - evaluation-engineering

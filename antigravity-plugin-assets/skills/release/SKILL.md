@@ -1,6 +1,6 @@
 ---
 name: release
-description: Production release: assemble evidence, route through production_go_live gate, deploy.
+description: "Production release - assemble evidence, route through the production_go_live gate, deploy."
 ---
 
 Run `production-release.yaml` workflow for the next release.

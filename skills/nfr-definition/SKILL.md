@@ -1,6 +1,6 @@
 ---
 name: nfr-definition
-description: 'Make non-functional requirements explicit, measurable, and gated. Produces the NFR register — target numbers per quality attribute (performance, availability, scalability, security, compliance, accessibility, observability, RTO/RPO, cost) plus the verification method for each. Without this, NFRs get discovered in production. Use whenever a project enters the architecture phase or a slice introduces new quality targets. The NFR register is consumed by every Decision Node that checks "did we meet the bar?" — `nfr_satisfied()` predicates parameterize against this register.'
+description: "Makes non-functional requirements explicit, measurable and gated in an NFR register. Use when setting performance, availability or security targets."
 ---
 
 # NFR Definition
@@ -10,6 +10,7 @@ description: 'Make non-functional requirements explicit, measurable, and gated. 
 capability: discovery
 domain: cross-cutting
 state: active
+listing_tier: A
 dependencies:
   - product-discovery
 triggers:
