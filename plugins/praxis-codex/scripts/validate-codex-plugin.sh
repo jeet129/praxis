@@ -16,22 +16,20 @@ fail() {
 [[ -d "$PLUGIN" ]] || fail "missing plugin directory: $PLUGIN"
 [[ -f "$PLUGIN/.codex-plugin/plugin.json" ]] || fail "missing Codex plugin manifest"
 [[ -d "$PLUGIN/skills" ]] || fail "missing plugin skills directory"
+[[ -d "$PLUGIN/codex-skills" ]] || fail "missing advertised Codex skills directory"
 [[ -d "$PLUGIN/workflows" ]] || fail "missing plugin workflows directory"
 [[ -d "$PLUGIN/codex-agents" ]] || fail "missing plugin codex-agents directory"
 [[ -f "$PLUGIN/hooks/hooks.json" ]] || fail "missing packaged hooks/hooks.json"
 grep -q '"hooks"' "$PLUGIN/.codex-plugin/plugin.json" || fail "packaged plugin.json missing \"hooks\" key"
 
-# Codex hook-event vocabulary. Codex has NO `SessionEnd` (its turn-scoped
-# `Stop` is the analog); shipping an unsupported event name in the Codex
-# package is a silent no-op that would drop end-of-session token capture.
-# Allowlist per the Codex hooks reference; reject anything outside it, and
-# require `Stop` (so token capture is actually wired for Codex).
+# Allowlist per the Codex hooks reference. SessionEnd and turn-scoped Stop
+# are both supported; require Stop for the continuation guard.
 python3 - "$PLUGIN/hooks/hooks.json" <<'PY'
 import json, sys
 supported = {
     "SessionStart", "SubagentStart", "PreToolUse", "PermissionRequest",
     "PostToolUse", "PreCompact", "PostCompact", "UserPromptSubmit",
-    "SubagentStop", "Stop",
+    "SubagentStop", "Stop", "SessionEnd",
 }
 events = set(json.load(open(sys.argv[1])).get("hooks", {}))
 bad = sorted(events - supported)
@@ -39,7 +37,7 @@ if bad:
     raise SystemExit(
         "packaged hooks/hooks.json registers Codex-unsupported event(s): "
         + ", ".join(bad)
-        + " (Codex has no SessionEnd — use Stop). Rebuild via scripts/build-codex-plugin.sh."
+        + " (see the Codex hooks reference). Rebuild via scripts/build-codex-plugin.sh."
     )
 if "Stop" not in events:
     raise SystemExit(
@@ -99,6 +97,8 @@ for field in ("name", "version", "description", "skills"):
         raise SystemExit(f"plugin manifest missing {field}")
 if manifest["name"] != "praxis-codex":
     raise SystemExit("plugin manifest name must be praxis-codex")
+if manifest["skills"] != "./codex-skills/":
+    raise SystemExit("plugin manifest must advertise the scoped Codex skill path")
 
 required_agents = {
     "product-manager",
@@ -142,8 +142,11 @@ for skill in \
   praxis-review \
   praxis-setup-subagents
 do
-  [[ -f "$PLUGIN/skills/$skill/SKILL.md" ]] || fail "missing Codex command skill: $skill"
+  [[ -f "$PLUGIN/codex-skills/$skill/SKILL.md" ]] || fail "missing Codex command skill: $skill"
 done
+
+visible_count=$(find "$PLUGIN/codex-skills" -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l | tr -d '[:space:]')
+[[ "$visible_count" -le 20 ]] || fail "too many advertised Codex skills ($visible_count > 20)"
 
 # Respect TMPDIR; fall back to /tmp only when it's writable, else a repo-local
 # scratch dir — hardcoding /tmp breaks on sandboxes where /tmp is locked.
@@ -151,17 +154,32 @@ SKILL_VAL_OUT="$(mktemp "${TMPDIR:-/tmp}/praxis-codex-skill-validation.XXXXXX" 2
   || mktemp "$ROOT/.praxis-codex-skill-validation.XXXXXX")"
 trap 'rm -f "$SKILL_VAL_OUT"' EXIT
 bash "$ROOT/scripts/validate-skills.sh" "$PLUGIN" >"$SKILL_VAL_OUT"
+bash "$ROOT/scripts/validate-skills.sh" "$ROOT/codex-plugin-assets" >/dev/null
 ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f) }' "$PLUGIN"/workflows/*.yaml "$PLUGIN"/governance/*.yaml
 
 # Generated-package freshness (the stale-mirror class the reviewer hit):
 # key canonical files must be present in the mirror AND byte-identical.
 [[ -f "$PLUGIN/references/phase-gates.md" ]] || fail "mirror is stale: references/phase-gates.md missing from plugins/praxis-codex/ — run scripts/build-codex-plugin.sh"
-for _f in scripts/praxis-drive.sh skills/autonomous-drive/SKILL.md references/loop-contracts.md; do
+for _f in skills/autonomous-drive/SKILL.md references/loop-contracts.md; do
   if [[ -f "$ROOT/$_f" ]]; then
     diff -q "$ROOT/$_f" "$PLUGIN/$_f" >/dev/null 2>&1 \
       || fail "mirror is stale/diverged: $_f differs from canonical — run scripts/build-codex-plugin.sh and commit the result"
   fi
 done
+
+# The Codex runner is deliberately overlaid at build time; the canonical
+# runner remains byte-identical for Claude. Verify the generated drain path.
+grep -q 'DRAIN_MODE=1' "$PLUGIN/scripts/praxis-drive.sh" \
+  || fail "Codex runner is missing the slice-drain overlay"
+if grep -q 'DRAIN_MODE=1' "$ROOT/scripts/praxis-drive.sh"; then
+  fail "Codex slice-drain overlay leaked into the shared runner"
+fi
+[[ -f "$PLUGIN/hooks/codex-continuation.py" ]] \
+  || fail "Codex continuation hook is missing"
+[[ -f "$PLUGIN/scripts/codex_drive.py" ]] \
+  || fail "Codex lane controller is missing"
+[[ -f "$PLUGIN/scripts/codex_state.py" ]] \
+  || fail "Codex ledger state reader is missing"
 
 [[ -f "$ROOT/.claude-plugin/plugin.json" ]] || fail "Claude plugin manifest was removed"
 [[ -d "$ROOT/.claude/commands" ]] || fail "Claude commands directory was removed"

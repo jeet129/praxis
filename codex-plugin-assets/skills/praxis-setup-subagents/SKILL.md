@@ -20,7 +20,7 @@ references: [../../codex-agents]
 
 Install Praxis Codex subagent profiles into the current repository.
 
-1. Locate the installed plugin root by walking up from this skill until `codex-agents/` is present (call it `PLUGIN_ROOT`). The target repo is the current working directory (`TARGET`).
+1. Locate the installed plugin root by walking up from this skill until `codex-agents/` is present (call it `PLUGIN_ROOT`). Resolve `TARGET` to the nearest ancestor containing `.project/working`; if no Praxis state exists yet, use the Git worktree root when available, otherwise the current working directory. Show the resolved absolute target before copying. Do not install profiles into an `infra/` or app subdirectory merely because Codex started there.
 2. Create `.codex/agents/` in the target repository if missing.
 3. Copy `codex-agents/*.toml` into `TARGET/.codex/agents/`. On a fresh install, don't overwrite existing files unless the user approves. On a **refresh/update, DO overwrite** — old copies carry stale `model` / `model_reasoning_effort` values.
 4. **Apply this project's model routing to the installed profiles** so a project-level override takes effect (the whole point of an override — you never hardcode models in the plugin defaults):

@@ -2,7 +2,7 @@
 
 Praxis ships to Codex as a repo-backed plugin package. The Claude Code plugin remains separate and unchanged.
 
-Status: tested end-to-end on real engagements.
+Status: Praxis has been exercised on real Codex engagements; the new Codex lane controller is validated with deterministic PortiQ and Aapka Aangan replay fixtures and needs a live project rollout.
 
 ## Install From GitHub Marketplace
 
@@ -47,7 +47,8 @@ codex plugin marketplace add ./praxis --sparse .agents/plugins --sparse plugins/
 ```text
 plugins/praxis-codex/
 ├── .codex-plugin/plugin.json
-├── skills/                  # canonical Praxis skills plus Codex command-entry skills
+├── codex-skills/            # advertised front door, drive contracts, and Codex commands
+├── skills/                  # complete canonical library for on-demand reads
 ├── workflows/               # Praxis workflow YAML
 ├── codex-agents/            # Codex subagent TOML templates
 ├── agents/                  # original role markdown references
@@ -68,6 +69,8 @@ $praxis-start
 
 `$praxis-setup-subagents` copies the bundled Codex subagent profiles into the target repo's `.codex/agents/` directory. Restart Codex or start a new session after installing subagents.
 
+Start the Codex session at the repository root when possible. `$praxis-slice` and `$praxis-drive` resolve the nearest ancestor containing `.project/working`, check project write access, and require the coordinator and review profiles before dispatch. A nested start directory such as `infra/local-demo` uses the root `.project` state; a missing profile or unwritable root stops before an agent is launched. After a plugin update, run `$praxis-setup-subagents` again in the target repository and start a new session to load refreshed profiles.
+
 Then use:
 
 ```text
@@ -87,7 +90,13 @@ The `$praxis-*` commands run the same 9 workflows as Claude Code's slash command
 
 ## Telemetry hooks (token capture)
 
-The Codex package ships a hooks manifest wired to Codex's own event vocabulary — notably `Stop` (Codex's turn-scoped end event; Codex has no `SessionEnd`, which is Claude Code's event). On `Stop`, the tap writes a valid JSON acknowledgement and records this session's token totals to `.project/telemetry/tokens.jsonl` as an upsert (one line per session, refreshed — never double-counted, even though `Stop` can fire per turn). Run `/hooks` after install and confirm the Praxis hooks are trusted for the session, or capture won't run.
+The Codex package ships a hooks manifest wired to Codex's event vocabulary, including turn-scoped `Stop` and `SessionEnd`. On `Stop`, the tap writes a valid JSON acknowledgement and records this session's token totals to `.project/telemetry/tokens.jsonl` as an upsert (one line per session, refreshed — never double-counted, even though `Stop` can fire per turn). Run `/hooks` after install and confirm the Praxis hooks are trusted for the session, or capture won't run.
+
+An explicit `$praxis-drive` or `praxis drive` prompt also arms a Codex-only, session-scoped Stop guard. While an active slice ledger remains open, the guard can request another turn; it stops on ledger stop flags, a closed slice, the configured task/phase boundary, or its no-progress/iteration cap. The agent still owns the workflow budget and gate decisions.
+
+For unattended slice work, `$praxis-drive` runs `python3 <plugin-root>/scripts/codex_drive.py --project-dir <project-root>`. The controller schedules one slice iteration at a time, carries budgets across lanes, recovers from interrupted runs, and checks review, test, acceptance, and summary files before counting a slice as closed. It can continue another lane past a gate only when that lane declares `depends_on_slices` and does not depend on the gated slice. It writes `.project/working/codex-active-index.json` and `.project/telemetry/codex-controller.json`, with a live heartbeat during long calls. The packaged shell runner remains the per-iteration executor and requests `workspace-write` for `codex exec`; full JSONL is retained for usage accounting. A locally accepted unit awaiting commit or delivery is reported separately from a fully closed slice. The interactive guard requires trusted hooks; the unattended controller works independently of hook trust.
+
+Run `python3 <plugin-root>/scripts/codex_drive.py --project-dir <project-root> --audit` for a read-only lane report. Live drive migrates only unambiguous legacy task statuses, saving a `.codex-pre-migration.bak` first; unknown statuses stop their lane with an explicit diagnostic. New Codex ledgers use `schema_version: 2` and `closeout_evidence` paths. Existing closed ledgers are marked `legacy_unverified` in the index and are not rewritten.
 
 Per-iteration model routing for `codex exec` (in the drive loop) is applied as `-c model_reasoning_effort=<level>` from the task's capability tier; `model` stays the harness default while `governance/model-routing.yaml`'s `codex.model_map` is `auto`. See `docs/model-routing.md`.
 
@@ -154,7 +163,9 @@ checklist, in order:
    source so the canonical directories and `codex-plugin-assets/` are current.
 2. **Update or reinstall the plugin.** In Codex: `/plugins` → update (or
    remove and re-add) `praxis-codex` so the regenerated
-   `plugins/praxis-codex/` package is picked up.
+   `plugins/praxis-codex/` package is picked up. The feature branch's Codex
+   package is version `0.2.1` and advertises `codex-skills/`; start a new
+   Codex session after the update so the skill list refreshes.
 3. **Refresh project governance overrides.**
    `.project/governance/model-routing.yaml` and `autonomy.yaml` are seeded
    into your project ONCE, then win over the plugin's copies so your
