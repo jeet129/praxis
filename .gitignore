@@ -46,3 +46,6 @@ build/
 .cache/
 tmp/
 personal/
+
+# claude plugin eval output
+evals/results/
