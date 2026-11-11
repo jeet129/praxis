@@ -22,6 +22,14 @@
 set -u
 
 EVENT="${1:-PostToolUse}"
+
+# Nested helper sessions (e.g. the IO-delegation bulk-read worker) set
+# PRAXIS_NESTED=1 so they do not seed governance, print the banner, or pollute
+# telemetry. Drain stdin and exit quietly.
+if [[ "${PRAXIS_NESTED:-0}" == "1" ]]; then
+  cat >/dev/null 2>&1 || true
+  exit 0
+fi
 PLUGIN_ROOT="${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
 RECORDER="$PLUGIN_ROOT/scripts/factory-record.sh"
 # Preserve any caller-supplied PROJECT_DIR/CODEX_PROJECT_DIR BEFORE we set our
@@ -248,7 +256,7 @@ case "$EVENT" in
     tool_name=$(echo "$payload" | jq -r '.tool_name // empty' 2>/dev/null)
     if [[ ( "$tool_name" == "Task" || "$tool_name" == "Agent" ) && "$TAP_TOOL" == "claude-code" ]]; then
       pf_script="$PLUGIN_ROOT/scripts/routing-preflight.py"
-      sub=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null); sub="${sub#praxis:}"
+      sub=$(echo "$payload" | jq -r '.tool_input.subagent_type // .tool_input.agent_type // empty' 2>/dev/null); sub="${sub#praxis:}"
       spawn_model=$(echo "$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)
       to_tier=""
       case "$spawn_model" in
@@ -285,13 +293,15 @@ case "$EVENT" in
         # checkpoint records + packets/ledgers/routing (see
         # references/factory-metrics-schema.md "Checkpoint records").
         ;;
-      Task|Agent)
+      Task|Agent|spawn_agent|collaborationspawn_agent)
+        # Codex spawns with spawn_agent (multi-agent v2: collaborationspawn_agent)
+        # and names the role in tool_input.agent_type.
         # Sub-agent spawn: tool_input.subagent_type carries the agent name.
         # `Task` is the classic spawn tool; `Agent` is the experimental Agent
         # Teams spawn tool (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) — same
         # subagent_type field. Both are also callable for non-agent purposes;
         # only record if subagent_type is present.
-        subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null); subagent="${subagent#praxis:}"
+        subagent=$(echo "$payload" | jq -r '.tool_input.subagent_type // .tool_input.agent_type // empty' 2>/dev/null); subagent="${subagent#praxis:}"
         if [[ -n "$subagent" && "$subagent" != "null" ]]; then
           record agent "$subagent" spawn
           # Correlation for the next SubagentStop, whose payload omits the name.
@@ -356,7 +366,7 @@ case "$EVENT" in
   SubagentStart)
     # Native event — fires when any sub-agent starts.
     # Payload contains the subagent's name/type.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     if [[ -n "$subagent" ]]; then
       record agent "$subagent" spawn
     fi
@@ -365,7 +375,7 @@ case "$EVENT" in
   SubagentStop)
     # Optional: record completion outcome.
     # The payload should include the subagent's name and result status.
-    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
+    subagent=$(echo "$payload" | jq -r '.subagent_type // .agent_type // .agent_name // .agent // empty' 2>/dev/null); subagent="${subagent#praxis:}"
     # Claude Code's SubagentStop payload omits the agent name; fall back to the
     # last subagent recorded at Task-spawn. Transcript extraction in the miner
     # below takes precedence when a Task tool_use is present in the delta.
@@ -570,7 +580,10 @@ PYEOF
 
   SessionStart)
     # Delegate to the existing SessionStart script
-    bash "$PLUGIN_ROOT/hooks/session-start.sh" 2>/dev/null || true
+    # Banner goes to STDOUT so the harness adds it to the model context
+    # (stderr of a hook that exits 0 is never shown to the model). Capped so it
+    # fits both Claude Code (10,000 chars) and Codex (~2,500 tokens) limits.
+    bash "$PLUGIN_ROOT/hooks/session-start.sh" 2>/dev/null | head -c 6000 || true
     # Session boundary as a single JSONL line (was: one stub .md per fire)
     tdir="$cwd/.project/telemetry"
     mkdir -p "$tdir" 2>/dev/null && \
@@ -597,6 +610,7 @@ PYEOF
     rm -f "$cwd/.project/telemetry/.token-cursor-${session_id}" 2>/dev/null || true
     rm -f "$cwd/.project/telemetry/.token-agent-${session_id}" 2>/dev/null || true
     rm -f "$cwd/.project/telemetry/.warm-tier-${session_id}" 2>/dev/null || true
+    rm -f "$cwd/.project/telemetry/.io-delegated-${session_id}" 2>/dev/null || true
     # Universal token capture: sum this session's usage from its own session
     # transcript (found by session id — layout-agnostic, checked under both
     # Claude Code's ~/.claude/projects and Codex's ~/.codex/sessions stores)

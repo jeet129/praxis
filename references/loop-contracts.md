@@ -94,6 +94,24 @@ stop_flags: []                          # drive stops when non-empty: decision_r
                                         # gate_reached | blocked | budget_exceeded | stalled
 ```
 
+
+### Evidence gate (enforced)
+
+"A task moves to `done` only when its verify command exits 0" is enforced by
+`hooks/praxis_guard.py`, not left to the agent:
+
+- **At edit time** an edit that changes a task's `status` to `done` is refused
+  unless `.project/working/verify-<task-id>.log` exists. If
+  `.project/working/verify-<task-id>.exit` exists it must contain `0`.
+- **At stop time** tasks completed in the last 24 hours are re-checked; the
+  agent is sent back to re-verify (at most twice per session).
+- Tasks with `verify: null` are exempt. `PRAXIS_EVIDENCE_GATE=warn|off` relaxes
+  the gate; every decision is logged to `.project/telemetry/guard.jsonl`.
+
+Prefer verify commands that also record the exit code, so the gate checks a
+pass and not just a run:
+`<command> > .project/working/verify-<id>.log 2>&1; echo $? > .project/working/verify-<id>.exit`
+
 Rules:
 
 - **One writer.** Only the delivery-lead (or the specialist it dispatched for

@@ -12,6 +12,26 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "[ -e \"${CLAUDE_PROJECT_DIR:-$PWD}/.project/STOP\" ] && python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py\" pretool --harness claude-code || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py\" pretool --harness claude-code || true"
+          }
+        ]
+      },
+      {
         "matcher": "Task|Agent",
         "hooks": [
           {
@@ -26,6 +46,15 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/io-delegate-read.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/io-delegate-bash.sh\""
           }
         ]
       }
@@ -47,6 +76,15 @@
           {
             "type": "command",
             "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" UserPromptSubmit || true"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py\" steer --harness claude-code || true"
           }
         ]
       }
@@ -77,6 +115,17 @@
           {
             "type": "command",
             "command": "TAP=\"${CLAUDE_PLUGIN_ROOT}/hooks/tap.sh\"; [ -f \"$TAP\" ] && bash \"$TAP\" SessionEnd || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 15,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py\" stop --harness claude-code || true"
           }
         ]
       }
