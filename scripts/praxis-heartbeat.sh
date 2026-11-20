@@ -11,6 +11,8 @@
 # exists, then starts one praxis-drive.sh run. Every drive run starts from the
 # files under .project/, so a beat that crashed is picked up by the next one.
 # --window is the cron day-of-week field (default "*", every day).
+# Once a week a beat also writes a dry-run memory report to
+# .project/local/reports/ (index, check, consolidate proposals).
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SELF="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
@@ -78,6 +80,19 @@ case "$CMD" in
     echo "[heartbeat] $STAMP start ($HARNESS)"
     bash "$DRIVE" --project-dir "$PROJECT" --harness "$HARNESS"; RC=$?
     echo "[heartbeat] $(date -u +%Y-%m-%dT%H:%M:%SZ) end exit=$RC"
+    # Weekly memory housekeeping: regenerate the index and write a DRY-RUN
+    # consolidation report (nothing is moved; a human runs --apply).
+    # Opt out with PRAXIS_HEARTBEAT_MEMORY=off.
+    MEM="$SCRIPT_DIR/praxis-memory.py"
+    MARK="$PROJECT/.project/local/.last-memory-report"
+    if [[ "${PRAXIS_HEARTBEAT_MEMORY:-on}" != "off" && -f "$MEM" ]] && command -v python3 >/dev/null 2>&1 \
+       && { [[ ! -f "$MARK" ]] || [[ -n "$(find "$MARK" -mtime +6 2>/dev/null)" ]]; }; then
+      mkdir -p "$PROJECT/.project/local/reports"
+      REP="$PROJECT/.project/local/reports/memory-$(date -u +%Y%m%d).txt"
+      { python3 "$MEM" index --project-dir "$PROJECT"; python3 "$MEM" check --project-dir "$PROJECT";
+        python3 "$MEM" consolidate --project-dir "$PROJECT"; } > "$REP" 2>&1 && touch "$MARK"
+      echo "[heartbeat] memory report: $REP"
+    fi
     exit 0
     ;;
   *) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
