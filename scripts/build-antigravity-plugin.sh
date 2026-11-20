@@ -125,7 +125,7 @@ for _ap in sorted((out / "agents").glob("*.md")):
         continue
     _lines, _tier = [], None
     for l in _m.group(2).split("\n"):
-        if _re.match(r"\s*(model|effort)\s*:", l):
+        if _re.match(r"\s*(model|effort|maxTurns)\s*:", l):  # Claude Code-only fields
             continue
         _tm = _re.match(r"capability_tier:\s*(\S+)", l)
         if _tm:
@@ -173,13 +173,18 @@ if hooks_dir.exists():
     place_tree(hooks_dir, out / "hooks")
 # The shared guard (kill switch, read-only reviewers, evidence gate, steering,
 # goal continuation) is one script for every harness; ship the canonical copy.
-guard = root / "hooks" / "praxis_guard.py"
-if guard.exists():
-    (out / "hooks").mkdir(parents=True, exist_ok=True)
-    shutil.copy2(guard, out / "hooks" / "praxis_guard.py")
-    record(out / "hooks" / "praxis_guard.py")
-# Cross-tool helper scripts the agy skills call (goal arming, status view).
-for name in ("praxis-goal.py", "praxis-status.py"):
+# praxis_project.py is the shared layout/evidence/memory-map module the guard,
+# the session-start hook and the runner import; praxis_commit_trailer.py is the
+# git prepare-commit-msg hook that session start installs.
+for name in ("praxis_guard.py", "praxis_project.py", "praxis_commit_trailer.py"):
+    src_hook = root / "hooks" / name
+    if src_hook.exists():
+        (out / "hooks").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_hook, out / "hooks" / name)
+        record(out / "hooks" / name)
+# Cross-tool helper scripts the agy skills call (goal arming, status view,
+# the verify runner and the memory tool behind the .project/local/bin shims).
+for name in ("praxis-goal.py", "praxis-status.py", "praxis-verify.py", "praxis-memory.py"):
     helper = root / "scripts" / name
     if helper.exists():
         (out / "scripts").mkdir(parents=True, exist_ok=True)

@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Glob, Grep
 capability_tier: deep
 model: opus
 effort: high
+maxTurns: 80
 capability: phase-lead
 tier: 1
 ---

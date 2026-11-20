@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Bash
 capability_tier: deep
 model: opus
 effort: high
+maxTurns: 80
 capability: gate-reviewer
 tier: cross-cutting
 ---

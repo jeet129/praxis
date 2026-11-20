@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Glob, Grep
 capability_tier: standard
 model: sonnet
 effort: medium
+maxTurns: 60
 capability: phase-lead
 tier: 1
 ---

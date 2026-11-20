@@ -67,6 +67,7 @@ def parse_routing(path: Path) -> dict:
                     "field": None, "map": {},
                     "effort_field": None, "effort_map": {},
                     "model_field": None, "model_map": {},
+                    "turns_field": None, "turns_map": {},
                 }
                 active_map = None
             elif indent == 4 and current_harness:
@@ -82,6 +83,10 @@ def parse_routing(path: Path) -> dict:
                     harnesses[current_harness]["model_field"] = val
                 elif key == "model_map":
                     active_map = "model_map"
+                elif key == "turns_field":
+                    harnesses[current_harness]["turns_field"] = val
+                elif key == "turns_map":
+                    active_map = "turns_map"
                 else:
                     active_map = None
             elif indent == 6 and current_harness and active_map:
@@ -175,6 +180,24 @@ def process_agents(cfg: dict, check: bool, out_dir=None) -> tuple[list[str], dic
             elif has_effort_line:
                 # auto (or unmapped) => omit the field entirely.
                 new_fm = re.sub(rf"^{effort_field}:\s*.*\n", "", new_fm, flags=re.M)
+
+        # Turn cap per tier (claude-code `maxTurns`): a subagent's cost is roughly
+        # turns x context, so the cap bounds the worst case. Same auto/omit rule.
+        turns_field = harness.get("turns_field")
+        turns_map = harness.get("turns_map") or {}
+        if turns_field and turns_map:
+            turns_target = turns_map.get(tier)
+            has_turns_line = re.search(rf"^{turns_field}:\s*.*$", new_fm, re.M) is not None
+            anchor = effort_field if effort_field and re.search(rf"^{effort_field}:.*$", new_fm, re.M) else (
+                field if re.search(rf"^{field}:.*$", new_fm, re.M) else "capability_tier")
+            if turns_target and turns_target != "auto":
+                if has_turns_line:
+                    new_fm = re.sub(rf"^{turns_field}:\s*.*$", f"{turns_field}: {turns_target}", new_fm, flags=re.M)
+                else:
+                    new_fm = re.sub(rf"^({anchor}:.*)$", rf"\1\n{turns_field}: {turns_target}", new_fm,
+                                    count=1, flags=re.M)
+            elif has_turns_line:
+                new_fm = re.sub(rf"^{turns_field}:\s*.*\n", "", new_fm, flags=re.M)
 
         new_text = text[: fm.start(1)] + new_fm + text[fm.end(1):]
         if out_dir is not None:

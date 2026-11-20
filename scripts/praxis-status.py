@@ -34,6 +34,17 @@ def tail_jsonl(path, n=400):
     return rows
 
 
+def _no_evidence(root, tid, task, ledger):
+    """True when a done task has neither a praxis-verify run nor (pre-0.3.0) legacy files."""
+    if not evidence_problem(root, tid, task, ledger=ledger):
+        return False
+    try:
+        import praxis_project as _pp
+        return _pp.legacy_problem(root, tid) is not None
+    except Exception:
+        return True
+
+
 def age(path):
     try:
         s = int(time.time() - os.path.getmtime(path))
@@ -62,7 +73,7 @@ def main():
         for t in tasks.values():
             counts[t.get("status", "?")] = counts.get(t.get("status", "?"), 0) + 1
         missing = [tid for tid, t in tasks.items()
-                   if t.get("status") == "done" and evidence_problem and evidence_problem(root, tid, t)]
+                   if t.get("status") == "done" and evidence_problem and _no_evidence(root, tid, t, ledger)]
         state = next((l.split(":", 1)[1].split("#")[0].strip() for l in text.splitlines()
                       if l.startswith("state:")), "?")
         slices.append({"ledger": os.path.basename(ledger), "state": state, "tasks": counts,
@@ -87,8 +98,41 @@ def main():
             rows = tail_jsonl(p, 1)
             last[name] = {"updated": age(p), "harness": (rows[-1].get("harness") if rows else None)}
 
+    # Context budget: context tokens read per drive task (one row per iteration).
+    alert = 2000000
+    try:
+        _here = os.path.dirname(os.path.abspath(__file__))
+        for _cand in (os.path.join(_here, "..", "hooks"), _here):
+            if os.path.isfile(os.path.join(_cand, "praxis_project.py")):
+                sys.path.insert(0, os.path.abspath(_cand))
+                break
+        import praxis_project as _pp
+        alert = _pp.context_budget(root)["iteration_alert_tokens"]
+    except Exception:
+        pass
+    ctx_rows = []
+    for r in tail_jsonl(os.path.join(tel, "drive.jsonl"), 400):
+        def _n(k):
+            v = r.get(k)
+            return v if isinstance(v, int) else 0
+        if not isinstance(r.get("input_tokens"), int):
+            continue
+        tok = _n("input_tokens") if r.get("harness") == "codex" else (
+            _n("input_tokens") + _n("cache_read_input_tokens") + _n("cache_creation_input_tokens"))
+        ctx_rows.append({"task": r.get("task"), "slice": r.get("slice"), "tier": r.get("tier"),
+                         "outcome": r.get("outcome"), "context_tokens": tok, "ts": r.get("ts")})
+    ctx_sorted = sorted(c["context_tokens"] for c in ctx_rows)
+    context_budget = {
+        "tasks_measured": len(ctx_rows),
+        "median_context_tokens": ctx_sorted[len(ctx_sorted) // 2] if ctx_sorted else None,
+        "alert_tokens": alert,
+        "over_alert": sorted((c for c in ctx_rows if c["context_tokens"] > alert),
+                             key=lambda c: -c["context_tokens"])[:5],
+    }
+
     status = {
         "project": root,
+        "context_budget": context_budget,
         "kill_switch": os.path.exists(os.path.join(proj, "STOP")),
         "steer_pending": os.path.isfile(os.path.join(proj, "STEER.md")),
         "drive_active_marker": os.path.isfile(os.path.join(work, ".drive-active")),
@@ -110,6 +154,12 @@ def main():
         t = ", ".join(f"{k} {v}" for k, v in sorted(s["tasks"].items())) or "no tasks parsed"
         warn = f"   !! done without evidence: {', '.join(s['done_without_evidence'])}" if s["done_without_evidence"] else ""
         print(f"    {s['ledger']}  [{s['state']}]  {t}  (updated {s['updated']}){warn}")
+    cb = status["context_budget"]
+    if cb["tasks_measured"]:
+        print(f"  context per drive task: median {cb['median_context_tokens'] // 1000}k tokens over "
+              f"{cb['tasks_measured']} tasks; {len(cb['over_alert'])} over {cb['alert_tokens'] // 1000}k")
+        for c in cb["over_alert"]:
+            print(f"    {c['context_tokens'] // 1000}k  {c['slice']}/{c['task']}  {c['tier']}  {c['outcome']}")
     print(f"  guard events: {status['guard_events'] or 'none'}")
     print(f"  io delegation: {status['io_delegation_events'] or 'none'}")
     for r in review_rows:

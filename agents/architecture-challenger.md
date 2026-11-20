@@ -5,6 +5,7 @@ tools: Read, Glob, Grep
 capability_tier: deep
 model: opus
 effort: high
+maxTurns: 80
 capability: adversarial-review
 tier: cross-cutting
 ---

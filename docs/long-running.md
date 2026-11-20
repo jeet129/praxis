@@ -11,7 +11,9 @@ instructions in a skill.
 |---|---|---|
 | **Kill switch** | `touch .project/STOP` | Every tool call is refused with a message telling the agent to stop and report. `praxis-drive.sh` and the Codex controller stop before the next iteration. Delete the file to resume. |
 | **Steer** | Write your note to `.project/STEER.md` | The note is added to the agent's context at its next prompt (Claude Code, Codex) or next model call (Antigravity), once, then archived as `.project/STEER.delivered-<time>.md`. |
-| **Evidence gate** | Nothing to do; on by default | An edit that moves a ledger task to `done` is refused unless `.project/working/verify-<task-id>.log` exists. If `verify-<task-id>.exit` exists it must contain `0`. When the agent stops, tasks completed in the last 24 hours are re-checked and the agent is sent back (at most twice) if evidence is missing. |
+| **Evidence gate** | Nothing to do; on by default | An edit that moves a ledger task to `done` is refused unless `praxis-verify` recorded a passing run of the task's current `verify` command against the current code. Agents run `.project/local/bin/praxis-verify <task-id>`; hand-written evidence is refused. When the agent stops, tasks completed in the last 24 hours are re-checked and the agent is sent back (at most twice) if evidence is missing. |
+| **Verify freeze** | Nothing to do | A started task's `verify` command cannot change unless the edit adds `verify_changed_reason:`. |
+| **Commit trailer** | Nothing to do (opt out: `PRAXIS_COMMIT_TRAILER=off`) | Each commit gets `Praxis-Verified: verify (...)`, `review` or `none`. |
 | **Read-only reviewers** | Nothing to do | `code-reviewer`, `security-reviewer` and `architecture-challenger` cannot use file-editing tools. On Codex the formal review also runs in a separate read-only process (see below). |
 
 `PRAXIS_EVIDENCE_GATE=warn` logs instead of blocking; `off` disables the gate.
@@ -23,9 +25,13 @@ Every decision is logged to `.project/telemetry/guard.jsonl`.
 - The edit-time check sees edits made with the tool's file-edit tools. A ledger
   changed by a shell command (`sed -i`, a script) is caught by the stop-time
   re-check and by `scripts/praxis-status.py`, not at edit time.
-- A log file proves the command ran, not that it passed. Write the exit code
-  too so the gate can check it:
-  `verify: "pytest -q > .project/working/verify-T1.log 2>&1; echo $? > .project/working/verify-T1.exit"`
+- The guard blocks hand-writing evidence with file tools and with obvious shell
+  writes into the evidence folders; a determined script could still forge a
+  summary. The gate stops shortcuts, not an adversary; the commit trailer and
+  `/praxis:evidence-audit` (which re-runs every done task) are the backstops.
+- Freshness compares tree fingerprints of non-ignored files outside
+  `.project/`. Untracked junk that is not gitignored counts as a code change;
+  gitignore build output.
 
 ## Goals
 
@@ -132,3 +138,31 @@ worktree (`.praxis-worktrees/<slice>`, branch `praxis/lane-<slice>`).
 Two dynamic workflows ship in `claude-workflows/` (see its README):
 `/praxis:pre-merge-review` and `/praxis:evidence-audit`. They need Claude Code
 v2.1.154 or later with dynamic workflows turned on.
+
+## Context budget
+
+Long runs spend most of their tokens re-reading context: every tool call
+re-sends the conversation so far. Praxis keeps sessions short and hands off
+through the ledger. Settings live under `context_budget:` in
+`governance/autonomy.yaml` (project copy wins); the reasoning and the rules for
+compact, clear, rewind and subagents are in `references/context-budget.md`.
+
+| Control | Default | What it does |
+|---|---|---|
+| `max_turns_by_tier` | deep 40, standard 30, light 20 | `claude -p --max-turns` per headless drive task |
+| `iteration_alert_tokens` | 2,000,000 | flags a task whose context reads exceed it (`praxis-status.py`, `.project/telemetry/budget-alerts.jsonl`) |
+| `on_session_budget` | continue | in-session drive keeps going at a budget step and hints that it is a good moment to clear; `ask` stops instead |
+| `session_max_tasks` | 3 | a budget step every this many finished tasks |
+| `session_max_context_tokens` | 350,000 | ...or every this many tokens of transcript since the last compaction (estimate) |
+| `turns_map` (model-routing.yaml) | deep 80, standard 60, light 30 | subagent `maxTurns` |
+
+In-session drive hands every task to a fresh subagent, so the main session
+stays small and nothing waits on you. At a budget step you see one line (Claude
+Code and Codex) saying it is a good moment to start a fresh session; clearing is
+optional, and if you do, run the drive command again and the ledger carries the
+state. Antigravity has no user-facing hook message, so there the step is only
+logged (`context_hint` in `.project/telemetry/guard.jsonl`).
+
+Run `.project/local/bin/praxis-memory context-setup --apply` once per project to
+add compaction instructions to CLAUDE.md and `.codex/config.toml`.
+
