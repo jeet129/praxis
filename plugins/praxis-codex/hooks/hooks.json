@@ -32,6 +32,16 @@
         ]
       },
       {
+        "matcher": "Bash|shell|exec_command|local_shell",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-}}}/hooks/praxis_guard.py\" pretool --harness codex || true"
+          }
+        ]
+      },
+      {
         "matcher": "Task|Agent|spawn_agent|collaborationspawn_agent",
         "hooks": [
           {

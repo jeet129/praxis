@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: deep
 model: opus
 effort: high
+maxTurns: 80
 capability: specialist
 tier: 2
 ---

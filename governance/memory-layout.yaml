@@ -1,0 +1,45 @@
+# memory-layout.yaml — where each kind of project memory lives.
+#
+# Seeded once into <project>/.project/governance/memory-layout.yaml at session
+# start; the project copy wins and survives plugin updates. Paths are relative
+# to the project root. Skills write and read through these paths, so a project
+# whose ADRs already live elsewhere (for example docs/adr/) points `adr` there
+# instead of maintaining two places. Resolve a path from the shell with:
+#   .project/local/bin/praxis-memory where adr
+#
+# Read by hooks/praxis_project.py (session-start map, verify runner, guard) and
+# scripts/praxis-memory.py (index, check, consolidate, migrate-local).
+version: 1
+
+kinds:
+  adr: .project/decision
+  incident: .project/operational
+  postmortem: .project/operational
+  review: .project/operational/reviews
+  risk_acceptance: .project/operational/risk-acceptances
+  episodic: .project/episodic
+  semantic: .project/semantic
+  procedural: .project/procedural
+  working: .project/working
+  inbox: .project/working/inbox.md
+  verification: .project/operational/verification   # committed praxis-verify summaries
+  evidence: .project/local/evidence                 # gitignored full logs and artifacts
+  review_rules: .project/procedural/REVIEW.md       # read from the BASE branch by reviews
+  review_checks: .project/procedural/checks.yaml    # diff-triggered checks, read from BASE
+
+# Files injected into every session (keep them short; details go in linked notes).
+injected:
+  - .project/semantic/project-charter.md
+
+budgets:
+  map_lines: 40          # session-start memory map
+  injected_chars: 6000   # whole session-start banner
+  note_kb: 32            # a single memory note; split or summarise beyond this
+
+# Housekeeping run by `praxis-memory consolidate` (proposals; --apply to act).
+retention:
+  evidence_keep_runs: 3        # newest runs kept per task in .project/local/evidence
+  evidence_keep_days: 30       # and every run younger than this
+  working_stale_days: 30       # working/ notes untouched this long, no open ledger, are archived
+  review_rounds_keep: 1        # per review topic, keep the newest; archive earlier rounds
+  review_rounds_min_age_days: 14

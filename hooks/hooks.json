@@ -32,6 +32,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/praxis_guard.py\" pretool --harness claude-code || true"
+          }
+        ]
+      },
+      {
         "matcher": "Task|Agent",
         "hooks": [
           {

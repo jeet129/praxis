@@ -82,7 +82,15 @@ def copy_project_state(src: Path, dst: Path) -> None:
     if not s.is_dir():
         return
     ignore = shutil.ignore_patterns("*.lock", "codex-controller.json", "STOP", ".drive.lock")
-    shutil.copytree(s, d, dirs_exist_ok=True, ignore=ignore)
+
+    def _ignore(path, names):
+        skip = set(ignore(path, names))
+        # .project/local/ is machine-local. Lanes share the main checkout's
+        # evidence store (praxis_project.evidence_root); only the shims are copied.
+        if os.path.abspath(path) == os.path.abspath(s / "local"):
+            skip |= {n for n in names if n != "bin"}
+        return skip
+    shutil.copytree(s, d, dirs_exist_ok=True, ignore=_ignore)
     agents = src / ".codex"
     if agents.is_dir() and not (dst / ".codex").exists():
         shutil.copytree(agents, dst / ".codex")
@@ -101,12 +109,26 @@ def copy_lane_state_back(worktree: Path, root: Path, sid: str) -> list[str]:
             s = line.strip()
             if s.startswith("- id:"):
                 task_ids.append(s.split(":", 1)[1].strip().strip("\"'"))
+    # praxis-verify summaries and per-lane memory notes (working/lanes/<sid>/)
+    # are new files written in the lane; copy them back without overwriting.
+    extra = [(worktree / ".project" / "operational" / "verification",
+              root / ".project" / "operational" / "verification")]
+    for esrc, edst in extra:
+        if esrc.is_dir():
+            for f in sorted(esrc.glob("*.json")):
+                if any(f.name.startswith(pp_id + "--") for pp_id in task_ids) or f.name.startswith("review-"):
+                    t = edst / f.name
+                    if not t.exists():
+                        edst.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(f, t)
+                        copied.append("../operational/verification/" + f.name)
     for path in sorted(wsrc.rglob("*")):
         if not path.is_file():
             continue
         rel = path.relative_to(wsrc)
         name = path.name
         mine = (f"slice-{sid}-" in name or rel.parts[0] == "reviews"
+                or rel.parts[:2] == ("lanes", sid)
                 or any(name.startswith(f"verify-{t}.") for t in task_ids))
         if not mine:
             continue

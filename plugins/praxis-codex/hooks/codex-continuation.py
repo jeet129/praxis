@@ -9,6 +9,18 @@ from pathlib import Path
 
 from project_root import find_project_root
 
+# Shared context-budget logic (hooks/praxis_project.py). In the built plugin it
+# sits next to this file; in the source tree it is two levels up.
+_here = Path(__file__).resolve().parent
+for _cand in (_here, _here.parents[1] / "hooks"):
+    if (_cand / "praxis_project.py").is_file():
+        sys.path.insert(0, str(_cand))
+        break
+try:
+    import praxis_project as pp
+except ImportError:  # budget check is optional; continuation still works
+    pp = None
+
 MAX_CONTINUATIONS = 40
 MAX_UNCHANGED = 2
 DRIVE_PROMPT = re.compile(r"^\s*(?:\$praxis-drive|praxis drive)\b", re.I)
@@ -58,8 +70,10 @@ def decide(input_data: dict, event: str) -> dict:
         prompt = input_data.get("prompt", "")
         if isinstance(prompt, str) and DRIVE_PROMPT.search(prompt):
             marker.parent.mkdir(parents=True, exist_ok=True)
+            import time
             marker.write_text(json.dumps({"session_id": session_id, "rounds": 0,
-                                          "unchanged": 0, "fingerprint": ""}) + "\n")
+                                          "unchanged": 0, "fingerprint": "",
+                                          "armed_at": time.time()}) + "\n")
         return {}
 
     if event != "Stop" or input_data.get("permission_mode") == "plan" or not marker.is_file():
@@ -85,6 +99,26 @@ def decide(input_data: dict, event: str) -> dict:
         if active is None:
             marker.unlink(missing_ok=True)
             return {}
+        # Context budget: hand off to a fresh session after N finished tasks or
+        # a large transcript. First stop asks for current ledger + notes; the
+        # next stop ends the drive (marker removed).
+        if state.get("handoff_requested"):
+            marker.unlink(missing_ok=True)
+            return {}
+        hint = None
+        if pp is not None:
+            hint_ledger = active.name.replace("-tasks.yaml", "").replace("slice-", "")
+            if pp.context_budget(str(cwd))["on_session_budget"] == "ask":
+                reason = pp.session_handoff(str(cwd), state.get("armed_at"), input_data.get("transcript_path"),
+                                            hint_ledger)
+                if reason:
+                    state["handoff_requested"] = True
+                    marker.write_text(json.dumps(state) + "\n")
+                    return {"decision": "block", "reason": reason}
+            else:
+                # Default: keep driving; tell the person once per budget step.
+                hint = pp.budget_hint(str(cwd), session_id, state.get("armed_at"),
+                                      input_data.get("transcript_path"), hint_ledger)
         source = active.read_text()
         statuses = re.findall(r"^\s+status:\s*([\w-]+)", source, re.M)
         if not statuses or any(s in ("failed", "blocked") for s in statuses):
@@ -99,10 +133,15 @@ def decide(input_data: dict, event: str) -> dict:
         state.update({"rounds": rounds, "unchanged": unchanged, "fingerprint": fingerprint,
                       "first_ledger": state.get("first_ledger", active.name)})
         marker.write_text(json.dumps(state) + "\n")
-        return {"decision": "block", "reason":
-                f"Praxis drive has unfinished work in {active.name}. Continue the next eligible task, "
-                "or drain reviews and QA if implementation tasks are done. Honor stop_flags, "
-                "governance gates, and the configured budget; finish only when the slice is closed."}
+        out = {"decision": "block", "reason":
+               f"Praxis drive has unfinished work in {active.name}. Continue the next eligible task: "
+               "hand it to a fresh subagent (spawn_agent, brief by path: task id, ac, verify command, "
+               "packet, notes) and take back only its short report, or drain reviews and QA if "
+               "implementation tasks are done. Honor stop_flags, governance gates, and the configured "
+               "budget; finish only when the slice is closed."}
+        if hint:
+            out["systemMessage"] = hint  # shown to the person; the drive continues
+        return out
     except (OSError, ValueError):
         return {}
 

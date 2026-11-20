@@ -173,6 +173,12 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
         stop_after = "gate"
 
     run_budget = tree.get("run_budget", {}) or {}
+    context_budget = tree.get("context_budget", {}) or {}
+    if not isinstance(context_budget, dict):
+        context_budget = {}
+    _mt = context_budget.get("max_turns_by_tier", {}) or {}
+    if not isinstance(_mt, dict):
+        _mt = {}
     stall = tree.get("stall", {}) or {}
     harnesses = tree.get("harnesses", {}) or {}
     summaries = tree.get("summaries", {}) or {}
@@ -247,6 +253,10 @@ def cmd_autonomy(autonomy_path, model_routing_path, harness):
     # the project hasn't set it explicitly (same run-budget "altitude").
     sh("MAX_STEPS_PER_RUN", run_budget.get("max_steps_per_run", run_budget.get("max_slices_per_run", 3)))
     sh("MAX_ITERATIONS_PER_RUN", run_budget.get("max_iterations_per_run", 40))
+    sh("MAX_TURNS_DEEP", _mt.get("deep", "null"))
+    sh("MAX_TURNS_STANDARD", _mt.get("standard", "null"))
+    sh("MAX_TURNS_LIGHT", _mt.get("light", "null"))
+    sh("ITERATION_ALERT_TOKENS", context_budget.get("iteration_alert_tokens", 2000000))
     sh("MAX_TASK_ATTEMPTS", run_budget.get("max_task_attempts", 3))
     sh("COST_CEILING_PROXY", run_budget.get("cost_ceiling_proxy", 120))
     sh("MAX_BUDGET_USD", run_budget.get("max_budget_usd", "null") or "null")
@@ -1536,7 +1546,8 @@ if (( WORKFLOW_MODE == 1 )); then
         PATH_OR_CMD="$PROJECT_DIR/$PATH_OR_CMD"
       fi
     fi
-    LOG_PATH="$PROJECT_DIR/.project/working/verify-${STEP_ID}.log"
+    # Workflow-step exit logs are evidence, not memory: gitignored local store.
+    LOG_PATH="$PROJECT_DIR/.project/local/evidence/workflow-steps/verify-${STEP_ID}.log"
     mkdir -p "$(dirname "$LOG_PATH")" 2>/dev/null || true
     EXIT_RESULT="$(python3 "$PY_HELPER" eval_exit "$CHECK" "$PATH_OR_CMD" "$WF_NEXT_STEP_EXIT_MUST_CONTAIN" "$LOG_PATH" "$WF_NEXT_STEP_EXIT_FIELD" "$WF_NEXT_STEP_EXIT_EXPECT" 2>/dev/null || echo FAIL)"
 
@@ -1852,6 +1863,17 @@ while true; do
   if [[ -n "$JSON_OUTPUT_FLAG" && "$JSON_OUTPUT_FLAG" != "null" ]]; then
     CMD="$CMD $JSON_OUTPUT_FLAG"
   fi
+  # Per-tier turn cap (context_budget.max_turns_by_tier): a task's cost is
+  # roughly turns x context size, so cap turns by tier instead of one global
+  # number. Only rewrites an existing --max-turns flag (claude -p).
+  case "$ITER_TIER" in
+    deep)  ITER_MAX_TURNS="${MAX_TURNS_DEEP:-null}" ;;
+    light) ITER_MAX_TURNS="${MAX_TURNS_LIGHT:-null}" ;;
+    *)     ITER_MAX_TURNS="${MAX_TURNS_STANDARD:-null}" ;;
+  esac
+  if [[ "$ITER_MAX_TURNS" =~ ^[0-9]+$ && "$CMD" == *"--max-turns "* ]]; then
+    CMD="$(printf '%s' "$CMD" | sed -E "s/--max-turns [0-9]+/--max-turns $ITER_MAX_TURNS/")"
+  fi
 
   codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "running"
 
@@ -1923,6 +1945,20 @@ while true; do
   TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   python3 "$PY_HELPER" append_record "$DRIVE_JSONL" "$TS" "$RUN_ID" "$ITERATION" "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$PROCESSED_TASK_AGENT" "$PROCESSED_TASK_TIER" "$OUTCOME" "$HASH_AFTER" "$LEDGER_STOP_FLAGS" "$WEIGHT" \
     "$USAGE_INPUT_TOKENS" "$USAGE_OUTPUT_TOKENS" "$USAGE_CACHE_READ_INPUT_TOKENS" "$USAGE_CACHE_CREATION_INPUT_TOKENS" "$USAGE_TOTAL_COST_USD" "${ITER_MODEL:-null}" "slice" "null" "null" "none" "${ITER_EFFORT:-null}" "${USAGE_REASONING_OUTPUT_TOKENS:-null}"
+
+  # ---- Context budget alert: one task read more context than the budget ----
+  ITER_CTX_TOKENS=0
+  for _v in "$USAGE_INPUT_TOKENS" "$USAGE_CACHE_READ_INPUT_TOKENS" "$USAGE_CACHE_CREATION_INPUT_TOKENS"; do
+    [[ "$_v" =~ ^[0-9]+$ ]] && ITER_CTX_TOKENS=$(( ITER_CTX_TOKENS + _v ))
+  done
+  # Codex reports cached tokens as a subset of input tokens: count input only.
+  [[ "$HARNESS" == "codex" && "$USAGE_INPUT_TOKENS" =~ ^[0-9]+$ ]] && ITER_CTX_TOKENS="$USAGE_INPUT_TOKENS"
+  if [[ "${ITERATION_ALERT_TOKENS:-0}" =~ ^[0-9]+$ ]] && (( ITERATION_ALERT_TOKENS > 0 && ITER_CTX_TOKENS > ITERATION_ALERT_TOKENS )); then
+    echo "praxis-drive.sh: context budget: task ${PROCESSED_TASK_ID:-?} read $(( ITER_CTX_TOKENS / 1000 ))k tokens of context (alert at $(( ITERATION_ALERT_TOKENS / 1000 ))k; outcome $OUTCOME). See docs/long-running.md \"Context budget\"." >&2
+    printf '{"ts":"%s","event":"context_budget_alert","run_id":"%s","slice":"%s","task":"%s","tier":"%s","outcome":"%s","context_tokens":%s,"alert_tokens":%s}\n' \
+      "$TS" "$RUN_ID" "$LEDGER_SLICE" "${PROCESSED_TASK_ID:-}" "${PROCESSED_TASK_TIER:-}" "$OUTCOME" "$ITER_CTX_TOKENS" "$ITERATION_ALERT_TOKENS" \
+      >> "$PROJECT_DIR/.project/telemetry/budget-alerts.jsonl" 2>/dev/null || true
+  fi
 
   codex_checkpoint "$LEDGER_SLICE" "$PROCESSED_TASK_ID" "$OUTCOME"
 

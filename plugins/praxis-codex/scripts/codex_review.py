@@ -40,7 +40,7 @@ SCHEMA = {
                 "additionalProperties": False,
                 "required": ["severity", "file", "line", "issue", "recommendation"],
                 "properties": {
-                    "severity": {"type": "string", "enum": ["blocker", "major", "minor", "note"]},
+                    "severity": {"type": "string", "enum": ["blocker", "major", "minor", "note", "pre-existing"]},
                     "file": {"type": "string"},
                     "line": {"type": ["integer", "null"]},
                     "issue": {"type": "string"},
@@ -111,7 +111,8 @@ def main():
         f"You are the Praxis {args.role}. You are running in a READ-ONLY sandbox: you cannot "
         "edit files, and you must not try. Inspect the repository, then answer ONLY with the "
         "JSON verdict the output schema requires. Every finding needs a file and a concrete "
-        "recommendation. Use verdict `pass` only when you found no blocker or major finding.\n\n"
+        "recommendation. Use verdict `pass` only when you found no blocker or major finding. A real "
+        "problem that predates this change gets severity `pre-existing`: report it, but it never blocks.\n\n"
         + (f"## Role instructions\n{instructions.strip()}\n\n" if instructions.strip() else "")
         + f"## Review brief\n{brief}\n"
     )
@@ -154,6 +155,13 @@ def main():
         return 2
     verdict.update(role=args.role, reviewed_at=stamp, sandbox="read-only")
     out_path.write_text(json.dumps(verdict, indent=2) + "\n")
+    # Record the verdict against the current tree (commit trailer: `review`).
+    runner = Path(__file__).resolve().parent / "praxis-verify.py"
+    if runner.is_file():
+        rv = {"pass": "pass", "changes_requested": "changes_requested"}.get(verdict.get("verdict"), "incomplete")
+        subprocess.run([sys.executable, str(runner), "--project-dir", str(project), "--record-review", rv,
+                        "--source", args.role, "--findings", str(len(verdict.get("findings", [])))],
+                       capture_output=True, text=True)
     blockers = sum(1 for f in verdict.get("findings", []) if f.get("severity") in ("blocker", "major"))
     print(f"{args.role}: {verdict.get('verdict')} — {len(verdict.get('findings', []))} findings "
           f"({blockers} blocker/major). Report: {out_path}")

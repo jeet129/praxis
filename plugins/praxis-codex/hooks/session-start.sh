@@ -47,6 +47,14 @@ fi
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 PROJECT_DIR="$PROJECT_ROOT/.project"
 
+# Storage layout (v0.3.0): gitignored .project/local/ (evidence, scratch, shims),
+# .project/.gitignore, the memory-layout map, and the commit-trailer hook.
+# Idempotent and silent; praxis_project.py never fails the session.
+PP="$PLUGIN_ROOT/hooks/praxis_project.py"
+if [[ -d "$PROJECT_DIR" && -f "$PP" ]] && command -v python3 >/dev/null 2>&1; then
+  python3 "$PP" ensure "$PROJECT_ROOT" --plugin-root "$PLUGIN_ROOT" >/dev/null 2>&1 || true
+fi
+
 # Find the library install (either project-local or user-global)
 LIBRARY_ROOT=""
 if [[ -d "$PROJECT_ROOT/.claude/skills" ]]; then
@@ -100,14 +108,14 @@ if [[ -n "$LIBRARY_ROOT" ]]; then
   }
 fi
 
-# Recent ADRs (last 5)
-if [[ -d "$PROJECT_DIR/decision" ]]; then
-  RECENT=$(ls -t "$PROJECT_DIR/decision/"*.md 2>/dev/null | head -5)
-  if [[ -n "$RECENT" ]]; then
+# Memory map: where each kind of project memory lives, what changed recently,
+# open ledgers and hygiene warnings. Capped at 40 lines (memory-layout budgets).
+if [[ -d "$PROJECT_DIR" && -f "$PP" ]] && command -v python3 >/dev/null 2>&1; then
+  MAP="$(python3 "$PP" map "$PROJECT_ROOT" 2>/dev/null || true)"
+  if [[ -n "$MAP" ]]; then
     {
       echo ""
-      echo "Recent decisions (ADRs):"
-      echo "$RECENT" | xargs -I{} basename {} | sed 's/^/  · /'
+      echo "$MAP"
     }
   fi
 fi

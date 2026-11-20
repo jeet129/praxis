@@ -5,6 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 capability_tier: standard
 model: sonnet
 effort: medium
+maxTurns: 60
 capability: gate-reviewer
 tier: cross-cutting
 ---

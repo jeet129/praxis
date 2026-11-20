@@ -125,7 +125,7 @@ if runner.exists():
   PROCESSED_TASK_AGENT="$NEXT_TASK_AGENT"
   PROCESSED_TASK_TIER="$NEXT_TASK_TIER"
 
-  PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run its verify command, update the ledger status/attempts, set stop_flags honestly. Do not wait for user input."
+  PROMPT="You are the Praxis Delivery Lead operating under the drive protocol (skills/autonomous-drive). Read the task ledger at ${LEDGER_PATH} and .project/working/workflow-state.yaml. Execute exactly ONE drive iteration per the protocol: take the next open task (dependencies done), complete it, run .project/local/bin/praxis-verify <task-id> (it runs the verify command and records the evidence the gate checks; never write evidence files yourself), update the ledger status/attempts, set stop_flags honestly. Read the task notes before starting and never repeat an approach they rule out; if the task is not done when you stop, write its notes: what you tried, what you ruled out, and the next step (at most 8 lines), because the next attempt starts in a fresh session from those notes. Do not wait for user input."
 '''
     new = '''  DRAIN_MODE=0
   if [[ -z "$NEXT_TASK_ID" ]]; then
@@ -346,6 +346,10 @@ if hooks_json.exists():
             m = e.get("matcher")
             if m == "Write|Edit|MultiEdit|NotebookEdit":
                 e["matcher"] = "apply_patch|Edit|Write"
+            elif m == "Bash":
+                # Guard's evidence-store check on shell commands (io-delegate
+                # Bash entries were dropped above). Codex shell tool names vary.
+                e["matcher"] = "Bash|shell|exec_command|local_shell"
             elif m == "Task|Agent":
                 e["matcher"] = "Task|Agent|spawn_agent|collaborationspawn_agent"
             elif m and "Task|Agent" in m:

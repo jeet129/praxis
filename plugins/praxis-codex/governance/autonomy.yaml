@@ -67,6 +67,25 @@ ceremony:
 stall:
   max_iterations_without_ledger_change: 2
 
+# Context budget — keeps long, multi-slice runs from re-reading huge histories.
+# Every tool call re-sends the whole conversation, so the cost of a task is
+# roughly (number of turns) x (context size). See docs/long-running.md.
+context_budget:
+  max_turns_by_tier:              # claude -p --max-turns per drive iteration (one task)
+    deep: 40
+    standard: 30
+    light: 20
+  iteration_alert_tokens: 2000000 # flag a drive iteration whose context reads exceed this
+  # In-session drive runs every task in a fresh subagent, so the main session
+  # grows slowly. At each budget step below:
+  #   continue (default) - keep driving (auto-compaction handles growth) and show
+  #                        the person a one-line hint that it is a good moment to clear
+  #   ask                - stop and ask the person to start a fresh session
+  on_session_budget: continue
+  session_max_tasks: 3            # budget step: every this many finished tasks; 0 disables
+  session_max_context_tokens: 350000  # ...or every this many tokens of transcript since the
+                                      # last compaction (estimate); 0 disables
+
 # Per-harness headless invocation used by scripts/praxis-drive.sh.
 # {prompt} is replaced with the drive prompt; budget flags applied when non-null.
 harnesses:
