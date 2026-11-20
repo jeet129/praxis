@@ -49,7 +49,9 @@ log(`${tasks.length} done tasks to re-verify`)
 phase('Re-verify')
 const results = await pipeline(tasks, t =>
   agent(
-    `Run this verification command from the repository root exactly as written, then report its exit code:\n${t.verify}\n` +
+    `Run this from the repository root, then report its exit code: .project/local/bin/praxis-verify ${t.id}\n` +
+      `(it runs the task's verify command, \`${t.verify}\`, and records the result; if the shim is missing, run the ` +
+      'verify command itself exactly as written). ' +
       `It belongs to task ${t.id} of slice ${t.slice}. Do not fix anything, do not edit source files or the ledger, ` +
       'and do not retry with a changed command. Set ran to false if the command could not be started at all. ' +
       'passed is true only when the exit code is 0. In detail, give the last lines of output that explain the result.',

@@ -9,12 +9,14 @@ agent refuse to call unverified work done.
 | `trigger-*` | A plain-language request loads the matching Tier A skill | `tool_used: Skill` (display-only under ablation) plus an `llm` grader |
 | `negative-*` | A trivial request loads no skill | `tool_used: Skill` with `max: 0` plus an `llm` answer check |
 | `e2e-*` | A behaviour Praxis exists to enforce | `llm` |
+| `review-*` | The reviewer finds a known bug (answer key), stays quiet on a clean control, and labels old bugs `pre-existing` | `llm` |
 
 ## Claude Code
 
 ```bash
 claude plugin eval . --tag trigger --runs 3 --max-cost-usd 5      # trigger accuracy
 claude plugin eval . --ablation with-without --max-cost-usd 10    # full suite, with and without Praxis
+claude plugin eval . --tag review --runs 3 --max-cost-usd 5       # reviewer: recall on known bugs vs. controls
 ```
 
 `claude plugin eval` runs real model sessions on your account. It is not part
@@ -48,3 +50,13 @@ check by hand that `touch .project/STOP` makes the next tool call fail.
 Create `evals/<name>/prompt.md` (frontmatter + the user request) and at least
 one grader under `evals/<name>/graders/`. `claude plugin eval init` can
 interview you for one. Every Tier A skill has a trigger case; `scripts/validate-evals.py` reports any that lose theirs.
+
+## Reviewer cases
+
+`review-bug-*` cases carry a one-line answer key per known bug and credit
+only a finding that describes that bug. `review-control-*` cases are correct
+changes and pass only when nothing is blocked. Read the two together: a
+reviewer that flags everything scores well on bugs and fails the controls.
+When the reviewer misses a real bug in a project, add a case here (from the
+incident or PR) before tuning prompts, and keep the tuning cases separate
+from the ones you report.
