@@ -7,7 +7,8 @@ conversation, before the first model call; the hook prints
 On any error this prints {} so the session starts normally.
 
 Mirrors hooks/session-start.sh (Claude Code / Codex): charter, active workflow,
-recent decisions, and the front-door reminder. Kept under 6,000 characters.
+the memory map (hooks/praxis_project.py), and the front-door reminder. It also
+creates the v0.3.0 storage layout (gitignored .project/local/, shims). Kept under 6,000 characters.
 """
 import json
 import os
@@ -41,12 +42,15 @@ def main():
         wf = head(os.path.join(proj, "working", "active-workflow.md"), 10)
         if wf:
             parts.append("Active workflow (.project/working/active-workflow.md):\n" + wf)
-        ddir = os.path.join(proj, "decision")
+        # Storage layout + memory map, shared with Claude Code and Codex.
         try:
-            adrs = sorted((f for f in os.listdir(ddir) if f.endswith(".md")),
-                          key=lambda f: os.path.getmtime(os.path.join(ddir, f)), reverse=True)[:5]
-            if adrs:
-                parts.append("Recent decisions (ADRs): " + ", ".join(adrs))
+            here = os.path.dirname(os.path.abspath(__file__))
+            sys.path.insert(0, here)
+            import praxis_project as pp
+            pp.ensure(ws, os.path.dirname(here))
+            mm = pp.memory_map(ws)
+            if mm:
+                parts.append(mm)
         except Exception:
             pass
     else:

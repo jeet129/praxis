@@ -163,7 +163,7 @@ Any agent can author an ADR. Most commonly:
 - **Platform/SRE** — operational and infrastructure decisions.
 - **ML / AI Engineer** — model selection, framing, eval design.
 
-The agent fills the template, invokes `project-memory` to write to `.project/decision/`, and `memory-management` updates the index.
+The agent fills the template, invokes `project-memory` to write to the ADR folder (`.project/local/bin/praxis-memory where adr`; default `.project/decision/`, a project may point it at its existing ADR index such as `docs/adr/`), and `praxis-memory index` updates the index.
 
 ## Approval routing
 
@@ -196,12 +196,12 @@ The governance matrix (Section 7) defines who approves what category of ADR. The
 
 You are done when:
 
-- [ ] ADR file exists at `.project/decision/<NNN>-<title>.md` with monotonic numbering.
+- [ ] ADR file exists in the configured ADR folder (`praxis-memory where adr`) with monotonic numbering.
 - [ ] All 5 required sections present: Context / Options / Decision / Consequences / Status.
 - [ ] At least 2 alternatives considered (even if one is "do nothing").
 - [ ] Consequences include both positive AND negative (no all-upside ADRs).
 - [ ] Status is one of: `proposed`, `accepted`, `superseded by ADR-NNN`, `rejected`.
-- [ ] `.project/decision/INDEX.md` updated with the new entry.
+- [ ] The ADR folder's own index (if it keeps one, e.g. `INDEX.md` or a README table) lists the new entry; `praxis-memory index` was re-run.
 - [ ] Reviewer-listed (who approved) for `accepted` status.
 - [ ] If superseding: the prior ADR's status updated to `superseded by ADR-<this>`.
 

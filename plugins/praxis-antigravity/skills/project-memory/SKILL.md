@@ -21,7 +21,7 @@ triggers:
   - "capturing an assumption, constraint, risk, or open question"
 outputs:
   - .project/ directory populated with the six memory types
-  - per-entry frontmatter with metadata for indexing by memory-management
+  - per-entry frontmatter (type, date, source) for indexing by memory-management
 consumers:
   - using-praxis
   - memory-management (consumes the writes)
@@ -36,7 +36,7 @@ This skill owns the **write side**. `memory-management` (sister skill) owns the 
 
 ## When this skill fires
 
-- At project initialization — orchestrator creates `.project/` with the six-type taxonomy.
+- At project initialization — orchestrator creates `.project/` with the six-type taxonomy (session start then adds the gitignored `.project/local/`, `.project/.gitignore` and `memory-layout.yaml`).
 - At phase exit — the agent completing the phase invokes this skill to write its outputs to the right subtree.
 - At ADR creation, supersession, or amendment — writes to `decision/`.
 - At incident close or postmortem — writes to `operational/`.
@@ -94,49 +94,99 @@ The project's *current state*. The implementation packet for the active slice, i
 
 Files: `current-slice.md`, `implementation-packet.md`, `in-flight-{topic}.md`.
 
-## Frontmatter schema
+## Where things live (configurable)
 
-Every entry in `.project/` carries frontmatter so `memory-management` can index it:
+The six folders above are defaults. `.project/governance/memory-layout.yaml`
+(seeded at session start, the project copy wins) maps each kind to a path, so a
+project whose ADRs already live in `docs/adr/` or `Ship/adr/` points `adr` there
+instead of keeping two places. Resolve a path before writing:
+
+```bash
+.project/local/bin/praxis-memory where adr      # -> .project/decision, or the project's override
+```
+
+## What is not memory
+
+Raw run output is **evidence**, not memory, and never goes in these folders:
+test logs, JUnit XML, coverage, SQL dumps, screenshots, fixtures copied for a
+run, `*-run/` directories. It lives in the gitignored `.project/local/`:
+
+- verify output: `.project/local/bin/praxis-verify <task>` writes the full log to
+  `.project/local/evidence/<task>/<run>/` and a small committed summary to
+  `.project/operational/verification/`.
+- other run artifacts: `.project/local/scratch/` (or `$PRAXIS_EVIDENCE_DIR`
+  inside a verify command).
+
+A memory note may *point* at evidence (path, run id, the summary file); it
+never contains the raw output. `praxis-memory migrate-local` moves old
+evidence out of existing projects.
+
+## Frontmatter (three required fields)
 
 ```yaml
 ---
 type: decision | episodic | semantic | procedural | operational | working
-title: <human-readable title>
 date: YYYY-MM-DD
-author: <agent or human name>
-tags: [tag1, tag2, ...]                    # for retrieval by topic
-impacted_domains: [billing, auth, ...]      # bounded contexts touched
-confidence: high | medium | low             # how settled is this?
-supersedes: <entry-id-if-applicable>       # for decision/ entries
-superseded_by: <entry-id-if-applicable>   # back-reference
-related: [<entry-id>, ...]                  # cross-references
-slice: <slice-id-if-applicable>             # which slice produced this
+source: <agent, human, or the slice/review/incident this came from>
+# optional, add only when they help retrieval:
+title: <if the first heading is not enough>
+tags: [tag1, tag2]
+impacted_domains: [billing, auth]
+related: [<path or note name>]
+supersedes: <id>        # decisions
+confidence: high | medium | low
 ---
 ```
 
-The `tags`, `impacted_domains`, and `confidence` fields are what make retrieval at scale possible (R3.2). Without the metadata, 500-entry `.project/` becomes search-by-grep.
+`praxis-memory index` builds `.project/INDEX.yaml` from whatever is there and
+falls back to the folder, the filename date and the first heading, so a
+missing optional field costs nothing. ADRs keep the full template from
+`adr-decision-records`.
 
-## The AOP Document step
+## When to write (and when not to)
 
-Every agent invokes this skill at the **Document** step of the AOP lifecycle (Section 7 House Conventions). The agent passes:
+Write a note when **a future session would act differently because of it**: a
+decision and its reason, a verified fact about the system that is expensive to
+rediscover, a correction to something memory got wrong, a lesson from a failure
+that is likely to recur. Writing a note is a prediction that it will matter
+again; most step-by-step progress will not.
 
-1. The memory type its output belongs to.
-2. The full entry content (markdown body).
-3. The frontmatter metadata (the agent knows the slice, the author, the impacted domains, etc.).
+Do not write: progress narration, a restatement of the diff, copies of tool
+output, a new file per review round (append the round to the topic's file), or
+a per-slice register for something that belongs in the durable register.
 
-This skill validates the frontmatter, writes the entry to the correct subtree, and triggers `memory-management` to update the index. Writes are serialized when multiple agents finish in parallel on the same slice — the orchestrator owns the lock.
+At the AOP **Document** step, the agent decides whether anything meets that
+bar; "nothing new worth keeping" is a valid outcome. Required governance
+records (ADRs, incident records, checkpoints a workflow demands, risk
+acceptances) are always written; they are not optional notes.
+
+Correct, don't accumulate: if an existing note is wrong, fix it (or for
+append-only kinds, add a dated correction) rather than writing a second note
+that disagrees with it.
 
 ## Mode handling (G/B)
 
-**Greenfield.** Initialize `.project/` with the six-type structure and empty `INDEX.md` files in each subtree. Seed `semantic/glossary.md` with empty headers; the PM and SA fill these in Phase A and B.
+**Greenfield.** Initialize `.project/` with the six-type structure (indexes are generated later by `praxis-memory index`; do not hand-write them). Seed `semantic/glossary.md` with empty headers; the PM and SA fill these in Phase A and B.
 
 **Brownfield.** If `.project/` already exists, read it on entry — *do not overwrite*. If it doesn't exist (the codebase predates the platform), bootstrap by extracting what's available from existing ADR files, postmortem docs, README, etc. — and add `.project/episodic/bootstrap-{date}.md` recording what was reconstructed and what was inferred vs. found. Future writes follow the standard procedure.
 
-## Single-writer discipline
+## Parallel writers
 
-`.project/` is a single-writer-at-a-time store. The orchestrator serializes writes when multiple agents run in parallel on the same slice. Concurrent writes are a violation; the orchestrator queues them. This keeps the directory deterministic and prevents merge conflicts during agent execution.
+When several agents or lanes run at once, give each writer its own files; never
+have parallel writers edit one shared file (an inbox, a register, a table).
+Shared-table writes overwrite each other.
 
-For multi-project ownership (a single human running multiple projects from the same toolset), each project has its own `.project/`; no cross-project memory at this layer.
+- Inside a parallel lane (`$PRAXIS_PARALLEL_LANE` is set), write additions for
+  shared files to `.project/working/lanes/<lane>/<topic>.md` with frontmatter
+  `append_to: <target path>`. `praxis-memory consolidate` merges them into the
+  target after the lane lands.
+- Quote source material verbatim (contract terms, error text, ADR decisions)
+  instead of summarising it into a shared table.
+- Slice-named files (`slice-<id>-*.md`) are already per-lane.
+
+For multi-project ownership (a single human running multiple projects from the
+same toolset), each project has its own `.project/`; no cross-project memory at
+this layer.
 
 ## What this skill does not do
 
@@ -149,28 +199,25 @@ For multi-project ownership (a single human running multiple projects from the s
 
 | The agent's thought | Counter |
 |---|---|
-| "I'll keep state in my head; faster." | Your head ends at session end. The next session reads `.project/`; if it's empty, the next agent starts from zero. |
-| "Memory-type choice is overhead." | The taxonomy is what makes recall work. Misfile semantic into working and it disappears at session end. |
-| "Seven-field frontmatter is verbose." | Memory-management indexes by frontmatter. No frontmatter = invisible to retrieval = not really memory. |
-| "I'll write it as plain text; format it later." | Memory written without frontmatter never gets indexed; it sits forgotten. Format at write time. |
-| "ADRs aren't memory; they're documents." | ADRs ARE decision-type memory. Same write-side discipline; same indexable frontmatter. |
-| "We don't need episodic memory; just write incidents in a log." | Episodic memory carries lessons. A log is data; episodic is structured insight. Different artifact. |
+| "I'll keep state in my head; faster." | Your head ends at session end. The next session reads `.project/`; if the decision isn't there, the next agent starts from zero. |
+| "I'll record everything, just in case." | Over-recording is the commonest memory failure: hundreds of stale files the next agent wades through or trusts. Write what will change a future decision. |
+| "I'll paste the test output so the note is complete." | Output is evidence. Run `praxis-verify` and reference the run; the note stays readable and the log stays out of git. |
+| "Memory-type choice is overhead." | Misfile semantic into working and it is archived with the slice. Pick the kind; `praxis-memory where` gives the path. |
+| "I'll write a new note; the old one is wrong but someone might need it." | Two disagreeing notes are worse than one. Correct the old one (dated correction for ADRs/incidents). |
+| "ADRs aren't memory; they're documents." | ADRs ARE decision-type memory, and they live where `memory-layout.yaml` says. |
 
 ## Verification
 
 You are done writing a memory entry when:
 
-- [ ] File is in the correct subdirectory (semantic / episodic / procedural / decision / operational / working).
-- [ ] Seven-field frontmatter is present and complete: `type`, `title`, `date`, `author`, `tags`, `confidence`, plus type-specific fields.
-- [ ] Filename follows the type's naming convention (`YYYY-MM-DD-NNN-title.md` for episodic; `INDEX.md` exists for decision).
-- [ ] Cross-references to related memory entries are explicit (`see: <path>`).
-- [ ] Content is short enough to be read in 2 minutes (long content gets split or summarized).
+- [ ] It meets the bar: a future session would act differently because of it.
+- [ ] It is in the folder `praxis-memory where <kind>` returns.
+- [ ] Frontmatter has `type`, `date`, `source`.
+- [ ] It contains no raw tool output; evidence is referenced by path or run id.
+- [ ] It does not duplicate or contradict an existing note (search first: `.project/INDEX.yaml`).
+- [ ] Links resolve (`praxis-memory check` reports none broken).
+- [ ] It reads in two minutes; longer content is split, with the detail linked.
 - [ ] For decisions: ADR template followed; status is `proposed` / `accepted` / `superseded by ADR-NNN`.
-- [ ] For working memory: aging policy noted (when this graduates to episodic OR gets removed).
-
-Evidence to check:
-- `memory-management` can index the entry without modification.
-- A reader who finds the entry via index can act on it without reading other files.
 
 ## Portability
 

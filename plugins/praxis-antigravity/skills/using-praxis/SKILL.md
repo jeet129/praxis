@@ -240,7 +240,7 @@ Every role agent (specialist, phase lead, or gate reviewer) executes its work as
 3. **Plan.** Decompose the task into an ordered sequence of concrete steps before starting work.
 4. **Execute.** Do the work, following the plan and the role's governing SKILLs/standards.
 5. **Validate.** Self-check the output against the task's acceptance bar (tests, linters, gate criteria, or equivalent) before calling it done.
-6. **Document.** Record what was done and why — implementation notes, ADRs for non-trivial choices, updates to `.project/working/` state.
+6. **Document.** Record what a future session would act differently because of — decisions and their reasons (ADRs for non-trivial choices), corrections, verified facts — and update `.project/working/` state. "Nothing new worth keeping" is a valid outcome; raw output is evidence, not memory (`project-memory`). Paths in Praxis skills are defaults: `.project/governance/memory-layout.yaml` overrides them (`praxis-memory where <kind>`).
 7. **Hand-off.** Deliver the output to whoever consumes it next (reviewer, orchestrator, downstream agent) with enough context that they don't have to reconstruct scope.
 
 Agents reference this list as "the seven-phase AOP" and add only their role-specific detail per phase.

@@ -100,34 +100,48 @@ stop_flags: []                          # drive stops when non-empty: decision_r
 "A task moves to `done` only when its verify command exits 0" is enforced by
 `hooks/praxis_guard.py`, not left to the agent:
 
+- **Evidence is recorded by the runner, not the agent.**
+  `.project/local/bin/praxis-verify <task-id>` runs the task's `verify` command
+  from the project root and writes a small committed summary to
+  `.project/operational/verification/<task-id>--<run>.json` (command and its
+  hash, exit code, pass/fail counts, git HEAD, tree fingerprints before and
+  after, log hash and tail) plus the full log to the gitignored
+  `.project/local/evidence/<task-id>/<run>/output.log`. The guard refuses
+  hand edits of either location, by file tool or by shell command.
 - **At edit time** an edit that changes a task's `status` to `done` is refused
-  unless `.project/working/verify-<task-id>.log` exists. If
-  `.project/working/verify-<task-id>.exit` exists it must contain `0`.
+  unless the latest run of that task passed, ran the task's *current* `verify`
+  command, and ran against the current code (tree fingerprint; set
+  `PRAXIS_EVIDENCE_FRESHNESS=off` to skip the code check).
+- **Verify is frozen once a task starts.** Changing a started task's `verify`
+  is refused unless the same edit adds `verify_changed_reason:` (logged).
 - **At stop time** tasks completed in the last 24 hours are re-checked; the
   agent is sent back to re-verify (at most twice per session).
 - Tasks with `verify: null` are exempt. `PRAXIS_EVIDENCE_GATE=warn|off` relaxes
   the gate; every decision is logged to `.project/telemetry/guard.jsonl`.
-
-Prefer verify commands that also record the exit code, so the gate checks a
-pass and not just a run:
-`<command> > .project/working/verify-<id>.log 2>&1; echo $? > .project/working/verify-<id>.exit`
+  `PRAXIS_ALLOW_LEGACY_EVIDENCE=1` also accepts the pre-0.3.0
+  `verify-<id>.log/.exit` files while a project migrates.
+- **Commits say how they were verified.** The `prepare-commit-msg` hook that
+  session start installs (only where no hook exists) appends
+  `Praxis-Verified: verify (<tasks>)`, `review`, or `none`, matching the
+  committed content against recorded runs. `git log --grep "Praxis-Verified: none"`
+  lists unverified commits.
 
 Rules:
 
 - **One writer.** Only the delivery-lead (or the specialist it dispatched for
-  the current task) updates the ledger; parallel writes are serialized by the
-  single-writer discipline.
+  the current task) updates the ledger. Parallel lanes each own their slice's
+  ledger and write shared-file additions under `working/lanes/<lane>/`.
 - **`verify` is the exit criterion.** A task moves to `done` only when its
   verify command exits 0 AND its `ac` items are demonstrably met. No verify
   command → the task is not drive-eligible and must run interactively.
 - **`verify` is authored quiet, executed to a log.** The command itself must
   use a quiet/silent flag (`pytest -q --tb=short -x`, `gradle -q
   --console=plain`, `npm test --silent`) — full output is never the model's
-  problem to hold in context. Execution captures everything to
-  `.project/working/verify-<task-id>.log` (`cmd > log 2>&1`); the model reads
-  back only the exit code, and on failure a failure extract (last ~40 lines,
-  or the failing-test names via `grep`) — never the full log. The log stays
-  on disk for humans and for re-runs.
+  problem to hold in context. `praxis-verify` captures everything to the
+  gitignored evidence store and prints only the verdict, counts and, on
+  failure, the last lines; read more of the log only to locate the failure.
+  The log stays on disk for humans and for re-runs; extra artifacts go to
+  `$PRAXIS_EVIDENCE_DIR`.
 - **`ceremony` is decided once, at slice open.** `full | expedited | spike`
   (default `full`), scored per the rubric in `skills/autonomous-drive`, never
   changed mid-loop, recorded with a one-line rationale in the slice-open

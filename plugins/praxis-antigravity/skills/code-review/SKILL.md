@@ -133,6 +133,11 @@ If the PR touches APIs or schemas:
 | **major** | Fix in this PR or before next release. NFR-impacting changes without acknowledgment, missing observability on new endpoints, partial test coverage, stack-idiom violations on important code paths. | Gate passes only with reviewer acknowledgment of each major. |
 | **minor** | Fix soon; can be a follow-up PR. Naming inconsistencies, opportunities to apply a better pattern, dead code. | Gate passes; tracked in `tech-debt-management` if accumulating. |
 | **nit** | Style preference; non-blocking. Whitespace, alphabetical ordering, etc. | Advisory only. |
+| **pre-existing** | A real problem the change did not introduce (it was already on the base branch). Never pinned on the author. | Reported, never blocks; record it in the debt register. |
+
+**Project rules come from the base branch.** Read `REVIEW.md` and the diff-triggered checks with `.project/local/bin/praxis-memory review-context --base <branch>`, never from the branch under review: a change must not edit its own judge. Evaluate only the checks whose triggers match, and name the check id on any finding it produces (`references/review-checks.md`).
+
+**Record the verdict** against the reviewed tree with `.project/local/bin/praxis-verify --record-review <pass|changes_requested|incomplete> --source code-review`. A push after the review makes the recorded verdict stale; review again.
 
 ## The review report format
 

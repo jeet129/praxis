@@ -5,12 +5,19 @@ Controls live in hooks, not in skill prose, because prose is advisory and a
 hook runs every time. Subcommands (hook payload on stdin):
 
   pretool  PreToolUse.  In order:
-           1. KILL SWITCH   .project/STOP exists -> deny every tool call.
-           2. READ-ONLY     a reviewer agent may not edit files.
-           3. EVIDENCE GATE an edit that moves a ledger task to `done` is denied
-                            unless the task's verify evidence exists and passed.
+           1. KILL SWITCH    .project/STOP exists -> deny every tool call.
+           2. READ-ONLY      a reviewer agent may not edit files.
+           3. EVIDENCE STORE nobody edits verification summaries or evidence by
+                             hand (file tools, or shell commands writing there);
+                             only scripts/praxis-verify.py writes them.
+           4. VERIFY FREEZE  a task's `verify:` command cannot change once the
+                             task has started, unless the same edit adds
+                             `verify_changed_reason:` (logged).
+           5. EVIDENCE GATE  an edit that moves a ledger task to `done` is denied
+                             unless praxis-verify recorded a passing run of the
+                             task's current verify command on the current code.
   stop     Stop.        EVIDENCE AUDIT: if a recently completed task has no
-           evidence, keep the agent working (tells it which task to re-verify).
+           passing run on record, keep the agent working (at most twice).
   steer    UserPromptSubmit (Claude Code, Codex) / PreInvocation (Antigravity).
            If .project/STEER.md exists, inject it once, then archive it.
 
@@ -20,14 +27,17 @@ hook runs every time. Subcommands (hook payload on stdin):
     Antigravity          deny = {"decision": "deny", "reason": ...}
                          stop = {"decision": "continue", "reason": ...}
 
-Evidence for task <id> (references/loop-contracts.md):
-  .project/working/verify-<id>.log   written by the task's verify command
-  .project/working/verify-<id>.exit  optional; if present it must contain 0
+Evidence (references/loop-contracts.md): `.project/local/bin/praxis-verify <id>`
+runs the task's verify command and writes
+  .project/operational/verification/<id>--<run>.json   committed summary
+  .project/local/evidence/<id>/<run>/output.log         gitignored full log
 Tasks with `verify: null` (human-checked) are exempt.
 
 Configuration (environment):
-  PRAXIS_EVIDENCE_GATE   enforce (default) | warn | off
-  PRAXIS_READONLY_AGENTS comma list (default: the three reviewer agents)
+  PRAXIS_EVIDENCE_GATE          enforce (default) | warn | off
+  PRAXIS_EVIDENCE_FRESHNESS     tree (default) | off   reject runs older than the code
+  PRAXIS_ALLOW_LEGACY_EVIDENCE  1 also accepts old verify-<id>.log/.exit files
+  PRAXIS_READONLY_AGENTS        comma list (default: the three reviewer agents)
 
 Fail-open: any internal error allows the action. Zero dependencies.
 """
@@ -38,6 +48,9 @@ import os
 import re
 import sys
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import praxis_project as pp  # noqa: E402  (shared layout + evidence helpers)
 
 READONLY_DEFAULT = "code-reviewer,security-reviewer,architecture-challenger"
 EDIT_TOOLS = {
@@ -108,44 +121,13 @@ def log(root, record):
         pass
 
 
-# ── ledger parsing (no YAML dependency) ─────────────────────────────────────
-def parse_tasks(text):
-    """Return {task_id: {"status":..., "verify":..., "completed_at":...}}."""
-    tasks, cur = {}, None
-    for line in text.splitlines():
-        m = re.match(r"^\s*-\s+id:\s*[\"']?([^\"'#\s]+)", line)
-        if m:
-            cur = tasks.setdefault(m.group(1), {})
-            continue
-        if cur is None:
-            continue
-        m = re.match(r"^\s+(status|verify|completed_at):\s*(.*?)\s*(?:#.*)?$", line)
-        if m and m.group(1) not in cur:
-            cur[m.group(1)] = m.group(2).strip().strip("\"'")
-    return tasks
+# ── ledger parsing + evidence (shared with praxis-verify) ───────────────────
+parse_tasks = pp.parse_tasks
 
 
-def evidence_problem(root, task_id, task):
+def evidence_problem(root, task_id, task, check_fresh=False, ledger=None):
     """None if evidence is fine or not checkable, else a reason string."""
-    verify = (task.get("verify") or "").strip()
-    if verify in ("", "null", "~", "None"):
-        return None  # human-checked task
-    work = os.path.join(root, ".project", "working")
-    log_path = os.path.join(work, f"verify-{task_id}.log")
-    exit_path = os.path.join(work, f"verify-{task_id}.exit")
-    if os.path.isfile(exit_path):
-        try:
-            code = open(exit_path).read().strip()
-        except Exception:
-            code = ""
-        if code != "0":
-            return f"verify-{task_id}.exit records exit code {code or '?'} (must be 0)"
-        return None
-    if not os.path.isfile(log_path):
-        return (f"no verify evidence: run the task's verify command so it writes "
-                f".project/working/verify-{task_id}.log (and, ideally, its exit code to "
-                f"verify-{task_id}.exit)")
-    return None
+    return pp.evidence_problem(root, task_id, task, check_fresh=check_fresh, ledger=ledger)
 
 
 def newly_done(before_text, after_text):
@@ -228,6 +210,48 @@ def proposed_edit(harness, tool, args):
     return path, content
 
 
+# ── evidence store protection + verify freeze ───────────────────────────────
+PROTECTED_RE = re.compile(r"(^|/)\.project/(operational/verification|local/evidence)(/|$)")
+SHELL_TOOLS = {"Bash", "shell", "exec_command", "local_shell", "run_command", "run_shell_command"}
+WRITE_HINT = re.compile(r"(>|\btee\b|\bcp\b|\bmv\b|\brm\b|\bsed\s+-i|\btruncate\b|\btouch\b|"
+                        r"\bln\b|\binstall\b|\brsync\b|\bdd\b|write_text|open\()")
+
+
+def shell_command(args):
+    for k in ("command", "cmd", "CommandLine", "commandLine"):
+        v = args.get(k)
+        if isinstance(v, list):
+            return " ".join(str(x) for x in v)
+        if isinstance(v, str):
+            return v
+    return ""
+
+
+def protected_shell_write(cmd):
+    """A shell command that writes into the evidence store, other than the runner."""
+    if "operational/verification" not in cmd and "local/evidence" not in cmd:
+        return False
+    if re.search(r"praxis-(verify|memory)(\.py)?\b", cmd):
+        return False
+    return bool(WRITE_HINT.search(cmd))
+
+
+def verify_changes(before_text, after_text):
+    """Tasks whose verify command changed after they started, without a reason."""
+    before, after = parse_tasks(before_text), parse_tasks(after_text)
+    bad = []
+    for tid, b in before.items():
+        a = after.get(tid)
+        if not a or a.get("verify") == b.get("verify"):
+            continue
+        started = (b.get("status") not in (None, "", "open", "todo", "pending")
+                   or str(b.get("attempts") or "0") != "0")
+        reason = a.get("verify_changed_reason")
+        if started and (pp.is_null(reason) or reason == b.get("verify_changed_reason")):
+            bad.append(tid)
+    return bad
+
+
 # ── subcommands ─────────────────────────────────────────────────────────────
 def cmd_pretool(harness, payload):
     root = project_root(payload)
@@ -248,16 +272,43 @@ def cmd_pretool(harness, payload):
                           "findings in your reply; the owning agent makes the change.")
 
     mode = os.environ.get("PRAXIS_EVIDENCE_GATE", "enforce")
+    if root and mode != "off" and tool in SHELL_TOOLS and protected_shell_write(shell_command(args)):
+        log(root, {"harness": harness, "control": "evidence_store", "tool": tool, "agent": agent})
+        if mode == "enforce":
+            out_deny(harness, "PRAXIS EVIDENCE STORE: .project/operational/verification/ and "
+                              ".project/local/evidence/ are written only by praxis-verify. Run "
+                              "`.project/local/bin/praxis-verify <task-id>` instead of writing results yourself.")
     if is_edit and root and mode != "off":
         path, after = proposed_edit(harness, tool, args)
+        targets = [path or ""]
+        if harness == "codex":
+            patch = args.get("command") or args.get("patch") or args.get("input") or ""
+            patch = "\n".join(str(x) for x in patch) if isinstance(patch, list) else str(patch)
+            targets += re.findall(r"^\*\*\* (?:Update|Add|Delete) File:\s*(.+)$", patch, flags=re.M)
+        if any(t and PROTECTED_RE.search(t.strip().replace("\\", "/")) for t in targets):
+            log(root, {"harness": harness, "control": "evidence_store", "tool": tool, "agent": agent,
+                       "path": path})
+            if mode == "enforce":
+                out_deny(harness, "PRAXIS EVIDENCE STORE: verification summaries and evidence are written "
+                                  "only by praxis-verify. Run `.project/local/bin/praxis-verify <task-id>`.")
         norm = (path or "").replace("\\", "/")
         if path and not os.path.isabs(path):
             path = os.path.join(root, path)
         if LEDGER_RE.search(norm) and after is not None:
             before = open(path, errors="replace").read() if os.path.isfile(path) else ""
+            frozen = verify_changes(before, after)
+            if frozen:
+                log(root, {"harness": harness, "control": "verify_freeze", "mode": mode,
+                           "agent": agent, "tasks": frozen})
+                if mode == "enforce":
+                    out_deny(harness, "PRAXIS VERIFY FREEZE: the verify command of " + ", ".join(frozen)
+                                      + " cannot change after the task has started, because a change must "
+                                        "not edit its own check. If the command is genuinely wrong, add "
+                                        "`verify_changed_reason: <why>` to the task in the same edit; it is "
+                                        "logged for review.")
             problems = []
             for tid, task in newly_done(before, after).items():
-                p = evidence_problem(root, tid, task)
+                p = evidence_problem(root, tid, task, check_fresh=True, ledger=path)
                 if p:
                     problems.append(f"{tid}: {p}")
             if problems:
@@ -266,7 +317,7 @@ def cmd_pretool(harness, payload):
                 if mode == "enforce":
                     out_deny(harness, "PRAXIS EVIDENCE GATE: a task cannot be marked done "
                                       "without passing verify evidence.\n- " + "\n- ".join(problems)
-                                      + "\nRun the verify command, confirm it exits 0, then "
+                                      + "\nRun `.project/local/bin/praxis-verify <task-id>`, confirm it passes, then "
                                         "update the ledger. If the task genuinely cannot be "
                                         "machine-verified, set its status to blocked and say why.")
     out_allow(harness)
@@ -300,7 +351,7 @@ def cmd_stop(harness, payload):
                     continue
             except Exception:
                 continue
-            p = evidence_problem(root, tid, task)
+            p = evidence_problem(root, tid, task, ledger=ledger)
             if p:
                 problems.append(f"{os.path.basename(ledger)} {tid}: {p}")
     if not problems:
@@ -317,8 +368,9 @@ def cmd_stop(harness, payload):
     log(root, {"harness": harness, "control": "evidence_audit", "mode": mode, "problems": problems, "round": n + 1})
     if mode != "enforce" or n >= 2:
         return finish_stop(harness, None)
-    return finish_stop(harness, "PRAXIS EVIDENCE AUDIT: these tasks are marked done without verify "
-                                "evidence. Re-run each verify command (or reopen the task) before "
+    return finish_stop(harness, "PRAXIS EVIDENCE AUDIT: these tasks are marked done without a passing "
+                                "praxis-verify run. Run `.project/local/bin/praxis-verify <task-id>` for each "
+                                "(or reopen the task) before "
                                 "finishing:\n- " + "\n- ".join(problems))
 
 
@@ -340,6 +392,45 @@ def goal_continuation(harness, root, payload):
         want = open(marker).read().strip()
     except Exception:
         want = ""
+    # Context budget: after N finished tasks or a large transcript, hand off to
+    # a fresh session (the ledger is the hand-off). First stop: ask the agent to
+    # leave the ledger and task notes current. Second stop: disarm and let it end.
+    sid = re.sub(r"[^A-Za-z0-9_-]", "", str(payload.get("session_id") or payload.get("conversationId") or "s"))[:64]
+    flag = os.path.join(root, ".project", "telemetry", f".handoff-{sid}")
+    if os.path.isfile(flag):
+        try:
+            os.remove(flag)
+            os.remove(marker)
+        except Exception:
+            pass
+        log(root, {"harness": harness, "control": "context_handoff", "phase": "stopped"})
+        global NOTICE
+        NOTICE = ("Praxis paused the drive to save tokens: start a fresh session (Claude Code /clear, "
+                  "Antigravity a new conversation) and run /drive again; the ledger carries the state.")
+        return None
+    try:
+        since = os.path.getmtime(marker)
+    except Exception:
+        since = None
+    budget = pp.context_budget(root)
+    handoff = None
+    if budget["on_session_budget"] == "ask":
+        handoff = pp.session_handoff(root, since, payload.get("transcript_path"), want)
+    else:
+        # Default: never stop for the budget. Tell the person once per budget step
+        # that this is a good moment to clear; the drive (and auto-compaction) go on.
+        global HINT
+        HINT = pp.budget_hint(root, sid, since, payload.get("transcript_path"), want)
+        if HINT:
+            log(root, {"harness": harness, "control": "context_hint"})
+    if handoff:
+        try:
+            os.makedirs(os.path.dirname(flag), exist_ok=True)
+            open(flag, "w").write(pp.now_iso())
+        except Exception:
+            return None
+        log(root, {"harness": harness, "control": "context_handoff", "phase": "requested"})
+        return handoff
     open_tasks = []
     for ledger in sorted(glob.glob(os.path.join(root, ".project", "working", "slice-*-tasks.y*ml"))):
         if want and want not in os.path.basename(ledger):
@@ -365,17 +456,29 @@ def goal_continuation(harness, root, payload):
         return None
     log(root, {"harness": harness, "control": "goal_continue", "round": n + 1, "open": len(open_tasks)})
     return ("PRAXIS DRIVE: the slice ledger still has open tasks: " + ", ".join(open_tasks[:8])
-            + ". Take the next one: implement it, run its verify command, record the result, "
-              "then update the ledger. If you are blocked, set the task to blocked with the "
+            + ". Take the next one: hand it to a fresh specialist subagent (brief by path: task id, ac, "
+              "verify command, packet, notes), let it implement and run `.project/local/bin/praxis-verify "
+              "<task-id>`, take back only its short report, then update the ledger. If you are blocked, set the task to blocked with the "
               "reason and stop.")
 
 
+NOTICE = None  # shown to the user when a stop is allowed (context hand-off)
+HINT = None    # shown to the user alongside a continuation (budget hint)
+
+
 def finish_stop(harness, reason):
+    if not reason and NOTICE:
+        print(json.dumps({"systemMessage": NOTICE} if harness != "antigravity"
+                         else {"decision": "stop", "reason": NOTICE}))
+        sys.exit(0)
     if reason:
         if harness == "antigravity":
             print(json.dumps({"decision": "continue", "reason": reason}))
         else:
-            print(json.dumps({"decision": "block", "reason": reason}))
+            out = {"decision": "block", "reason": reason}
+            if HINT:
+                out["systemMessage"] = HINT  # shown to the person, not the model
+            print(json.dumps(out))
     elif harness == "antigravity":
         print(json.dumps({"decision": "stop"}))
     sys.exit(0)

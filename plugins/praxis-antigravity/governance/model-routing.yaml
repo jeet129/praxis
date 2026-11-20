@@ -54,6 +54,14 @@ harnesses:
       deep: high
       standard: medium
       light: low
+    # Subagent turn cap per tier (written as `maxTurns:`). A subagent that hits it
+    # returns partial output that Claude can resume; resuming re-reads its whole
+    # history, so the caps are generous and exist to stop runaway loops.
+    turns_field: maxTurns
+    turns_map:
+      deep: 80
+      standard: 60
+      light: 30
   codex:
     field: model_reasoning_effort   # written into codex-plugin-assets/codex-agents/*.toml
     map:
